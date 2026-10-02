@@ -28,5 +28,12 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>我们需要访问局域网以发现其他设备</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_foo._tcp</string>
+    </array>
 </dict>
 </plist>

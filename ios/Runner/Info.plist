@@ -66,5 +66,16 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+    <!-- 1. Description shown when iOS asks the user for Local Network permission -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>YL Chat requires local network access to discover and connect with nearby peers.</string>
+
+    <!-- 2. Declare the custom mDNS service type used in your Rust code -->
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_ylchat._tcp</string>
+        <string>_ylchat._udp</string>
+    </array>
 </dict>
 </plist>

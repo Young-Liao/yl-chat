@@ -1,9 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:yl_chat/src/rust/api/network.dart';
 import 'package:yl_chat/src/rust/api/simple.dart';
 import 'package:yl_chat/src/rust/frb_generated.dart';
 
 Future<void> main() async {
   await RustLib.init();
+
+  await registerBonjourService();
+  final peers = await scanLanPeers();
+
+  if (kDebugMode) {
+    print("peers: $peers");
+  }
+
   runApp(const MyApp());
 }
 
