@@ -1,8 +1,9 @@
-use std::sync::Arc;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -33,7 +34,6 @@ pub enum MessagePayload {
     Pong,
 }
 
-
 pub struct PeerSession {
     pub peer_id: String,
     pub peer_ip: String,
@@ -45,9 +45,18 @@ impl PeerSession {
     /// Connect to a remote peer via IP and port
     pub async fn connect(peer_id: String, peer_ip: String, port: u16) -> Result<Self, String> {
         let addr = format!("{}:{}", peer_ip, port);
-        let stream = TcpStream::connect(&addr)
-            .await
-            .map_err(|e| format!("Failed to connect to {}: {}", addr, e))?;
+        info!(peer_id = %peer_id, addr = %addr, "Connecting to remote peer...");
+
+        let stream = match TcpStream::connect(&addr).await {
+            Ok(s) => {
+                info!(peer_id = %peer_id, addr = %addr, "Successfully connected to peer");
+                s
+            }
+            Err(e) => {
+                error!(peer_id = %peer_id, addr = %addr, error = %e, "Failed to connect to peer");
+                return Err(format!("Failed to connect to {}: {}", addr, e));
+            }
+        };
 
         Ok(Self {
             peer_id,
@@ -59,6 +68,8 @@ impl PeerSession {
     /// Send a Chat Message envelope over the framing protocol
     pub async fn send_chat_message(&self, sender_id: String, sender_name: String, content: String) -> Result<String, String> {
         let msg_id = Uuid::new_v4().to_string();
+        debug!(peer_id = %self.peer_id, msg_id = %msg_id, sender_id = %sender_id, "Preparing chat message envelope");
+
         let envelope = MessageEnvelope {
             version: 1,
             msg_id: msg_id.clone(),
@@ -74,8 +85,10 @@ impl PeerSession {
 
     /// Helper to send framed JSON over TCP: [4-byte length][JSON bytes]
     pub async fn send_envelope(&self, envelope: &MessageEnvelope) -> Result<(), String> {
-        let json_bytes = serde_json::to_vec(envelope)
-            .map_err(|e| format!("Failed to serialize envelope: {e}"))?;
+        let json_bytes = serde_json::to_vec(envelope).map_err(|e| {
+            error!(peer_id = %self.peer_id, msg_id = %envelope.msg_id, error = %e, "Failed to serialize envelope");
+            format!("Failed to serialize envelope: {e}")
+        })?;
 
         let length = json_bytes.len() as u32;
         let mut guard = self.stream.lock().await;
@@ -83,13 +96,39 @@ impl PeerSession {
         if let Some(ref mut stream) = *guard {
             let length_bytes = length.to_be_bytes();
 
+            debug!(
+                peer_id = %self.peer_id,
+                msg_id = %envelope.msg_id,
+                payload_len = length,
+                "Sending framed envelope over TCP"
+            );
+
             // Write 4-byte Big Endian length prefix
-            stream.write_all(&length_bytes).await.map_err(|e| e.to_string())?;
+            if let Err(e) = stream.write_all(&length_bytes).await {
+                error!(peer_id = %self.peer_id, msg_id = %envelope.msg_id, error = %e, "Failed to write length prefix");
+                return Err(e.to_string());
+            }
+
             // Write payload bytes
-            stream.write_all(&json_bytes).await.map_err(|e| e.to_string())?;
-            stream.flush().await.map_err(|e| e.to_string())?;
+            if let Err(e) = stream.write_all(&json_bytes).await {
+                error!(peer_id = %self.peer_id, msg_id = %envelope.msg_id, error = %e, "Failed to write payload bytes");
+                return Err(e.to_string());
+            }
+
+            if let Err(e) = stream.flush().await {
+                error!(peer_id = %self.peer_id, msg_id = %envelope.msg_id, error = %e, "Failed to flush TCP stream");
+                return Err(e.to_string());
+            }
+
+            info!(
+                peer_id = %self.peer_id,
+                msg_id = %envelope.msg_id,
+                payload_len = length,
+                "Envelope successfully sent"
+            );
             Ok(())
         } else {
+            warn!(peer_id = %self.peer_id, "Attempted to send envelope on a closed TCP connection");
             Err("TCP Connection is closed".into())
         }
     }
@@ -99,27 +138,58 @@ impl PeerSession {
         let mut guard = self.stream.lock().await;
 
         if let Some(ref mut stream) = *guard {
+            debug!(peer_id = %self.peer_id, "Waiting to read frame length prefix...");
+
             // Read 4-byte length prefix
-            let length = stream.read_u32().await.map_err(|e| format!("Read length failed: {e}"))? as usize;
+            let length = match stream.read_u32().await {
+                Ok(len) => len as usize,
+                Err(e) => {
+                    warn!(peer_id = %self.peer_id, error = %e, "Failed to read length prefix (peer disconnected or socket error)");
+                    return Err(format!("Read length failed: {e}"));
+                }
+            };
+
+            debug!(peer_id = %self.peer_id, payload_len = length, "Reading payload bytes...");
 
             // Read payload bytes
             let mut buffer = vec![0u8; length];
-            stream.read_exact(&mut buffer).await.map_err(|e| format!("Read payload failed: {e}"))?;
+            if let Err(e) = stream.read_exact(&mut buffer).await {
+                error!(peer_id = %self.peer_id, payload_len = length, error = %e, "Failed to read full payload bytes");
+                return Err(format!("Read payload failed: {e}"));
+            }
 
-            let envelope: MessageEnvelope = serde_json::from_slice(&buffer)
-                .map_err(|e| format!("Failed to parse JSON envelope: {e}"))?;
+            let envelope: MessageEnvelope = serde_json::from_slice(&buffer).map_err(|e| {
+                error!(peer_id = %self.peer_id, error = %e, "Failed to parse incoming JSON envelope");
+                format!("Failed to parse JSON envelope: {e}")
+            })?;
+
+            info!(
+                peer_id = %self.peer_id,
+                msg_id = %envelope.msg_id,
+                sender_id = %envelope.sender_id,
+                "Successfully received and parsed MessageEnvelope"
+            );
 
             Ok(envelope)
         } else {
+            warn!(peer_id = %self.peer_id, "Attempted to read from a closed TCP connection");
             Err("TCP Connection is closed".into())
         }
     }
 
     /// Close the session socket
     pub async fn close(&self) {
+        info!(peer_id = %self.peer_id, "Closing peer session...");
         let mut guard = self.stream.lock().await;
+
         if let Some(mut stream) = guard.take() {
-            let _ = stream.shutdown().await;
+            if let Err(e) = stream.shutdown().await {
+                warn!(peer_id = %self.peer_id, error = %e, "Error shutting down TCP stream");
+            } else {
+                info!(peer_id = %self.peer_id, "TCP stream gracefully shut down");
+            }
+        } else {
+            debug!(peer_id = %self.peer_id, "Session was already closed");
         }
     }
 }
