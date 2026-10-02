@@ -6,9 +6,8 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `get_device_identifier`, `get_or_init_daemon`
+// These functions are ignored because they are not marked as `pub`: `get_device_identifier`, `get_local_ip`, `get_or_init_daemon`
 
-/// Starts advertising this device's node on the local network via Bonjour/mDNS
 Future<void> registerBonjourService() =>
     RustLib.instance.api.crateApiNetworkRegisterBonjourService();
 

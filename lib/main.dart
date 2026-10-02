@@ -9,7 +9,12 @@ Future<void> main() async
   await RustLib.init();
 
   // 1. Register local service on startup
-  await registerBonjourService();
+  try {
+    await registerBonjourService();
+    print("Flutter: mDNS Service register called successfully.");
+  } catch (e) {
+    print("Flutter: Failed to call registerBonjourService: $e");
+  }
 
   runApp(const MyApp());
 }
