@@ -40,20 +40,22 @@ pub fn register_bonjour_service() -> Result<(), String> {
 /// Scans the local network for peers and returns their resolved IP addresses
 pub async fn scan_lan_peers() -> Result<Vec<String>, String> {
     let mdns = get_or_init_daemon()?;
+
+    // browse automatically triggers discovery and resolution under the hood
     let receiver = mdns
         .browse(SERVICE_TYPE)
         .map_err(|e| format!("Failed to browse mDNS: {e}"))?;
 
     let mut peer_ips = HashSet::new();
-    let timeout = Duration::from_secs(4);
+    let timeout = Duration::from_secs(5);
     let start = std::time::Instant::now();
 
     while start.elapsed() < timeout {
         if let Ok(event) = receiver.recv_timeout(Duration::from_millis(100)) {
+            // Simply catch ServiceResolved events
             if let ServiceEvent::ServiceResolved(info) = event {
                 for ip in info.get_addresses() {
                     let ip_str = ip.to_string();
-                    // Ignore local loopback IP
                     if !ip_str.starts_with("127.") {
                         peer_ips.insert(ip_str);
                     }
