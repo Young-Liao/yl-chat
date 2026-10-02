@@ -1,7 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -77,7 +78,7 @@ impl PeerSession {
             .map_err(|e| format!("Failed to serialize envelope: {e}"))?;
 
         let length = json_bytes.len() as u32;
-        let mut guard = self.stream.lock().unwrap();
+        let mut guard = self.stream.lock().await;
 
         if let Some(ref mut stream) = *guard {
             let length_bytes = length.to_be_bytes();
@@ -95,7 +96,7 @@ impl PeerSession {
 
     /// Read the next incoming MessageEnvelope from the TCP stream
     pub async fn read_envelope(&self) -> Result<MessageEnvelope, String> {
-        let mut guard = self.stream.lock().unwrap();
+        let mut guard = self.stream.lock().await;
 
         if let Some(ref mut stream) = *guard {
             // Read 4-byte length prefix
@@ -116,7 +117,7 @@ impl PeerSession {
 
     /// Close the session socket
     pub async fn close(&self) {
-        let mut guard = self.stream.lock().unwrap();
+        let mut guard = self.stream.lock().await;
         if let Some(mut stream) = guard.take() {
             let _ = stream.shutdown().await;
         }
