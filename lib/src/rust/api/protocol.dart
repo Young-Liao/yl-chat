@@ -6,10 +6,10 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `emit_event`, `get_or_connect`, `handle_connection_loop`, `handle_incoming_stream`
+// These functions are ignored because they are not marked as `pub`: `emit_event`, `get_or_connect`, `handle_incoming_stream`, `handle_read_loop`, `setup_connection`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `MessageEnvelope`, `MessagePayload`, `PeerConnection`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
-// These functions are ignored (category: IgnoreBecauseOwnerTyShouldIgnore): `read_envelope`, `send_envelope`
+// These functions are ignored (category: IgnoreBecauseOwnerTyShouldIgnore): `send_envelope`
 
 Future<PlatformInt64> chronoNowTimestamp() =>
     RustLib.instance.api.crateApiProtocolChronoNowTimestamp();

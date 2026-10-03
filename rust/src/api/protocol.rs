@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{mpsc, Mutex, RwLock};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 use flutter_rust_bridge::frb;
@@ -187,115 +187,16 @@ pub enum MessagePayload {
 pub struct PeerConnection {
     pub remote_mac: RwLock<String>,
     pub remote_ip: String,
-    stream: Mutex<TcpStream>,
+    tx: mpsc::Sender<MessageEnvelope>,
 }
 
 impl PeerConnection {
+    /// 通过 Channel 异步投递待发送信封，彻底避免锁死 TCP Socket
     pub async fn send_envelope(&self, envelope: &MessageEnvelope) -> Result<(), String> {
-        let mac = self.remote_mac.read().await.clone();
-        debug!(
-            remote_mac = %mac,
-            ip = %self.remote_ip,
-            msg_id = %envelope.msg_id,
-            payload_type = ?envelope.payload,
-            "Serializing and transmitting envelope over TCP"
-        );
-
-        let bytes = serde_json::to_vec(envelope).map_err(|e| {
-            error!(error = %e, "Failed to serialize MessageEnvelope to JSON");
-            e.to_string()
-        })?;
-
-        let len = (bytes.len() as u32).to_be_bytes();
-        let mut guard = self.stream.lock().await;
-
-        guard.write_all(&len).await.map_err(|e| {
-            error!(
-                remote_mac = %mac,
-                ip = %self.remote_ip,
-                error = %e,
-                "Failed to write length header bytes to socket"
-            );
-            e.to_string()
-        })?;
-
-        guard.write_all(&bytes).await.map_err(|e| {
-            error!(
-                remote_mac = %mac,
-                ip = %self.remote_ip,
-                error = %e,
-                "Failed to write payload bytes to socket"
-            );
-            e.to_string()
-        })?;
-
-        guard.flush().await.map_err(|e| {
-            error!(
-                remote_mac = %mac,
-                ip = %self.remote_ip,
-                error = %e,
-                "Failed to flush TCP stream"
-            );
-            e.to_string()
-        })?;
-
-        debug!(
-            remote_mac = %mac,
-            ip = %self.remote_ip,
-            msg_id = %envelope.msg_id,
-            bytes_sent = bytes.len(),
-            "Successfully sent envelope"
-        );
-        Ok(())
-    }
-
-    pub async fn read_envelope(&self) -> Result<MessageEnvelope, String> {
-        let mut guard = self.stream.lock().await;
-        let mut len_bytes = [0u8; 4];
-        let mac = self.remote_mac.read().await.clone();
-
-        guard.read_exact(&mut len_bytes).await.map_err(|e| {
-            debug!(
-                remote_mac = %mac,
-                ip = %self.remote_ip,
-                error = %e,
-                "TCP stream read length error (connection likely closed)"
-            );
-            e.to_string()
-        })?;
-
-        let len = u32::from_be_bytes(len_bytes) as usize;
-        let mut buffer = vec![0u8; len];
-
-        guard.read_exact(&mut buffer).await.map_err(|e| {
-            error!(
-                remote_mac = %mac,
-                ip = %self.remote_ip,
-                expected_len = len,
-                error = %e,
-                "Failed reading full frame content from socket"
-            );
-            e.to_string()
-        })?;
-
-        let envelope: MessageEnvelope = serde_json::from_slice(&buffer).map_err(|e| {
-            error!(
-                remote_mac = %mac,
-                ip = %self.remote_ip,
-                error = %e,
-                "Deserialization failed for incoming message envelope"
-            );
-            e.to_string()
-        })?;
-
-        debug!(
-            remote_mac = %mac,
-            ip = %self.remote_ip,
-            msg_id = %envelope.msg_id,
-            payload_type = ?envelope.payload,
-            "Read message envelope successfully"
-        );
-        Ok(envelope)
+        self.tx
+            .send(envelope.clone())
+            .await
+            .map_err(|e| format!("Failed to queue message envelope to writer channel: {e}"))
     }
 }
 
@@ -369,11 +270,7 @@ impl NetworkEngine {
 
         info!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, address = %addr, "TCP connection established successfully");
 
-        let conn = Arc::new(PeerConnection {
-            remote_mac: RwLock::new(peer_mac.to_string()),
-            remote_ip: peer_record.last_known_ip.clone(),
-            stream: Mutex::new(stream),
-        });
+        let (tx, conn) = self.setup_connection(stream, peer_record.last_known_ip.clone(), peer_mac.to_string()).await;
 
         let handshake = MessageEnvelope {
             version: 1,
@@ -392,17 +289,62 @@ impl NetworkEngine {
             .await
             .insert(peer_mac.to_string(), Arc::clone(&conn));
 
-        let engine = self.clone();
-        let conn_clone = Arc::clone(&conn);
-        let peer_mac_owned = peer_mac.to_string();
-        let peer_ip_owned = peer_record.last_known_ip.clone();
+        Ok(conn)
+    }
 
-        tokio::spawn(async move {
-            debug!(peer_mac = %peer_mac_owned, ip = %peer_ip_owned, "Spawning background socket listener loop for outbound peer");
-            engine.handle_connection_loop(conn_clone, peer_mac_owned, peer_ip_owned).await;
+    /// 设置分离的读写 Channel 逻辑
+    async fn setup_connection(
+        &self,
+        stream: TcpStream,
+        remote_ip: String,
+        peer_mac: String,
+    ) -> (mpsc::Sender<MessageEnvelope>, Arc<PeerConnection>) {
+        let (read_half, mut write_half) = stream.into_split();
+        let (tx, mut rx) = mpsc::channel::<MessageEnvelope>(100);
+
+        let conn = Arc::new(PeerConnection {
+            remote_mac: RwLock::new(peer_mac.clone()),
+            remote_ip: remote_ip.clone(),
+            tx: tx.clone(),
         });
 
-        Ok(conn)
+        // 1. 独立写入任务：从 rx 通道接收 Frame，单向写到 TCP stream
+        let ip_writer = remote_ip.clone();
+        tokio::spawn(async move {
+            use tokio::io::AsyncWriteExt;
+            while let Some(envelope) = rx.recv().await {
+                let bytes = match serde_json::to_vec(&envelope) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        error!(error = %e, "Failed to serialize MessageEnvelope");
+                        continue;
+                    }
+                };
+
+                let len = (bytes.len() as u32).to_be_bytes();
+                if let Err(e) = write_half.write_all(&len).await {
+                    error!(ip = %ip_writer, error = %e, "Failed writing length to socket");
+                    break;
+                }
+                if let Err(e) = write_half.write_all(&bytes).await {
+                    error!(ip = %ip_writer, error = %e, "Failed writing payload to socket");
+                    break;
+                }
+                if let Err(e) = write_half.flush().await {
+                    error!(ip = %ip_writer, error = %e, "Failed flushing socket");
+                    break;
+                }
+            }
+        });
+
+        // 2. 独立读取循环：从 read_half 不断读取 Frame 驱动状态机
+        let engine = self.clone();
+        let conn_clone = Arc::clone(&conn);
+        tokio::spawn(async move {
+            engine.handle_read_loop(read_half, conn_clone, peer_mac, remote_ip).await;
+        });
+
+        (tx, conn)
     }
 
     pub async fn send_message(&self, recipient_mac: String, content: String) -> Result<(), String> {
@@ -429,17 +371,14 @@ impl NetworkEngine {
             status: MessageStatus::Pending,
         };
 
-        // 1. 先持久化写进本地数据库/内存
         self.storage.append_message(recipient_mac.clone(), msg).await;
 
-        // 2. 异步后台触发 flush_outbox，不阻塞当前 send_message 调用
         let engine = self.clone();
         let mac_clone = recipient_mac.clone();
         tokio::spawn(async move {
             engine.flush_outbox(&mac_clone).await;
         });
 
-        // 3. 立即返回，前端 Flutter 界面可以瞬间完成发送操作并刷新 UI
         Ok(())
     }
 
@@ -452,21 +391,21 @@ impl NetworkEngine {
         }
 
         info!(
-        peer_mac = %peer_mac,
-        ip = %peer_ip,
-        count = pending.len(),
-        "Flushing outbox pending queue"
-    );
+            peer_mac = %peer_mac,
+            ip = %peer_ip,
+            count = pending.len(),
+            "Flushing outbox pending queue"
+        );
 
         match self.get_or_connect(peer_mac).await {
             Ok(conn) => {
                 for msg in pending {
                     debug!(
-                    peer_mac = %peer_mac,
-                    ip = %peer_ip,
-                    msg_id = %msg.msg_id,
-                    "Attempting outbox message delivery"
-                );
+                        peer_mac = %peer_mac,
+                        ip = %peer_ip,
+                        msg_id = %msg.msg_id,
+                        "Attempting outbox message delivery"
+                    );
 
                     let env = MessageEnvelope {
                         version: 1,
@@ -479,27 +418,26 @@ impl NetworkEngine {
 
                     if let Err(e) = conn.send_envelope(&env).await {
                         error!(
-                        peer_mac = %peer_mac,
-                        ip = %peer_ip,
-                        msg_id = %msg.msg_id,
-                        error = %e,
-                        "Failed transmitting outbox message. Evicting dead connection"
-                    );
+                            peer_mac = %peer_mac,
+                            ip = %peer_ip,
+                            msg_id = %msg.msg_id,
+                            error = %e,
+                            "Failed transmitting outbox message. Evicting dead connection"
+                        );
                         self.connections.write().await.remove(peer_mac);
                         break;
                     } else {
-                        // 【修复关键点 1】：TCP 发送成功后通知 UI 消息已送出（哪怕 ACK 还没回来）
                         self.emit_event(format!("MSG_SENT:{}", peer_mac)).await;
                     }
                 }
             }
             Err(e) => {
                 warn!(
-                peer_mac = %peer_mac,
-                ip = %peer_ip,
-                error = %e,
-                "Cannot flush outbox: unable to connect to peer endpoint"
-            );
+                    peer_mac = %peer_mac,
+                    ip = %peer_ip,
+                    error = %e,
+                    "Cannot flush outbox: unable to connect to peer endpoint"
+                );
             }
         }
     }
@@ -575,17 +513,12 @@ impl NetworkEngine {
     }
 
     async fn handle_incoming_stream(&self, stream: TcpStream, ip: String) {
-        let conn = Arc::new(PeerConnection {
-            remote_mac: RwLock::new(String::new()),
-            remote_ip: ip.clone(),
-            stream: Mutex::new(stream),
-        });
-
-        self.handle_connection_loop(conn, String::new(), ip).await;
+        self.setup_connection(stream, ip, String::new()).await;
     }
 
-    async fn handle_connection_loop(
+    async fn handle_read_loop(
         &self,
+        mut read_half: tokio::net::tcp::OwnedReadHalf,
         conn: Arc<PeerConnection>,
         mut current_peer_mac: String,
         current_peer_ip: String,
@@ -597,106 +530,135 @@ impl NetworkEngine {
         );
 
         loop {
-            match conn.read_envelope().await {
-                Ok(env) => match env.payload {
-                    MessagePayload::Handshake { sender_mac } => {
-                        info!(
-                            remote_mac = %sender_mac,
-                            ip = %current_peer_ip,
-                            "Received Handshake envelope. Registering peer connection"
-                        );
-                        current_peer_mac = sender_mac.clone();
-                        *conn.remote_mac.write().await = sender_mac.clone();
+            // 从 OwnedReadHalf 循环解析 Packet
+            let mut len_bytes = [0u8; 4];
+            if let Err(e) = read_half.read_exact(&mut len_bytes).await {
+                debug!(
+                    remote_mac = %current_peer_mac,
+                    ip = %current_peer_ip,
+                    error = %e,
+                    "TCP stream read length error (connection closed)"
+                );
+                break;
+            }
+
+            let len = u32::from_be_bytes(len_bytes) as usize;
+            let mut buffer = vec![0u8; len];
+            if let Err(e) = read_half.read_exact(&mut buffer).await {
+                error!(
+                    remote_mac = %current_peer_mac,
+                    ip = %current_peer_ip,
+                    error = %e,
+                    "Failed reading payload from socket"
+                );
+                break;
+            }
+
+            let env: MessageEnvelope = match serde_json::from_slice(&buffer) {
+                Ok(env) => env,
+                Err(e) => {
+                    error!(
+                        remote_mac = %current_peer_mac,
+                        ip = %current_peer_ip,
+                        error = %e,
+                        "Deserialization failed"
+                    );
+                    continue;
+                }
+            };
+
+            match env.payload {
+                MessagePayload::Handshake { sender_mac } => {
+                    info!(
+                        remote_mac = %sender_mac,
+                        ip = %current_peer_ip,
+                        "Received Handshake envelope. Registering peer connection"
+                    );
+                    current_peer_mac = sender_mac.clone();
+                    *conn.remote_mac.write().await = sender_mac.clone();
+                    self.connections
+                        .write()
+                        .await
+                        .insert(sender_mac, Arc::clone(&conn));
+                }
+                MessagePayload::ChatMessage { content } => {
+                    info!(
+                        sender_mac = %env.sender_mac,
+                        ip = %current_peer_ip,
+                        msg_id = %env.msg_id,
+                        "Received ChatMessage envelope"
+                    );
+
+                    if current_peer_mac.is_empty() {
+                        current_peer_mac = env.sender_mac.clone();
+                        *conn.remote_mac.write().await = env.sender_mac.clone();
                         self.connections
                             .write()
                             .await
-                            .insert(sender_mac, Arc::clone(&conn));
+                            .insert(env.sender_mac.clone(), Arc::clone(&conn));
                     }
-                    MessagePayload::ChatMessage { content } => {
-                        info!(
-                            sender_mac = %env.sender_mac,
+
+                    let msg = PersistentMessage {
+                        msg_id: env.msg_id.clone(),
+                        peer_mac: env.sender_mac.clone(),
+                        is_outgoing: false,
+                        content,
+                        timestamp: chrono_now_timestamp(),
+                        status: MessageStatus::Acked,
+                    };
+
+                    self.storage.append_message(env.sender_mac.clone(), msg).await;
+
+                    let ack = MessageEnvelope {
+                        version: 1,
+                        msg_id: Uuid::new_v4().to_string(),
+                        sender_mac: self.self_mac.clone(),
+                        payload: MessagePayload::Ack {
+                            target_msg_id: env.msg_id,
+                        },
+                    };
+
+                    if let Err(e) = conn.send_envelope(&ack).await {
+                        warn!(
+                            remote_mac = %env.sender_mac,
                             ip = %current_peer_ip,
-                            msg_id = %env.msg_id,
-                            "Received ChatMessage envelope"
+                            error = %e,
+                            "Failed sending ACK to peer"
                         );
-
-                        // 【修复关键点 2】：自动纠正/更新当前连接的 remote_mac
-                        if current_peer_mac.is_empty() {
-                            current_peer_mac = env.sender_mac.clone();
-                            *conn.remote_mac.write().await = env.sender_mac.clone();
-                            self.connections.write().await.insert(env.sender_mac.clone(), Arc::clone(&conn));
-                        }
-
-                        let msg = PersistentMessage {
-                            msg_id: env.msg_id.clone(),
-                            peer_mac: env.sender_mac.clone(),
-                            is_outgoing: false,
-                            content,
-                            timestamp: chrono_now_timestamp(),
-                            status: MessageStatus::Acked,
-                        };
-
-                        self.storage.append_message(env.sender_mac.clone(), msg).await;
-
-                        let ack = MessageEnvelope {
-                            version: 1,
-                            msg_id: Uuid::new_v4().to_string(),
-                            sender_mac: self.self_mac.clone(),
-                            payload: MessagePayload::Ack {
-                                target_msg_id: env.msg_id,
-                            },
-                        };
-
-                        if let Err(e) = conn.send_envelope(&ack).await {
-                            warn!(
-                                remote_mac = %env.sender_mac,
-                                ip = %current_peer_ip,
-                                error = %e,
-                                "Failed sending ACK to peer"
-                            );
-                        }
-
-                        self.emit_event(format!("NEW_MSG:{}", env.sender_mac)).await;
                     }
-                    MessagePayload::Ack { target_msg_id } => {
-                        // Use current_peer_mac as primary target for outbound connections
-                        let primary_target = if !current_peer_mac.is_empty() {
-                            &current_peer_mac
-                        } else {
-                            &env.sender_mac
-                        };
 
-                        info!(
-                            peer_mac = %primary_target,
-                            ip = %current_peer_ip,
-                            target_msg_id = %target_msg_id,
-                            "Received ACK envelope for message"
-                        );
+                    self.emit_event(format!("NEW_MSG:{}", env.sender_mac)).await;
+                }
+                MessagePayload::Ack { target_msg_id } => {
+                    let primary_target = if !current_peer_mac.is_empty() {
+                        &current_peer_mac
+                    } else {
+                        &env.sender_mac
+                    };
 
-                        let marked = self.storage.mark_acked(primary_target, &target_msg_id).await;
-                        if marked {
-                            self.emit_event(format!("ACK:{}", primary_target)).await;
-                        }
-                    }
-                },
-                Err(e) => {
-                    warn!(
-                        peer_mac = %current_peer_mac,
+                    info!(
+                        peer_mac = %primary_target,
                         ip = %current_peer_ip,
-                        error = %e,
-                        "Connection event loop terminated/closed for peer"
+                        target_msg_id = %target_msg_id,
+                        "Received ACK envelope for message"
                     );
-                    if !current_peer_mac.is_empty() {
-                        self.connections.write().await.remove(&current_peer_mac);
-                        info!(
-                            peer_mac = %current_peer_mac,
-                            ip = %current_peer_ip,
-                            "Evicted disconnected peer from connection map"
-                        );
+
+                    let marked = self.storage.mark_acked(primary_target, &target_msg_id).await;
+                    if marked {
+                        self.emit_event(format!("ACK:{}", primary_target)).await;
                     }
-                    break;
                 }
             }
+        }
+
+        // 清理断开连接
+        if !current_peer_mac.is_empty() {
+            self.connections.write().await.remove(&current_peer_mac);
+            info!(
+                peer_mac = %current_peer_mac,
+                ip = %current_peer_ip,
+                "Evicted disconnected peer from connection map"
+            );
         }
     }
 }
