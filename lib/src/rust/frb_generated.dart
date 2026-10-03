@@ -68,7 +68,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1975549821;
+  int get rustContentHash => 1775480797;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -80,46 +80,42 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  String crateApiProtocolPeerSessionAutoAccessorGetPeerId({
-    required PeerSession that,
-  });
-
-  String crateApiProtocolPeerSessionAutoAccessorGetPeerIp({
-    required PeerSession that,
-  });
-
-  void crateApiProtocolPeerSessionAutoAccessorSetPeerId({
-    required PeerSession that,
+  Stream<MessageEnvelope> crateApiProtocolPeerManagerAddReceptionHandlerFor({
+    required PeerManager that,
     required String peerId,
   });
 
-  void crateApiProtocolPeerSessionAutoAccessorSetPeerIp({
-    required PeerSession that,
+  Future<String> crateApiProtocolPeerManagerConnectPeer({
+    required PeerManager that,
     required String peerIp,
-  });
-
-  Future<void> crateApiProtocolPeerSessionClose({required PeerSession that});
-
-  Future<PeerSession> crateApiProtocolPeerSessionConnect({
-    required String peerId,
-    required String peerIp,
+    required String senderId,
     required int port,
   });
 
-  Future<MessageEnvelope> crateApiProtocolPeerSessionReadEnvelope({
-    required PeerSession that,
+  Stream<String> crateApiProtocolPeerManagerCreatePeerListener({
+    required PeerManager that,
+    required String senderId,
   });
 
-  Future<String> crateApiProtocolPeerSessionSendChatMessage({
-    required PeerSession that,
-    required String senderId,
-    required String senderName,
+  Future<PeerManager> crateApiProtocolPeerManagerDefault();
+
+  Future<void> crateApiProtocolPeerManagerDisconnectPeer({
+    required PeerManager that,
+    required String peerId,
+  });
+
+  Future<PeerManager> crateApiProtocolPeerManagerNew();
+
+  Future<String> crateApiProtocolPeerManagerSendChatMessage({
+    required PeerManager that,
+    required String peerId,
     required String content,
   });
 
-  Future<void> crateApiProtocolPeerSessionSendEnvelope({
-    required PeerSession that,
-    required MessageEnvelope envelope,
+  Future<void> crateApiProtocolPeerManagerSendMessageWith({
+    required PeerManager that,
+    required String peerId,
+    required String content,
   });
 
   String crateApiSimpleGreet({required String name});
@@ -131,12 +127,12 @@ abstract class RustLibApi extends BaseApi {
   Future<List<String>> crateApiNetworkScanLanPeers();
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_PeerSession;
+  get rust_arc_increment_strong_count_PeerManager;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_PeerSession;
+  get rust_arc_decrement_strong_count_PeerManager;
 
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_PeerSessionPtr;
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_PeerManagerPtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -148,147 +144,177 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  String crateApiProtocolPeerSessionAutoAccessorGetPeerId({
-    required PeerSession that,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-            that,
-            serializer,
-          );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiProtocolPeerSessionAutoAccessorGetPeerIdConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiProtocolPeerSessionAutoAccessorGetPeerIdConstMeta =>
-      const TaskConstMeta(
-        debugName: "PeerSession_auto_accessor_get_peer_id",
-        argNames: ["that"],
-      );
-
-  @override
-  String crateApiProtocolPeerSessionAutoAccessorGetPeerIp({
-    required PeerSession that,
-  }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-            that,
-            serializer,
-          );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiProtocolPeerSessionAutoAccessorGetPeerIpConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiProtocolPeerSessionAutoAccessorGetPeerIpConstMeta =>
-      const TaskConstMeta(
-        debugName: "PeerSession_auto_accessor_get_peer_ip",
-        argNames: ["that"],
-      );
-
-  @override
-  void crateApiProtocolPeerSessionAutoAccessorSetPeerId({
-    required PeerSession that,
+  Stream<MessageEnvelope> crateApiProtocolPeerManagerAddReceptionHandlerFor({
+    required PeerManager that,
     required String peerId,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
+    final sink = RustStreamSink<MessageEnvelope>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
+              that,
+              serializer,
+            );
+            sse_encode_StreamSink_message_envelope_Sse(sink, serializer);
+            sse_encode_String(peerId, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 1,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_String,
+          ),
+          constMeta:
+              kCrateApiProtocolPeerManagerAddReceptionHandlerForConstMeta,
+          argValues: [that, sink, peerId],
+          apiImpl: this,
         ),
-        constMeta: kCrateApiProtocolPeerSessionAutoAccessorSetPeerIdConstMeta,
-        argValues: [that, peerId],
-        apiImpl: this,
       ),
     );
+    return sink.stream;
   }
 
   TaskConstMeta
-  get kCrateApiProtocolPeerSessionAutoAccessorSetPeerIdConstMeta =>
+  get kCrateApiProtocolPeerManagerAddReceptionHandlerForConstMeta =>
       const TaskConstMeta(
-        debugName: "PeerSession_auto_accessor_set_peer_id",
-        argNames: ["that", "peerId"],
+        debugName: "PeerManager_add_reception_handler_for",
+        argNames: ["that", "sink", "peerId"],
       );
 
   @override
-  void crateApiProtocolPeerSessionAutoAccessorSetPeerIp({
-    required PeerSession that,
+  Future<String> crateApiProtocolPeerManagerConnectPeer({
+    required PeerManager that,
     required String peerIp,
+    required String senderId,
+    required int port,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerIp, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiProtocolPeerSessionAutoAccessorSetPeerIpConstMeta,
-        argValues: [that, peerIp],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiProtocolPeerSessionAutoAccessorSetPeerIpConstMeta =>
-      const TaskConstMeta(
-        debugName: "PeerSession_auto_accessor_set_peer_ip",
-        argNames: ["that", "peerIp"],
-      );
-
-  @override
-  Future<void> crateApiProtocolPeerSessionClose({required PeerSession that}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
             that,
             serializer,
           );
+          sse_encode_String(peerIp, serializer);
+          sse_encode_String(senderId, serializer);
+          sse_encode_u_16(port, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiProtocolPeerManagerConnectPeerConstMeta,
+        argValues: [that, peerIp, senderId, port],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiProtocolPeerManagerConnectPeerConstMeta =>
+      const TaskConstMeta(
+        debugName: "PeerManager_connect_peer",
+        argNames: ["that", "peerIp", "senderId", "port"],
+      );
+
+  @override
+  Stream<String> crateApiProtocolPeerManagerCreatePeerListener({
+    required PeerManager that,
+    required String senderId,
+  }) {
+    final sink = RustStreamSink<String>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
+              that,
+              serializer,
+            );
+            sse_encode_StreamSink_String_Sse(sink, serializer);
+            sse_encode_String(senderId, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 3,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: null,
+          ),
+          constMeta: kCrateApiProtocolPeerManagerCreatePeerListenerConstMeta,
+          argValues: [that, sink, senderId],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiProtocolPeerManagerCreatePeerListenerConstMeta =>
+      const TaskConstMeta(
+        debugName: "PeerManager_create_peer_listener",
+        argNames: ["that", "sink", "senderId"],
+      );
+
+  @override
+  Future<PeerManager> crateApiProtocolPeerManagerDefault() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiProtocolPeerManagerDefaultConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiProtocolPeerManagerDefaultConstMeta =>
+      const TaskConstMeta(debugName: "PeerManager_default", argNames: []);
+
+  @override
+  Future<void> crateApiProtocolPeerManagerDisconnectPeer({
+    required PeerManager that,
+    required String peerId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -298,31 +324,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolPeerSessionCloseConstMeta,
-        argValues: [that],
+        constMeta: kCrateApiProtocolPeerManagerDisconnectPeerConstMeta,
+        argValues: [that, peerId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolPeerSessionCloseConstMeta =>
-      const TaskConstMeta(debugName: "PeerSession_close", argNames: ["that"]);
+  TaskConstMeta get kCrateApiProtocolPeerManagerDisconnectPeerConstMeta =>
+      const TaskConstMeta(
+        debugName: "PeerManager_disconnect_peer",
+        argNames: ["that", "peerId"],
+      );
 
   @override
-  Future<PeerSession> crateApiProtocolPeerSessionConnect({
-    required String peerId,
-    required String peerIp,
-    required int port,
-  }) {
+  Future<PeerManager> crateApiProtocolPeerManagerNew() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(peerId, serializer);
-          sse_encode_String(peerIp, serializer);
-          sse_encode_u_16(port, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -332,34 +354,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession,
-          decodeErrorData: sse_decode_String,
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolPeerSessionConnectConstMeta,
-        argValues: [peerId, peerIp, port],
+        constMeta: kCrateApiProtocolPeerManagerNewConstMeta,
+        argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolPeerSessionConnectConstMeta =>
-      const TaskConstMeta(
-        debugName: "PeerSession_connect",
-        argNames: ["peerId", "peerIp", "port"],
-      );
+  TaskConstMeta get kCrateApiProtocolPeerManagerNewConstMeta =>
+      const TaskConstMeta(debugName: "PeerManager_new", argNames: []);
 
   @override
-  Future<MessageEnvelope> crateApiProtocolPeerSessionReadEnvelope({
-    required PeerSession that,
+  Future<String> crateApiProtocolPeerManagerSendChatMessage({
+    required PeerManager that,
+    required String peerId,
+    required String content,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
             that,
             serializer,
           );
+          sse_encode_String(peerId, serializer);
+          sse_encode_String(content, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -368,39 +391,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_message_envelope,
+          decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolPeerSessionReadEnvelopeConstMeta,
-        argValues: [that],
+        constMeta: kCrateApiProtocolPeerManagerSendChatMessageConstMeta,
+        argValues: [that, peerId, content],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolPeerSessionReadEnvelopeConstMeta =>
+  TaskConstMeta get kCrateApiProtocolPeerManagerSendChatMessageConstMeta =>
       const TaskConstMeta(
-        debugName: "PeerSession_read_envelope",
-        argNames: ["that"],
+        debugName: "PeerManager_send_chat_message",
+        argNames: ["that", "peerId", "content"],
       );
 
   @override
-  Future<String> crateApiProtocolPeerSessionSendChatMessage({
-    required PeerSession that,
-    required String senderId,
-    required String senderName,
+  Future<void> crateApiProtocolPeerManagerSendMessageWith({
+    required PeerManager that,
+    required String peerId,
     required String content,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
             that,
             serializer,
           );
-          sse_encode_String(senderId, serializer);
-          sse_encode_String(senderName, serializer);
+          sse_encode_String(peerId, serializer);
           sse_encode_String(content, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
@@ -410,58 +431,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiProtocolPeerSessionSendChatMessageConstMeta,
-        argValues: [that, senderId, senderName, content],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiProtocolPeerSessionSendChatMessageConstMeta =>
-      const TaskConstMeta(
-        debugName: "PeerSession_send_chat_message",
-        argNames: ["that", "senderId", "senderName", "content"],
-      );
-
-  @override
-  Future<void> crateApiProtocolPeerSessionSendEnvelope({
-    required PeerSession that,
-    required MessageEnvelope envelope,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-            that,
-            serializer,
-          );
-          sse_encode_box_autoadd_message_envelope(envelope, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 9,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolPeerSessionSendEnvelopeConstMeta,
-        argValues: [that, envelope],
+        constMeta: kCrateApiProtocolPeerManagerSendMessageWithConstMeta,
+        argValues: [that, peerId, content],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolPeerSessionSendEnvelopeConstMeta =>
+  TaskConstMeta get kCrateApiProtocolPeerManagerSendMessageWithConstMeta =>
       const TaskConstMeta(
-        debugName: "PeerSession_send_envelope",
-        argNames: ["that", "envelope"],
+        debugName: "PeerManager_send_message_with",
+        argNames: ["that", "peerId", "content"],
       );
 
   @override
@@ -471,7 +454,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -496,7 +479,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 10,
             port: port_,
           );
         },
@@ -523,7 +506,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 11,
             port: port_,
           );
         },
@@ -550,7 +533,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 12,
             port: port_,
           );
         },
@@ -569,59 +552,64 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "scan_lan_peers", argNames: []);
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_PeerSession => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession;
+  get rust_arc_increment_strong_count_PeerManager => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_PeerSession => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession;
+  get rust_arc_decrement_strong_count_PeerManager => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager;
 
   @protected
-  PeerSession
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-    dynamic raw,
-  ) {
+  AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return PeerSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return AnyhowException(raw as String);
   }
 
   @protected
-  PeerSession
-  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+  PeerManager
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return PeerSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return PeerManagerImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  PeerSession
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+  PeerManager
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return PeerSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return PeerManagerImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  PeerSession
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+  PeerManager
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return PeerSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return PeerManagerImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  RustStreamSink<String> dco_decode_StreamSink_String_Sse(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
+  RustStreamSink<MessageEnvelope> dco_decode_StreamSink_message_envelope_Sse(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
   }
 
   @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
-  }
-
-  @protected
-  MessageEnvelope dco_decode_box_autoadd_message_envelope(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_message_envelope(raw);
   }
 
   @protected
@@ -646,15 +634,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   MessageEnvelope dco_decode_message_envelope(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return MessageEnvelope(
       version: dco_decode_u_8(arr[0]),
       msgId: dco_decode_String(arr[1]),
       senderId: dco_decode_String(arr[2]),
-      senderName: dco_decode_String(arr[3]),
-      timestamp: dco_decode_i_64(arr[4]),
-      payload: dco_decode_message_payload(arr[5]),
+      timestamp: dco_decode_i_64(arr[3]),
+      payload: dco_decode_message_payload(arr[4]),
     );
   }
 
@@ -664,8 +651,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     switch (raw[0]) {
       case 0:
         return MessagePayload_Handshake(
-          clientVersion: dco_decode_String(raw[1]),
+          clientVersion: dco_decode_u_8(raw[1]),
           publicKey: dco_decode_opt_String(raw[2]),
+          peerId: dco_decode_String(raw[3]),
         );
       case 1:
         return MessagePayload_ChatMessage(content: dco_decode_String(raw[1]));
@@ -714,51 +702,62 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  PeerSession
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_String(deserializer);
+    return AnyhowException(inner);
+  }
+
+  @protected
+  PeerManager
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return PeerSessionImpl.frbInternalSseDecode(
+    return PeerManagerImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  PeerSession
-  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+  PeerManager
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return PeerSessionImpl.frbInternalSseDecode(
+    return PeerManagerImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  PeerSession
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+  PeerManager
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return PeerSessionImpl.frbInternalSseDecode(
+    return PeerManagerImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  PeerSession
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
+  RustStreamSink<String> sse_decode_StreamSink_String_Sse(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return PeerSessionImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
+  RustStreamSink<MessageEnvelope> sse_decode_StreamSink_message_envelope_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
   }
 
   @protected
@@ -766,14 +765,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
-  }
-
-  @protected
-  MessageEnvelope sse_decode_box_autoadd_message_envelope(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_message_envelope(deserializer));
   }
 
   @protected
@@ -807,14 +798,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_version = sse_decode_u_8(deserializer);
     var var_msgId = sse_decode_String(deserializer);
     var var_senderId = sse_decode_String(deserializer);
-    var var_senderName = sse_decode_String(deserializer);
     var var_timestamp = sse_decode_i_64(deserializer);
     var var_payload = sse_decode_message_payload(deserializer);
     return MessageEnvelope(
       version: var_version,
       msgId: var_msgId,
       senderId: var_senderId,
-      senderName: var_senderName,
       timestamp: var_timestamp,
       payload: var_payload,
     );
@@ -827,11 +816,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_clientVersion = sse_decode_String(deserializer);
+        var var_clientVersion = sse_decode_u_8(deserializer);
         var var_publicKey = sse_decode_opt_String(deserializer);
+        var var_peerId = sse_decode_String(deserializer);
         return MessagePayload_Handshake(
           clientVersion: var_clientVersion,
           publicKey: var_publicKey,
+          peerId: var_peerId,
         );
       case 1:
         var var_content = sse_decode_String(deserializer);
@@ -899,53 +890,83 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.message, serializer);
+  }
+
+  @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-    PeerSession self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
+    PeerManager self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as PeerSessionImpl).frbInternalSseEncode(move: true),
+      (self as PeerManagerImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-    PeerSession self,
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
+    PeerManager self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as PeerSessionImpl).frbInternalSseEncode(move: false),
+      (self as PeerManagerImpl).frbInternalSseEncode(move: false),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-    PeerSession self,
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerManager(
+    PeerManager self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as PeerSessionImpl).frbInternalSseEncode(move: false),
+      (self as PeerManagerImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
 
   @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerSession(
-    PeerSession self,
+  void sse_encode_StreamSink_String_Sse(
+    RustStreamSink<String> self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as PeerSessionImpl).frbInternalSseEncode(move: null),
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_StreamSink_message_envelope_Sse(
+    RustStreamSink<MessageEnvelope> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_message_envelope,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
       serializer,
     );
   }
@@ -954,15 +975,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_message_envelope(
-    MessageEnvelope self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_message_envelope(self, serializer);
   }
 
   @protected
@@ -999,7 +1011,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_8(self.version, serializer);
     sse_encode_String(self.msgId, serializer);
     sse_encode_String(self.senderId, serializer);
-    sse_encode_String(self.senderName, serializer);
     sse_encode_i_64(self.timestamp, serializer);
     sse_encode_message_payload(self.payload, serializer);
   }
@@ -1014,10 +1025,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case MessagePayload_Handshake(
         clientVersion: final clientVersion,
         publicKey: final publicKey,
+        peerId: final peerId,
       ):
         sse_encode_i_32(0, serializer);
-        sse_encode_String(clientVersion, serializer);
+        sse_encode_u_8(clientVersion, serializer);
         sse_encode_opt_String(publicKey, serializer);
+        sse_encode_String(peerId, serializer);
       case MessagePayload_ChatMessage(content: final content):
         sse_encode_i_32(1, serializer);
         sse_encode_String(content, serializer);
@@ -1082,64 +1095,68 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 }
 
 @sealed
-class PeerSessionImpl extends RustOpaque implements PeerSession {
+class PeerManagerImpl extends RustOpaque implements PeerManager {
   // Not to be used by end users
-  PeerSessionImpl.frbInternalDcoDecode(List<dynamic> wire)
+  PeerManagerImpl.frbInternalDcoDecode(List<dynamic> wire)
     : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  PeerSessionImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+  PeerManagerImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
     : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
 
   static final _kStaticData = RustArcStaticData(
     rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_PeerSession,
+        RustLib.instance.api.rust_arc_increment_strong_count_PeerManager,
     rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_PeerSession,
+        RustLib.instance.api.rust_arc_decrement_strong_count_PeerManager,
     rustArcDecrementStrongCountPtr:
-        RustLib.instance.api.rust_arc_decrement_strong_count_PeerSessionPtr,
+        RustLib.instance.api.rust_arc_decrement_strong_count_PeerManagerPtr,
   );
 
-  String get peerId => RustLib.instance.api
-      .crateApiProtocolPeerSessionAutoAccessorGetPeerId(that: this);
-
-  String get peerIp => RustLib.instance.api
-      .crateApiProtocolPeerSessionAutoAccessorGetPeerIp(that: this);
-
-  set peerId(String peerId) =>
-      RustLib.instance.api.crateApiProtocolPeerSessionAutoAccessorSetPeerId(
+  Stream<MessageEnvelope> addReceptionHandlerFor({required String peerId}) =>
+      RustLib.instance.api.crateApiProtocolPeerManagerAddReceptionHandlerFor(
         that: this,
         peerId: peerId,
       );
 
-  set peerIp(String peerIp) =>
-      RustLib.instance.api.crateApiProtocolPeerSessionAutoAccessorSetPeerIp(
+  /// Connect to a remote peer and return its peer_id
+  Future<String> connectPeer({
+    required String peerIp,
+    required String senderId,
+    required int port,
+  }) => RustLib.instance.api.crateApiProtocolPeerManagerConnectPeer(
+    that: this,
+    peerIp: peerIp,
+    senderId: senderId,
+    port: port,
+  );
+
+  Stream<String> createPeerListener({required String senderId}) =>
+      RustLib.instance.api.crateApiProtocolPeerManagerCreatePeerListener(
         that: this,
-        peerIp: peerIp,
+        senderId: senderId,
       );
 
-  /// Close the session socket
-  Future<void> close() =>
-      RustLib.instance.api.crateApiProtocolPeerSessionClose(that: this);
+  /// Close session by peer_id
+  Future<void> disconnectPeer({required String peerId}) => RustLib.instance.api
+      .crateApiProtocolPeerManagerDisconnectPeer(that: this, peerId: peerId);
 
-  /// Read the next incoming MessageEnvelope from the TCP stream
-  Future<MessageEnvelope> readEnvelope() =>
-      RustLib.instance.api.crateApiProtocolPeerSessionReadEnvelope(that: this);
-
+  /// Send chat message by peer_id
   Future<String> sendChatMessage({
-    required String senderId,
-    required String senderName,
+    required String peerId,
     required String content,
-  }) => RustLib.instance.api.crateApiProtocolPeerSessionSendChatMessage(
+  }) => RustLib.instance.api.crateApiProtocolPeerManagerSendChatMessage(
     that: this,
-    senderId: senderId,
-    senderName: senderName,
+    peerId: peerId,
     content: content,
   );
 
-  /// Helper to send framed JSON over TCP: [4-byte length][JSON bytes]
-  Future<void> sendEnvelope({required MessageEnvelope envelope}) => RustLib
-      .instance
-      .api
-      .crateApiProtocolPeerSessionSendEnvelope(that: this, envelope: envelope);
+  Future<void> sendMessageWith({
+    required String peerId,
+    required String content,
+  }) => RustLib.instance.api.crateApiProtocolPeerManagerSendMessageWith(
+    that: this,
+    peerId: peerId,
+    content: content,
+  );
 }

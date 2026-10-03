@@ -128,10 +128,10 @@ return pong(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String clientVersion,  String? publicKey)?  handshake,TResult Function( String content)?  chatMessage,TResult Function( String targetMsgId,  String status)?  ack,TResult Function()?  ping,TResult Function()?  pong,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int clientVersion,  String? publicKey,  String peerId)?  handshake,TResult Function( String content)?  chatMessage,TResult Function( String targetMsgId,  String status)?  ack,TResult Function()?  ping,TResult Function()?  pong,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case MessagePayload_Handshake() when handshake != null:
-return handshake(_that.clientVersion,_that.publicKey);case MessagePayload_ChatMessage() when chatMessage != null:
+return handshake(_that.clientVersion,_that.publicKey,_that.peerId);case MessagePayload_ChatMessage() when chatMessage != null:
 return chatMessage(_that.content);case MessagePayload_Ack() when ack != null:
 return ack(_that.targetMsgId,_that.status);case MessagePayload_Ping() when ping != null:
 return ping();case MessagePayload_Pong() when pong != null:
@@ -153,10 +153,10 @@ return pong();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String clientVersion,  String? publicKey)  handshake,required TResult Function( String content)  chatMessage,required TResult Function( String targetMsgId,  String status)  ack,required TResult Function()  ping,required TResult Function()  pong,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int clientVersion,  String? publicKey,  String peerId)  handshake,required TResult Function( String content)  chatMessage,required TResult Function( String targetMsgId,  String status)  ack,required TResult Function()  ping,required TResult Function()  pong,}) {final _that = this;
 switch (_that) {
 case MessagePayload_Handshake():
-return handshake(_that.clientVersion,_that.publicKey);case MessagePayload_ChatMessage():
+return handshake(_that.clientVersion,_that.publicKey,_that.peerId);case MessagePayload_ChatMessage():
 return chatMessage(_that.content);case MessagePayload_Ack():
 return ack(_that.targetMsgId,_that.status);case MessagePayload_Ping():
 return ping();case MessagePayload_Pong():
@@ -174,10 +174,10 @@ return pong();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String clientVersion,  String? publicKey)?  handshake,TResult? Function( String content)?  chatMessage,TResult? Function( String targetMsgId,  String status)?  ack,TResult? Function()?  ping,TResult? Function()?  pong,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int clientVersion,  String? publicKey,  String peerId)?  handshake,TResult? Function( String content)?  chatMessage,TResult? Function( String targetMsgId,  String status)?  ack,TResult? Function()?  ping,TResult? Function()?  pong,}) {final _that = this;
 switch (_that) {
 case MessagePayload_Handshake() when handshake != null:
-return handshake(_that.clientVersion,_that.publicKey);case MessagePayload_ChatMessage() when chatMessage != null:
+return handshake(_that.clientVersion,_that.publicKey,_that.peerId);case MessagePayload_ChatMessage() when chatMessage != null:
 return chatMessage(_that.content);case MessagePayload_Ack() when ack != null:
 return ack(_that.targetMsgId,_that.status);case MessagePayload_Ping() when ping != null:
 return ping();case MessagePayload_Pong() when pong != null:
@@ -193,11 +193,12 @@ return pong();case _:
 
 
 class MessagePayload_Handshake extends MessagePayload {
-  const MessagePayload_Handshake({required this.clientVersion, this.publicKey}): super._();
+  const MessagePayload_Handshake({required this.clientVersion, this.publicKey, required this.peerId}): super._();
   
 
- final  String clientVersion;
+ final  int clientVersion;
  final  String? publicKey;
+ final  String peerId;
 
 /// Create a copy of MessagePayload
 /// with the given fields replaced by the non-null parameter values.
@@ -209,16 +210,16 @@ $MessagePayload_HandshakeCopyWith<MessagePayload_Handshake> get copyWith => _$Me
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessagePayload_Handshake&&(identical(other.clientVersion, clientVersion) || other.clientVersion == clientVersion)&&(identical(other.publicKey, publicKey) || other.publicKey == publicKey));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessagePayload_Handshake&&(identical(other.clientVersion, clientVersion) || other.clientVersion == clientVersion)&&(identical(other.publicKey, publicKey) || other.publicKey == publicKey)&&(identical(other.peerId, peerId) || other.peerId == peerId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,clientVersion,publicKey);
+int get hashCode => Object.hash(runtimeType,clientVersion,publicKey,peerId);
 
 @override
 String toString() {
-  return 'MessagePayload.handshake(clientVersion: $clientVersion, publicKey: $publicKey)';
+  return 'MessagePayload.handshake(clientVersion: $clientVersion, publicKey: $publicKey, peerId: $peerId)';
 }
 
 
@@ -229,7 +230,7 @@ abstract mixin class $MessagePayload_HandshakeCopyWith<$Res> implements $Message
   factory $MessagePayload_HandshakeCopyWith(MessagePayload_Handshake value, $Res Function(MessagePayload_Handshake) _then) = _$MessagePayload_HandshakeCopyWithImpl;
 @useResult
 $Res call({
- String clientVersion, String? publicKey
+ int clientVersion, String? publicKey, String peerId
 });
 
 
@@ -246,11 +247,12 @@ class _$MessagePayload_HandshakeCopyWithImpl<$Res>
 
 /// Create a copy of MessagePayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? clientVersion = null,Object? publicKey = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? clientVersion = null,Object? publicKey = freezed,Object? peerId = null,}) {
   return _then(MessagePayload_Handshake(
 clientVersion: null == clientVersion ? _self.clientVersion : clientVersion // ignore: cast_nullable_to_non_nullable
-as String,publicKey: freezed == publicKey ? _self.publicKey : publicKey // ignore: cast_nullable_to_non_nullable
-as String?,
+as int,publicKey: freezed == publicKey ? _self.publicKey : publicKey // ignore: cast_nullable_to_non_nullable
+as String?,peerId: null == peerId ? _self.peerId : peerId // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

@@ -42,7 +42,6 @@ class _ChatScreenState extends State<ChatScreen> {
   List<String> _peers = [];
   bool _isScanning = false;
 
-  PeerSession? _activeSession;
   final List<String> _messages = [];
   final TextEditingController _textController = TextEditingController();
 
@@ -73,17 +72,6 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       _showSnackBar("Connecting to $ip...");
 
-      final session = await PeerSession.connect(
-        peerId: "peer_$ip",
-        peerIp: ip,
-        port: 14981,
-      );
-
-      setState(() {
-        _activeSession = session;
-        _messages.add("System: Connected to $ip");
-      });
-
       // Start listening for incoming frames on a background task
       _listenForIncomingMessages();
     } catch (e) {
@@ -93,48 +81,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// 3. Read loop: Poll or stream incoming MessageEnvelopes
   Future<void> _listenForIncomingMessages() async {
-    while (_activeSession != null) {
-      try {
-        final envelope = await _activeSession!.readEnvelope();
-
-        setState(() {
-          // Format based on payload
-          final sender = envelope.senderName;
-          final content = envelope.payload.toString();
-          _messages.add("$sender: $content");
-        });
-      } catch (e) {
-        if (_activeSession != null) {
-          setState(() {
-            _messages.add("System: Connection lost ($e)");
-            _activeSession = null;
-          });
-        }
-        break;
-      }
-    }
   }
 
   /// 4. Send Message: Frame and send string payload
   Future<void> _sendMessage() async {
-    final text = _textController.text.trim();
-    if (text.isEmpty || _activeSession == null) return;
-
-    _textController.clear();
-
-    try {
-      await _activeSession!.sendChatMessage(
-        senderId: "my_device",
-        senderName: "Me",
-        content: text,
-      );
-
-      setState(() {
-        _messages.add("Me: $text");
-      });
-    } catch (e) {
-      _showSnackBar("Failed to send: $e");
-    }
   }
 
   void _showSnackBar(String text) {
@@ -143,7 +93,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _activeSession?.close();
     _textController.dispose();
     super.dispose();
   }
@@ -216,32 +165,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // Message input bar
-          if (_activeSession != null)
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _textController,
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message...',
-                          border: OutlineInputBorder(),
-                        ),
-                        onSubmitted: (_) => _sendMessage(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: _sendMessage,
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );

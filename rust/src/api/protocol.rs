@@ -1,18 +1,23 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use flutter_rust_bridge::frb;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
-use tokio::net::TcpStream;
-use tokio::sync::Mutex;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
+use crate::api::network::SERVICE_PORT;
+use crate::api::protocol::MessagePayload::{ChatMessage, Handshake};
+use crate::api::protocol::SessionType::Client;
+use crate::frb_generated::StreamSink;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MessageEnvelope {
     pub version: u8,
     pub msg_id: String,
     pub sender_id: String,
-    pub sender_name: String,
     pub timestamp: i64,
     pub payload: MessagePayload,
 }
@@ -21,8 +26,9 @@ pub struct MessageEnvelope {
 #[serde(tag = "type", content = "data")]
 pub enum MessagePayload {
     Handshake {
-        client_version: String,
+        client_version: u8,
         public_key: Option<String>,
+        peer_id: String,
     },
     ChatMessage {
         content: String,
@@ -31,30 +37,45 @@ pub enum MessagePayload {
         target_msg_id: String,
         status: String,
     },
-    Ping,
-    Pong,
+    Ping, // TODO
+    Pong, // TODO
 }
 
+#[derive(Clone, Debug)]
+pub enum SessionType {
+    Client,
+    Server
+}
+
+#[derive(Debug, Clone)]
+#[frb(ignore)]
 pub struct PeerSession {
     pub peer_id: String,
     pub peer_ip: String,
+    pub sender_id: String,
+    pub session_type: SessionType,
     // 1. 将读写 Half 分开存储，互不阻塞
     read_stream: Arc<Mutex<Option<OwnedReadHalf>>>,
     write_stream: Arc<Mutex<Option<OwnedWriteHalf>>>,
 }
 
+
+#[frb(ignore)]
 impl PeerSession {
-    pub async fn connect(peer_id: String, peer_ip: String, port: u16) -> Result<Self, String> {
+    pub async fn connect(peer_manager: PeerManager,
+                         peer_ip: String,
+                         sender_id: String,
+                         port: u16) -> Result<Arc<PeerSession>, String> {
         let addr = format!("{}:{}", peer_ip, port);
-        info!(peer_id = %peer_id, addr = %addr, "Connecting to remote peer...");
+        info!(addr = %addr, "Connecting to remote peer...");
 
         let stream = match TcpStream::connect(&addr).await {
             Ok(s) => {
-                info!(peer_id = %peer_id, addr = %addr, "Successfully connected to peer");
+                info!(addr = %addr, "Successfully connected to peer");
                 s
             }
             Err(e) => {
-                error!(peer_id = %peer_id, addr = %addr, error = %e, "Failed to connect to peer");
+                error!(addr = %addr, error = %e, "Failed to connect to peer");
                 return Err(format!("Failed to connect to {}: {}", addr, e));
             }
         };
@@ -62,25 +83,83 @@ impl PeerSession {
         // 2. 将 TCPStream 拆分为独立读写端
         let (read_half, write_half) = stream.into_split();
 
-        Ok(Self {
-            peer_id,
+        let mut ret = Self {
+            peer_id: "".to_string(),
             peer_ip,
+            sender_id,
+            session_type: Client,
             read_stream: Arc::new(Mutex::new(Some(read_half))),
             write_stream: Arc::new(Mutex::new(Some(write_half))),
-        })
+        };
+
+        ret.handshake().await?;
+
+        let ret_arc = Arc::new(ret);
+
+        peer_manager.add_session(Arc::clone(&ret_arc)).await;
+
+        Ok(ret_arc)
     }
 
-    pub async fn send_chat_message(&self, sender_id: String, sender_name: String, content: String) -> Result<String, String> {
+    #[frb(ignore)]
+    pub async fn new_incoming(
+        peer_ip: String,
+        sender_id: String,
+        stream: TcpStream
+    ) -> Result<Self, String> {
+        let (read_half, write_half) = stream.into_split();
+        let mut ret = Self {
+            peer_id: "".to_string(),
+            peer_ip,
+            sender_id,
+            session_type: SessionType::Server,
+            read_stream: Arc::new(Mutex::new(Some(read_half))),
+            write_stream: Arc::new(Mutex::new(Some(write_half))),
+        };
+        ret.handshake().await?;
+        Ok(ret)
+    }
+
+    pub async fn handshake(&mut self) -> Result<String, String> {
         let msg_id = Uuid::new_v4().to_string();
-        debug!(peer_id = %self.peer_id, msg_id = %msg_id, sender_id = %sender_id, "Preparing chat message envelope");
+        debug!(peer_id = %self.peer_id, msg_id = %msg_id, "Preparing handshake envelope...");
 
         let envelope = MessageEnvelope {
             version: 1,
             msg_id: msg_id.clone(),
-            sender_id,
-            sender_name,
+            sender_id: self.sender_id.clone(),
             timestamp: chrono_now_timestamp(),
-            payload: MessagePayload::ChatMessage { content },
+            payload: Handshake {
+                client_version: 1,
+                public_key: None, // TODO
+                peer_id: self.sender_id.clone(),
+            },
+        };
+
+        self.send_envelope(&envelope).await?;
+        let handshake = self.read_envelope().await?.payload;
+        match handshake {
+            Handshake { client_version, public_key, peer_id } => {
+                debug!("Received handshake from peer, client_version: {client_version}, peer_id: {peer_id}");
+                self.peer_id = peer_id;
+            },
+            _ => {
+            }
+        }
+
+        Ok(msg_id)
+    }
+
+    pub async fn send_chat_message(&self, content: String) -> Result<String, String> {
+        let msg_id = Uuid::new_v4().to_string();
+        debug!(peer_id = %self.peer_id, msg_id = %msg_id, "Preparing chat message envelope");
+
+        let envelope = MessageEnvelope {
+            version: 1,
+            msg_id: msg_id.clone(),
+            sender_id: self.sender_id.clone(),
+            timestamp: chrono_now_timestamp(),
+            payload: ChatMessage { content },
         };
 
         self.send_envelope(&envelope).await?;
@@ -135,7 +214,6 @@ impl PeerSession {
     }
 
     /// Read the next incoming MessageEnvelope from the TCP stream
-    /// It should be Ack
     pub async fn read_envelope(&self) -> Result<MessageEnvelope, String> {
         // 4. 只竞争读取锁，读写互不干涉
         let mut guard = self.read_stream.lock().await;
@@ -162,6 +240,21 @@ impl PeerSession {
                 format!("Failed to parse JSON envelope: {e}")
             })?;
 
+            // Ack if it's a message
+            if let ChatMessage { .. } = &envelope.payload {
+                let msg_id = Uuid::new_v4().to_string();
+                self.send_envelope(&MessageEnvelope {
+                    version: 1,
+                    msg_id,
+                    sender_id: self.sender_id.clone(),
+                    timestamp: chrono_now_timestamp(),
+                    payload: MessagePayload::Ack {
+                        target_msg_id: envelope.msg_id.clone(),
+                        status: "Ok".to_string(),
+                    },
+                }).await?;
+            }
+
             info!(
                 peer_id = %self.peer_id,
                 msg_id = %envelope.msg_id,
@@ -174,6 +267,27 @@ impl PeerSession {
             warn!(peer_id = %self.peer_id, "Attempted to read from a closed TCP connection");
             Err("TCP Connection is closed".into())
         }
+    }
+
+    /// Start the reception loop
+    pub async fn start_reception_loop(&self, sink: StreamSink<MessageEnvelope>, peer_manager: PeerManager) {
+        let session = self.clone();
+        tokio::spawn(async move {
+            loop {
+                match session.read_envelope().await {
+                    Ok(envelope) => {
+                        if sink.add(envelope).is_err() {
+                            break;
+                        }
+                    },
+                    Err(e) => {
+                        debug!("Session {} ended: {}", session.peer_id, e);
+                        break;
+                    }
+                }
+            }
+            peer_manager.remove_session(&session.peer_id).await;
+        });
     }
 
     /// Close the session socket
@@ -191,6 +305,129 @@ impl PeerSession {
         read_guard.take();
 
         info!(peer_id = %self.peer_id, "TCP stream gracefully shut down");
+    }
+}
+
+#[derive(Clone)]
+pub struct PeerManager {
+    sessions: Arc<RwLock<HashMap<String, Arc<PeerSession>>>>,
+}
+
+impl PeerManager {
+    pub fn new() -> Self {
+        Self {
+            sessions: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
+    #[frb(ignore)]
+    pub async fn add_session(&self, session: Arc<PeerSession>) {
+        let mut lock = self.sessions.write().await;
+        lock.insert(session.peer_id.clone(), session);
+    }
+
+    #[frb(ignore)]
+    pub async fn remove_session(&self, peer_id: &str) -> Option<Arc<PeerSession>> {
+        let mut lock = self.sessions.write().await;
+        lock.remove(peer_id)
+    }
+
+    #[frb(ignore)]
+    pub async fn get_session(&self, peer_id: &str) -> Option<Arc<PeerSession>> {
+        let lock = self.sessions.read().await;
+        lock.get(peer_id).cloned()
+    }
+
+    /// Connect to a remote peer and return its peer_id
+    pub async fn connect_peer(
+        &self,
+        peer_ip: String,
+        sender_id: String,
+        port: u16,
+    ) -> Result<String, String> {
+        let session = PeerSession::connect(self.clone(), peer_ip, sender_id, port).await?;
+        Ok(session.peer_id.clone())
+    }
+
+    /// Send chat message by peer_id
+    pub async fn send_chat_message(&self, peer_id: &str, content: String) -> Result<String, String> {
+        if let Some(session) = self.get_session(peer_id).await {
+            session.send_chat_message(content).await
+        } else {
+            Err(format!("Session with peer_id '{peer_id}' does not exist"))
+        }
+    }
+
+    /// Close session by peer_id
+    pub async fn disconnect_peer(&self, peer_id: &str) -> Result<(), String> {
+        if let Some(session) = self.remove_session(peer_id).await {
+            session.close().await;
+        }
+        Ok(())
+    }
+
+    pub async fn send_message_with(&self, peer_id: &str, content: String) -> Result<(), String> {
+        if let Some(session) = self.get_session(peer_id).await {
+            session.send_chat_message(content).await?;
+            Ok(())
+        } else {
+            Err(format!("Failed to get session with peer_id: {peer_id}"))
+        }
+    }
+
+    pub async fn add_reception_handler_for(&self, sink: StreamSink<MessageEnvelope>, peer_id: &str) -> Result<(), String> {
+        if let Some(session) = self.get_session(peer_id).await {
+            session.start_reception_loop(sink, self.clone()).await;
+            Ok(())
+        } else {
+            Err(format!("Failed to get session with peer_id: {peer_id}"))
+        }
+    }
+
+    pub async fn create_peer_listener(&self, sink: StreamSink<String>, sender_id: String) {
+        let manager = self.clone();
+        tokio::spawn(async move {
+            let bind_addr = format!("0.0.0.0:{}", SERVICE_PORT);
+            match TcpListener::bind(&bind_addr).await {
+                Ok(listener) => loop {
+                    match listener.accept().await {
+                        Ok((stream, remote_addr)) => {
+                            let session = PeerSession::new_incoming(
+                                remote_addr.ip().to_string(),
+                                sender_id.clone(),
+                                stream,
+                            ).await;
+                            match session {
+                                Ok(s) => {
+                                    let arc_session = Arc::new(s);
+                                    let arc_cloned = Arc::clone(&arc_session);
+                                    manager.add_session(arc_cloned).await;
+                                    if sink.add(arc_session.peer_id.clone()).is_err() {
+                                        break;
+                                    }
+                                }
+                                Err(e) => {
+                                    debug!("Error when handling connection from peers: {e}");
+                                }
+                            }
+
+                        },
+                        Err(e) => {
+                            debug!("Error when listening for peers: {e}");
+                        }
+                    }
+                },
+                Err(e) => {
+                    debug!("Error when acquiring listener: {e}");
+                }
+            }
+        });
+    }
+}
+
+impl Default for PeerManager {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

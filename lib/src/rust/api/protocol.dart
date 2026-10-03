@@ -9,49 +9,49 @@ import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'protocol.freezed.dart';
 
 // These functions are ignored because they are not marked as `pub`: `chrono_now_timestamp`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PeerSession`, `SessionType`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored (category: IgnoreBecauseExplicitAttribute): `add_session`, `close`, `connect`, `get_session`, `handshake`, `new_incoming`, `read_envelope`, `remove_session`, `send_chat_message`, `send_envelope`, `start_reception_loop`
 
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PeerSession>>
-abstract class PeerSession implements RustOpaqueInterface {
-  String get peerId;
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PeerManager>>
+abstract class PeerManager implements RustOpaqueInterface {
+  Stream<MessageEnvelope> addReceptionHandlerFor({required String peerId});
 
-  String get peerIp;
-
-  set peerId(String peerId);
-
-  set peerIp(String peerIp);
-
-  /// Close the session socket
-  Future<void> close();
-
-  static Future<PeerSession> connect({
-    required String peerId,
+  /// Connect to a remote peer and return its peer_id
+  Future<String> connectPeer({
     required String peerIp,
-    required int port,
-  }) => RustLib.instance.api.crateApiProtocolPeerSessionConnect(
-    peerId: peerId,
-    peerIp: peerIp,
-    port: port,
-  );
-
-  /// Read the next incoming MessageEnvelope from the TCP stream
-  Future<MessageEnvelope> readEnvelope();
-
-  Future<String> sendChatMessage({
     required String senderId,
-    required String senderName,
+    required int port,
+  });
+
+  Stream<String> createPeerListener({required String senderId});
+
+  static Future<PeerManager> default_() =>
+      RustLib.instance.api.crateApiProtocolPeerManagerDefault();
+
+  /// Close session by peer_id
+  Future<void> disconnectPeer({required String peerId});
+
+  // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
+  static Future<PeerManager> newInstance() =>
+      RustLib.instance.api.crateApiProtocolPeerManagerNew();
+
+  /// Send chat message by peer_id
+  Future<String> sendChatMessage({
+    required String peerId,
     required String content,
   });
 
-  /// Helper to send framed JSON over TCP: [4-byte length][JSON bytes]
-  Future<void> sendEnvelope({required MessageEnvelope envelope});
+  Future<void> sendMessageWith({
+    required String peerId,
+    required String content,
+  });
 }
 
 class MessageEnvelope {
   final int version;
   final String msgId;
   final String senderId;
-  final String senderName;
   final PlatformInt64 timestamp;
   final MessagePayload payload;
 
@@ -59,7 +59,6 @@ class MessageEnvelope {
     required this.version,
     required this.msgId,
     required this.senderId,
-    required this.senderName,
     required this.timestamp,
     required this.payload,
   });
@@ -69,7 +68,6 @@ class MessageEnvelope {
       version.hashCode ^
       msgId.hashCode ^
       senderId.hashCode ^
-      senderName.hashCode ^
       timestamp.hashCode ^
       payload.hashCode;
 
@@ -81,7 +79,6 @@ class MessageEnvelope {
           version == other.version &&
           msgId == other.msgId &&
           senderId == other.senderId &&
-          senderName == other.senderName &&
           timestamp == other.timestamp &&
           payload == other.payload;
 }
@@ -91,8 +88,9 @@ sealed class MessagePayload with _$MessagePayload {
   const MessagePayload._();
 
   const factory MessagePayload.handshake({
-    required String clientVersion,
+    required int clientVersion,
     String? publicKey,
+    required String peerId,
   }) = MessagePayload_Handshake;
   const factory MessagePayload.chatMessage({required String content}) =
       MessagePayload_ChatMessage;

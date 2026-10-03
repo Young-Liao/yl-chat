@@ -11,6 +11,5 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Future<void> registerBonjourService() =>
     RustLib.instance.api.crateApiNetworkRegisterBonjourService();
 
-/// Scans the local network for peers and returns their resolved IP addresses
 Future<List<String>> scanLanPeers() =>
     RustLib.instance.api.crateApiNetworkScanLanPeers();
