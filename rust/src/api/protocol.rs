@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -88,6 +89,14 @@ pub struct LocalStorage {
 impl LocalStorage {
     pub async fn open(db_path: PathBuf) -> Result<Self, String> {
         info!(path = ?db_path, "Opening SQLite database");
+
+        if let Some(parent) = db_path.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent).map_err(|e| {
+                    format!("Failed to create database directory: {:?}", e)
+                })?;
+            }
+        }
 
         let db = AsyncConnection::open(db_path)
             .await

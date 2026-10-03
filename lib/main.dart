@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:yl_chat/src/features/chat_screen/chat_screen.dart';
@@ -35,7 +36,7 @@ Future<void> main() async {
   });
 
   final docDir = await getApplicationDocumentsDirectory();
-  final dbPath = "${docDir.path}/app_chat.db";
+  String dbPath = p.join(docDir.path, 'app_chat.db');
 
   // Register local mDNS service on startup
   final macAddress = await DeviceIdManager.getOrCreateDeviceId();
