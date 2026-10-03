@@ -24,7 +24,6 @@ abstract class PeerSession implements RustOpaqueInterface {
   /// Close the session socket
   Future<void> close();
 
-  /// Connect to a remote peer via IP and port
   static Future<PeerSession> connect({
     required String peerId,
     required String peerIp,
@@ -38,7 +37,6 @@ abstract class PeerSession implements RustOpaqueInterface {
   /// Read the next incoming MessageEnvelope from the TCP stream
   Future<MessageEnvelope> readEnvelope();
 
-  /// Send a Chat Message envelope over the framing protocol
   Future<String> sendChatMessage({
     required String senderId,
     required String senderName,

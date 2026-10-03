@@ -57,6 +57,7 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _isScanning = true);
     try {
       final peers = await scanLanPeers();
+      peers.add("192.168.1.80");
       setState(() {
         _peers = peers;
       });

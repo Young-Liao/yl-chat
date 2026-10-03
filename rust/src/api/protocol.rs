@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tracing::{debug, error, info, warn};
@@ -37,12 +38,12 @@ pub enum MessagePayload {
 pub struct PeerSession {
     pub peer_id: String,
     pub peer_ip: String,
-    // Stream wrapped in Arc<Mutex<>> so it can be shared safely across async calls
-    stream: Arc<Mutex<Option<TcpStream>>>,
+    // 1. 将读写 Half 分开存储，互不阻塞
+    read_stream: Arc<Mutex<Option<OwnedReadHalf>>>,
+    write_stream: Arc<Mutex<Option<OwnedWriteHalf>>>,
 }
 
 impl PeerSession {
-    /// Connect to a remote peer via IP and port
     pub async fn connect(peer_id: String, peer_ip: String, port: u16) -> Result<Self, String> {
         let addr = format!("{}:{}", peer_ip, port);
         info!(peer_id = %peer_id, addr = %addr, "Connecting to remote peer...");
@@ -58,14 +59,17 @@ impl PeerSession {
             }
         };
 
+        // 2. 将 TCPStream 拆分为独立读写端
+        let (read_half, write_half) = stream.into_split();
+
         Ok(Self {
             peer_id,
             peer_ip,
-            stream: Arc::new(Mutex::new(Some(stream))),
+            read_stream: Arc::new(Mutex::new(Some(read_half))),
+            write_stream: Arc::new(Mutex::new(Some(write_half))),
         })
     }
 
-    /// Send a Chat Message envelope over the framing protocol
     pub async fn send_chat_message(&self, sender_id: String, sender_name: String, content: String) -> Result<String, String> {
         let msg_id = Uuid::new_v4().to_string();
         debug!(peer_id = %self.peer_id, msg_id = %msg_id, sender_id = %sender_id, "Preparing chat message envelope");
@@ -85,31 +89,28 @@ impl PeerSession {
 
     /// Helper to send framed JSON over TCP: [4-byte length][JSON bytes]
     pub async fn send_envelope(&self, envelope: &MessageEnvelope) -> Result<(), String> {
+        debug!("Called send_envelope!");
+
         let json_bytes = serde_json::to_vec(envelope).map_err(|e| {
             error!(peer_id = %self.peer_id, msg_id = %envelope.msg_id, error = %e, "Failed to serialize envelope");
             format!("Failed to serialize envelope: {e}")
         })?;
 
         let length = json_bytes.len() as u32;
-        let mut guard = self.stream.lock().await;
+
+        // 3. 只竞争写入锁，不再受 read_envelope 影响！
+        let mut guard = self.write_stream.lock().await;
+
+        debug!("Sending envelope!");
 
         if let Some(ref mut stream) = *guard {
             let length_bytes = length.to_be_bytes();
 
-            debug!(
-                peer_id = %self.peer_id,
-                msg_id = %envelope.msg_id,
-                payload_len = length,
-                "Sending framed envelope over TCP"
-            );
-
-            // Write 4-byte Big Endian length prefix
             if let Err(e) = stream.write_all(&length_bytes).await {
                 error!(peer_id = %self.peer_id, msg_id = %envelope.msg_id, error = %e, "Failed to write length prefix");
                 return Err(e.to_string());
             }
 
-            // Write payload bytes
             if let Err(e) = stream.write_all(&json_bytes).await {
                 error!(peer_id = %self.peer_id, msg_id = %envelope.msg_id, error = %e, "Failed to write payload bytes");
                 return Err(e.to_string());
@@ -134,13 +135,14 @@ impl PeerSession {
     }
 
     /// Read the next incoming MessageEnvelope from the TCP stream
+    /// It should be Ack
     pub async fn read_envelope(&self) -> Result<MessageEnvelope, String> {
-        let mut guard = self.stream.lock().await;
+        // 4. 只竞争读取锁，读写互不干涉
+        let mut guard = self.read_stream.lock().await;
 
         if let Some(ref mut stream) = *guard {
             debug!(peer_id = %self.peer_id, "Waiting to read frame length prefix...");
 
-            // Read 4-byte length prefix
             let length = match stream.read_u32().await {
                 Ok(len) => len as usize,
                 Err(e) => {
@@ -149,9 +151,6 @@ impl PeerSession {
                 }
             };
 
-            debug!(peer_id = %self.peer_id, payload_len = length, "Reading payload bytes...");
-
-            // Read payload bytes
             let mut buffer = vec![0u8; length];
             if let Err(e) = stream.read_exact(&mut buffer).await {
                 error!(peer_id = %self.peer_id, payload_len = length, error = %e, "Failed to read full payload bytes");
@@ -180,17 +179,18 @@ impl PeerSession {
     /// Close the session socket
     pub async fn close(&self) {
         info!(peer_id = %self.peer_id, "Closing peer session...");
-        let mut guard = self.stream.lock().await;
 
-        if let Some(mut stream) = guard.take() {
-            if let Err(e) = stream.shutdown().await {
-                warn!(peer_id = %self.peer_id, error = %e, "Error shutting down TCP stream");
-            } else {
-                info!(peer_id = %self.peer_id, "TCP stream gracefully shut down");
-            }
-        } else {
-            debug!(peer_id = %self.peer_id, "Session was already closed");
+        // 释放写端
+        let mut write_guard = self.write_stream.lock().await;
+        if let Some(mut stream) = write_guard.take() {
+            let _ = stream.shutdown().await;
         }
+
+        // 释放读端
+        let mut read_guard = self.read_stream.lock().await;
+        read_guard.take();
+
+        info!(peer_id = %self.peer_id, "TCP stream gracefully shut down");
     }
 }
 

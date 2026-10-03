@@ -1126,7 +1126,6 @@ class PeerSessionImpl extends RustOpaque implements PeerSession {
   Future<MessageEnvelope> readEnvelope() =>
       RustLib.instance.api.crateApiProtocolPeerSessionReadEnvelope(that: this);
 
-  /// Send a Chat Message envelope over the framing protocol
   Future<String> sendChatMessage({
     required String senderId,
     required String senderName,
