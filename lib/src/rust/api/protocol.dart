@@ -34,9 +34,13 @@ abstract class LocalStorage implements RustOpaqueInterface {
     required String targetMsgId,
   });
 
-  /// 初始化磁盘数据库（传入本地 sqlite 文件路径，例如 Flutter 导出的 app_doc_dir + "/chat.db"）
   static Future<LocalStorage> open({required PathBuf dbPath}) =>
       RustLib.instance.api.crateApiProtocolLocalStorageOpen(dbPath: dbPath);
+
+  Future<void> setPeerOnlineStatus({
+    required String mac,
+    required bool isOnline,
+  });
 
   Future<void> upsertPeer({required PeerRecord record});
 }
@@ -49,10 +53,8 @@ abstract class NetworkEngine implements RustOpaqueInterface {
 
   Future<void> flushOutbox({required String peerMac});
 
-  /// Exposes chat retrieval directly to Dart
   Future<List<PersistentMessage>> getMessages({required String peerMac});
 
-  /// Exposes peer fetching directly to Dart
   Future<List<PeerRecord>> getPeers();
 
   // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
@@ -75,7 +77,6 @@ abstract class NetworkEngine implements RustOpaqueInterface {
 
   Stream<String> startListener({required int port});
 
-  /// Exposes peer insertion directly to Dart
   Future<void> upsertPeer({required PeerRecord record});
 }
 
@@ -99,6 +100,7 @@ class PeerRecord {
   final int port;
   final String deviceName;
   final PlatformInt64 lastSeen;
+  final bool isOnline;
 
   const PeerRecord({
     required this.macAddress,
@@ -106,6 +108,7 @@ class PeerRecord {
     required this.port,
     required this.deviceName,
     required this.lastSeen,
+    required this.isOnline,
   });
 
   @override
@@ -114,7 +117,8 @@ class PeerRecord {
       lastKnownIp.hashCode ^
       port.hashCode ^
       deviceName.hashCode ^
-      lastSeen.hashCode;
+      lastSeen.hashCode ^
+      isOnline.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -125,7 +129,8 @@ class PeerRecord {
           lastKnownIp == other.lastKnownIp &&
           port == other.port &&
           deviceName == other.deviceName &&
-          lastSeen == other.lastSeen;
+          lastSeen == other.lastSeen &&
+          isOnline == other.isOnline;
 }
 
 class PersistentMessage {

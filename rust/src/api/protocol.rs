@@ -1,21 +1,22 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, RwLock};
-use tracing::{debug, error, info, warn};
+use tokio_rusqlite::Connection as AsyncConnection;
+use rusqlite::params;
 use uuid::Uuid;
+use tracing::{debug, error, info, warn};
 use flutter_rust_bridge::frb;
+
 use crate::api::discovery::ProtocolConfig;
 use crate::frb_generated::StreamSink;
-use rusqlite::{params};
-use std::path::PathBuf;
-use tokio_rusqlite::Connection as AsyncConnection;
 
-// ==========================================
-// 1. Models
-// ==========================================
+// =============================================================================
+// 1. Data Models
+// =============================================================================
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum MessageStatus {
@@ -56,85 +57,153 @@ pub struct PeerRecord {
     pub port: u16,
     pub device_name: String,
     pub last_seen: i64,
+    pub is_online: bool,
 }
 
-// ==========================================
-// 2. Disk Storage Engine (SQLite)
-// ==========================================
+// Wire protocol frame format
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MessageEnvelope {
+    pub version: u8,
+    pub msg_id: String,
+    pub sender_mac: String,
+    pub payload: MessagePayload,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type", content = "data")]
+pub enum MessagePayload {
+    Handshake { sender_mac: String },
+    ChatMessage { content: String },
+    Ack { target_msg_id: String },
+}
+
+// =============================================================================
+// 2. Storage Engine (SQLite Persistence Layer)
+// =============================================================================
 
 pub struct LocalStorage {
     db: AsyncConnection,
 }
 
 impl LocalStorage {
-    /// 初始化磁盘数据库（传入本地 sqlite 文件路径，例如 Flutter 导出的 app_doc_dir + "/chat.db"）
     pub async fn open(db_path: PathBuf) -> Result<Self, String> {
-        info!(path = ?db_path, "Opening SQLite database on disk");
+        info!(path = ?db_path, "Opening SQLite database");
 
         let db = AsyncConnection::open(db_path)
             .await
-            .map_err(|e| format!("Failed to open sqlite database: {e}"))?;
+            .map_err(|e| format!("Failed to open SQLite database: {e}"))?;
 
-        // 建表并配置 WAL 模式（提高并发读写性能）
-        db.call(|conn| {
-            conn.execute_batch(
-                "
-                PRAGMA journal_mode = WAL;
-                PRAGMA synchronous = NORMAL;
+        let init_res = db
+            .call(|conn| {
+                conn.execute_batch(
+                    "
+                    PRAGMA journal_mode = WAL;
+                    PRAGMA synchronous = NORMAL;
 
-                CREATE TABLE IF NOT EXISTS peers (
-                    mac_address TEXT PRIMARY KEY,
-                    last_known_ip TEXT NOT NULL,
-                    port INTEGER NOT NULL,
-                    device_name TEXT NOT NULL,
-                    last_seen INTEGER NOT NULL
-                );
+                    CREATE TABLE IF NOT EXISTS peers (
+                        mac_address TEXT PRIMARY KEY,
+                        last_known_ip TEXT NOT NULL,
+                        port INTEGER NOT NULL,
+                        device_name TEXT NOT NULL,
+                        last_seen INTEGER NOT NULL,
+                        is_online INTEGER NOT NULL DEFAULT 0
+                    );
 
-                CREATE TABLE IF NOT EXISTS messages (
-                    msg_id TEXT PRIMARY KEY,
-                    peer_mac TEXT NOT NULL,
-                    is_outgoing INTEGER NOT NULL,
-                    content TEXT NOT NULL,
-                    timestamp INTEGER NOT NULL,
-                    status TEXT NOT NULL
-                );
+                    CREATE TABLE IF NOT EXISTS messages (
+                        msg_id TEXT PRIMARY KEY,
+                        peer_mac TEXT NOT NULL,
+                        is_outgoing INTEGER NOT NULL,
+                        content TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        status TEXT NOT NULL
+                    );
 
-                CREATE INDEX IF NOT EXISTS idx_messages_peer_mac ON messages(peer_mac);
-                ",
-            )?;
-            Ok(())
-        })
-            .await
-            .map_err(|e| format!("Failed to initialize database tables: {e}"))?;
+                    CREATE INDEX IF NOT EXISTS idx_messages_peer_mac ON messages(peer_mac);
+                    ",
+                )?;
+
+                // 检查旧 peers 表中是否存在 is_online 列，如果不存在则直接修改表追加列（自动迁移）
+                let mut stmt = conn.prepare("PRAGMA table_info(peers)")?;
+                let mut has_is_online = false;
+                let rows = stmt.query_map([], |row| {
+                    let col_name: String = row.get(1)?;
+                    Ok(col_name)
+                })?;
+
+                for col in rows {
+                    if let Ok(name) = col {
+                        if name == "is_online" {
+                            has_is_online = true;
+                            break;
+                        }
+                    }
+                }
+
+                if !has_is_online {
+                    info!("Adding missing 'is_online' column to existing peers table");
+                    conn.execute("ALTER TABLE peers ADD COLUMN is_online INTEGER NOT NULL DEFAULT 0", [])?;
+                }
+
+                Ok(())
+            })
+            .await;
+
+        // 如果上述过程遇到严重的字段冲突或表损坏，直接强行 Drop 表重建
+        if let Err(err) = init_res {
+            warn!(error = %err, "Database schema incompatibility detected. Dropping tables and rebuilding...");
+
+            db.call(|conn| {
+                conn.execute_batch(
+                    "
+                    DROP TABLE IF EXISTS messages;
+                    DROP TABLE IF EXISTS peers;
+
+                    CREATE TABLE peers (
+                        mac_address TEXT PRIMARY KEY,
+                        last_known_ip TEXT NOT NULL,
+                        port INTEGER NOT NULL,
+                        device_name TEXT NOT NULL,
+                        last_seen INTEGER NOT NULL,
+                        is_online INTEGER NOT NULL DEFAULT 0
+                    );
+
+                    CREATE TABLE messages (
+                        msg_id TEXT PRIMARY KEY,
+                        peer_mac TEXT NOT NULL,
+                        is_outgoing INTEGER NOT NULL,
+                        content TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        status TEXT NOT NULL
+                    );
+
+                    CREATE INDEX idx_messages_peer_mac ON messages(peer_mac);
+                    ",
+                )?;
+                Ok(())
+            })
+                .await
+                .map_err(|e| format!("Failed to force recreate SQLite database tables: {e}"))?;
+        }
 
         Ok(Self { db })
     }
 
     pub async fn upsert_peer(&self, record: PeerRecord) {
-        debug!(
-            mac = %record.mac_address,
-            ip = %record.last_known_ip,
-            name = %record.device_name,
-            "Upserting peer record to SQLite"
-        );
+        debug!(mac = %record.mac_address, ip = %record.last_known_ip, is_online = record.is_online, "Upserting peer record");
 
         let res = self
             .db
             .call(move |conn| {
                 conn.execute(
-                    "INSERT INTO peers (mac_address, last_known_ip, port, device_name, last_seen)
-                     VALUES (?1, ?2, ?3, ?4, ?5)
-                     ON CONFLICT(mac_address) DO UPDATE SET
-                        last_known_ip = excluded.last_known_ip,
-                        port = excluded.port,
-                        device_name = excluded.device_name,
-                        last_seen = excluded.last_seen",
+                    "INSERT OR REPLACE INTO peers (mac_address, last_known_ip, port, device_name, last_seen, is_online)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                     params![
                         record.mac_address,
                         record.last_known_ip,
                         record.port,
                         record.device_name,
-                        record.last_seen
+                        record.last_seen,
+                        if record.is_online { 1 } else { 0 }
                     ],
                 )?;
                 Ok(())
@@ -146,20 +215,40 @@ impl LocalStorage {
         }
     }
 
+    pub async fn set_peer_online_status(&self, mac: &str, is_online: bool) {
+        let mac_owned = mac.to_string();
+        let res = self
+            .db
+            .call(move |conn| {
+                conn.execute(
+                    "UPDATE peers SET is_online = ?1 WHERE mac_address = ?2",
+                    params![if is_online { 1 } else { 0 }, mac_owned],
+                )?;
+                Ok(())
+            })
+            .await;
+
+        if let Err(e) = res {
+            error!(error = %e, mac = %mac, "Failed to update peer online status");
+        }
+    }
+
     pub async fn get_all_peers(&self) -> Vec<PeerRecord> {
         let res = self
             .db
             .call(|conn| {
                 let mut stmt = conn.prepare(
-                    "SELECT mac_address, last_known_ip, port, device_name, last_seen FROM peers",
+                    "SELECT mac_address, last_known_ip, port, device_name, last_seen, is_online FROM peers ORDER BY is_online DESC, last_seen DESC",
                 )?;
                 let rows = stmt.query_map([], |row| {
+                    let is_online_int: i32 = row.get(5)?;
                     Ok(PeerRecord {
                         mac_address: row.get(0)?,
                         last_known_ip: row.get(1)?,
                         port: row.get(2)?,
                         device_name: row.get(3)?,
                         last_seen: row.get(4)?,
+                        is_online: is_online_int == 1,
                     })
                 })?;
 
@@ -172,10 +261,7 @@ impl LocalStorage {
             .await;
 
         match res {
-            Ok(peers) => {
-                debug!(count = peers.len(), "Retrieved all peer records from SQLite");
-                peers
-            }
+            Ok(peers) => peers,
             Err(e) => {
                 error!(error = %e, "Failed to fetch all peers");
                 Vec::new()
@@ -188,15 +274,17 @@ impl LocalStorage {
         self.db
             .call(move |conn| {
                 let mut stmt = conn.prepare(
-                    "SELECT mac_address, last_known_ip, port, device_name, last_seen FROM peers WHERE mac_address = ?1",
+                    "SELECT mac_address, last_known_ip, port, device_name, last_seen, is_online FROM peers WHERE mac_address = ?1",
                 )?;
                 let mut rows = stmt.query_map(params![mac_owned], |row| {
+                    let is_online_int: i32 = row.get(5)?;
                     Ok(PeerRecord {
                         mac_address: row.get(0)?,
                         last_known_ip: row.get(1)?,
                         port: row.get(2)?,
                         device_name: row.get(3)?,
                         last_seen: row.get(4)?,
+                        is_online: is_online_int == 1,
                     })
                 })?;
 
@@ -211,22 +299,14 @@ impl LocalStorage {
     }
 
     pub async fn append_message(&self, peer_mac: String, msg: PersistentMessage) {
-        info!(
-            msg_id = %msg.msg_id,
-            peer_mac = %peer_mac,
-            is_outgoing = msg.is_outgoing,
-            "Persisting message to SQLite"
-        );
+        info!(msg_id = %msg.msg_id, peer_mac = %peer_mac, "Persisting message to SQLite");
 
         let res = self
             .db
             .call(move |conn| {
-                conn.execute(
-                    "INSERT INTO messages (msg_id, peer_mac, is_outgoing, content, timestamp, status)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-                     ON CONFLICT(msg_id) DO UPDATE SET
-                        status = excluded.status,
-                        content = excluded.content",
+                let insert_res = conn.execute(
+                    "INSERT OR REPLACE INTO messages (msg_id, peer_mac, is_outgoing, content, timestamp, status)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                     params![
                         msg.msg_id,
                         peer_mac,
@@ -235,7 +315,23 @@ impl LocalStorage {
                         msg.timestamp,
                         msg.status.as_str()
                     ],
-                )?;
+                );
+
+                if insert_res.is_err() {
+                    let _ = conn.execute("DELETE FROM messages WHERE msg_id = ?1", params![msg.msg_id]);
+                    conn.execute(
+                        "INSERT INTO messages (msg_id, peer_mac, is_outgoing, content, timestamp, status)
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                        params![
+                            msg.msg_id,
+                            peer_mac,
+                            if msg.is_outgoing { 1 } else { 0 },
+                            msg.content,
+                            msg.timestamp,
+                            msg.status.as_str()
+                        ],
+                    )?;
+                }
                 Ok(())
             })
             .await;
@@ -340,25 +436,9 @@ impl LocalStorage {
     }
 }
 
-// ==========================================
-// 2. Wire Protocol Envelopes
-// ==========================================
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MessageEnvelope {
-    pub version: u8,
-    pub msg_id: String,
-    pub sender_mac: String,
-    pub payload: MessagePayload,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type", content = "data")]
-pub enum MessagePayload {
-    Handshake { sender_mac: String },
-    ChatMessage { content: String },
-    Ack { target_msg_id: String },
-}
+// =============================================================================
+// 3. Peer Connection Handle
+// =============================================================================
 
 #[frb(ignore)]
 pub struct PeerConnection {
@@ -368,18 +448,17 @@ pub struct PeerConnection {
 }
 
 impl PeerConnection {
-    /// 通过 Channel 异步投递待发送信封，彻底避免锁死 TCP Socket
     pub async fn send_envelope(&self, envelope: &MessageEnvelope) -> Result<(), String> {
         self.tx
             .send(envelope.clone())
             .await
-            .map_err(|e| format!("Failed to queue message envelope to writer channel: {e}"))
+            .map_err(|e| format!("Failed to queue message envelope: {e}"))
     }
 }
 
-// ==========================================
-// 3. Unified Engine
-// ==========================================
+// =============================================================================
+// 4. Unified Communication Engine
+// =============================================================================
 
 #[derive(Clone)]
 pub struct NetworkEngine {
@@ -390,9 +469,11 @@ pub struct NetworkEngine {
 }
 
 impl NetworkEngine {
+    // --- Core Lifecycle & Management ---
+
     pub async fn new(self_mac: String, db_path_str: String) -> Result<Self, String> {
         let db_path = PathBuf::from(db_path_str);
-        info!(self_mac = %self_mac, db_path = ?db_path, "Initializing NetworkEngine with SQLite storage");
+        info!(self_mac = %self_mac, db_path = ?db_path, "Initializing NetworkEngine");
         let storage = LocalStorage::open(db_path).await?;
 
         Ok(Self {
@@ -404,52 +485,167 @@ impl NetworkEngine {
     }
 
     pub async fn register_notify_sink(&self, sink: StreamSink<String>) {
-        info!("Registering/Updating Flutter StreamSink for real-time notifications");
+        info!("Registering StreamSink for Flutter events");
         let mut guard = self.notify_sink.write().await;
         *guard = Some(sink);
     }
 
     async fn emit_event(&self, event: String) {
         if let Some(ref sink) = *self.notify_sink.read().await {
-            debug!(event = %event, "Emitting event sink update to Flutter UI");
+            debug!(event = %event, "Emitting event to Dart");
             if let Err(e) = sink.add(event.clone()) {
-                warn!(event = %event, error = ?e, "Failed to deliver event over StreamSink");
+                warn!(event = %event, error = ?e, "Failed to deliver event via StreamSink");
             }
-        } else {
-            warn!(
-                event = %event,
-                "Attempted to emit event, but StreamSink is not yet registered"
-            );
         }
     }
 
-    async fn get_or_connect(&self, peer_mac: &str) -> Result<Arc<PeerConnection>, String> {
-        let peer_info = self.storage.get_peer(peer_mac).await;
-        let peer_ip = peer_info.as_ref().map(|p| p.last_known_ip.as_str()).unwrap_or("unknown");
+    // --- Dart/Flutter Exported APIs ---
 
+    pub async fn upsert_peer(&self, record: PeerRecord) {
+        self.storage.upsert_peer(record).await;
+    }
+
+    pub async fn get_peers(&self) -> Vec<PeerRecord> {
+        self.storage.get_all_peers().await
+    }
+
+    pub async fn get_messages(&self, peer_mac: String) -> Vec<PersistentMessage> {
+        self.storage.get_messages_for_peer(&peer_mac).await
+    }
+
+    // --- Active Communication & Outbox ---
+
+    pub async fn send_message(&self, recipient_mac: String, content: String) -> Result<(), String> {
+        let msg_id = Uuid::new_v4().to_string();
+        info!(msg_id = %msg_id, recipient = %recipient_mac, "Queueing outgoing chat message");
+
+        let msg = PersistentMessage {
+            msg_id,
+            peer_mac: recipient_mac.clone(),
+            is_outgoing: true,
+            content,
+            timestamp: chrono_now_timestamp(),
+            status: MessageStatus::Pending,
+        };
+
+        self.storage.append_message(recipient_mac.clone(), msg).await;
+
+        let engine = self.clone();
+        tokio::spawn(async move {
+            engine.flush_outbox(&recipient_mac).await;
+        });
+
+        Ok(())
+    }
+
+    pub async fn flush_outbox(&self, peer_mac: &str) {
+        let pending = self.storage.get_pending_messages(peer_mac).await;
+        if pending.is_empty() {
+            return;
+        }
+
+        info!(peer_mac = %peer_mac, count = pending.len(), "Flushing pending outbox messages");
+
+        match self.get_or_connect(peer_mac).await {
+            Ok(conn) => {
+                for msg in pending {
+                    let env = MessageEnvelope {
+                        version: 1,
+                        msg_id: msg.msg_id.clone(),
+                        sender_mac: self.self_mac.clone(),
+                        payload: MessagePayload::ChatMessage {
+                            content: msg.content.clone(),
+                        },
+                    };
+
+                    if let Err(e) = conn.send_envelope(&env).await {
+                        error!(msg_id = %msg.msg_id, error = %e, "Failed to send message over socket");
+                        self.connections.write().await.remove(peer_mac);
+                        self.storage.set_peer_online_status(peer_mac, false).await;
+                        self.emit_event("PEER_LIST_UPDATED".to_string()).await;
+                        break;
+                    } else {
+                        self.emit_event(format!("MSG_SENT:{}", peer_mac)).await;
+                    }
+                }
+            }
+            Err(e) => {
+                warn!(peer_mac = %peer_mac, error = %e, "Unable to flush outbox: connection failed");
+            }
+        }
+    }
+
+    pub async fn run_scan_and_flush_cycle(&self) {
+        info!("Starting peer status refresh and outbox flush cycle");
+
+        // 1. Read historical records from SQLite
+        let historical_peers = self.storage.get_all_peers().await;
+
+        // 2. Discover active devices via mDNS
+        let discovered_peers = crate::api::discovery::scan_lan_peers(self.self_mac.clone())
+            .await
+            .unwrap_or_else(|e| {
+                error!(error = ?e, "mDNS scan failed, continuing with cached records");
+                Vec::new()
+            });
+
+        let discovered_map: HashMap<String, _> = discovered_peers
+            .into_iter()
+            .map(|p| (p.mac_address.clone(), p))
+            .collect();
+
+        // 3. Update active state for existing devices & flush pending messages
+        for mut peer_record in historical_peers {
+            let mac = peer_record.mac_address.clone();
+
+            if let Some(online_peer) = discovered_map.get(&mac) {
+                peer_record.last_known_ip = online_peer.ip.clone();
+                peer_record.device_name = online_peer.device_name.clone();
+                peer_record.last_seen = chrono_now_timestamp();
+                peer_record.is_online = true;
+                self.storage.upsert_peer(peer_record).await;
+                self.flush_outbox(&mac).await;
+            } else {
+                peer_record.is_online = false;
+                self.storage.upsert_peer(peer_record).await;
+            }
+        }
+
+        // 4. Save newly discovered devices
+        for (mac, online_peer) in discovered_map {
+            if self.storage.get_peer(&mac).await.is_none() {
+                let new_record = PeerRecord {
+                    mac_address: mac.clone(),
+                    last_known_ip: online_peer.ip,
+                    port: ProtocolConfig::SERVICE_PORT,
+                    device_name: online_peer.device_name,
+                    last_seen: chrono_now_timestamp(),
+                    is_online: true,
+                };
+                self.storage.upsert_peer(new_record).await;
+                self.flush_outbox(&mac).await;
+            }
+        }
+
+        // 5. Notify UI
+        self.emit_event("PEER_LIST_UPDATED".to_string()).await;
+    }
+
+    // --- Networking Internal Logic ---
+
+    async fn get_or_connect(&self, peer_mac: &str) -> Result<Arc<PeerConnection>, String> {
         if let Some(conn) = self.connections.read().await.get(peer_mac) {
-            debug!(peer_mac = %peer_mac, ip = %conn.remote_ip, "Reusing active TCP peer connection");
             return Ok(Arc::clone(conn));
         }
 
-        info!(peer_mac = %peer_mac, ip = %peer_ip, "No active connection found. Querying storage for peer endpoint info");
-        let peer_record = peer_info.ok_or_else(|| {
-            let err = format!("Peer MAC {} not found in local storage", peer_mac);
-            error!(mac = %peer_mac, %err);
-            err
+        let peer_record = self.storage.get_peer(peer_mac).await.ok_or_else(|| {
+            format!("Peer MAC {} not found in local storage", peer_mac)
         })?;
 
         let addr = format!("{}:{}", peer_record.last_known_ip, peer_record.port);
-        info!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, address = %addr, "Establishing new TCP connection to peer");
+        info!(peer_mac = %peer_mac, address = %addr, "Connecting to peer");
 
-        let stream = TcpStream::connect(&addr).await.map_err(|e| {
-            let err = format!("Failed to connect to {addr}: {e}");
-            warn!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, address = %addr, error = %e, "TCP connection attempt failed");
-            err
-        })?;
-
-        info!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, address = %addr, "TCP connection established successfully");
-
+        let stream = TcpStream::connect(&addr).await.map_err(|e| format!("Connect failed: {e}"))?;
         let (tx, conn) = self.setup_connection(stream, peer_record.last_known_ip.clone(), peer_mac.to_string()).await;
 
         let handshake = MessageEnvelope {
@@ -461,18 +657,51 @@ impl NetworkEngine {
             },
         };
 
-        info!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, "Sending outbound handshake");
         conn.send_envelope(&handshake).await?;
-
-        self.connections
-            .write()
-            .await
-            .insert(peer_mac.to_string(), Arc::clone(&conn));
+        self.connections.write().await.insert(peer_mac.to_string(), Arc::clone(&conn));
+        self.storage.set_peer_online_status(peer_mac, true).await;
+        self.emit_event("PEER_LIST_UPDATED".to_string()).await;
 
         Ok(conn)
     }
 
-    /// 设置分离的读写 Channel 逻辑
+    pub async fn start_listener(
+        &self,
+        port: u16,
+        notify_sink: StreamSink<String>,
+    ) -> Result<(), String> {
+        self.register_notify_sink(notify_sink).await;
+
+        let engine = self.clone();
+        let addr = format!("0.0.0.0:{}", port);
+        let listener = TcpListener::bind(&addr).await.map_err(|e| format!("Bind error: {e}"))?;
+
+        info!(address = %addr, "TCP listener bound successfully");
+
+        tokio::spawn(async move {
+            loop {
+                match listener.accept().await {
+                    Ok((stream, peer_addr)) => {
+                        let ip = peer_addr.ip().to_string();
+                        let engine_clone = engine.clone();
+                        tokio::spawn(async move {
+                            engine_clone.handle_incoming_stream(stream, ip).await;
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = %e, "TCP accept failed");
+                    }
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+    async fn handle_incoming_stream(&self, stream: TcpStream, ip: String) {
+        self.setup_connection(stream, ip, String::new()).await;
+    }
+
     async fn setup_connection(
         &self,
         stream: TcpStream,
@@ -488,36 +717,30 @@ impl NetworkEngine {
             tx: tx.clone(),
         });
 
-        // 1. 独立写入任务：从 rx 通道接收 Frame，单向写到 TCP stream
+        // Frame Writer Loop (4-byte length prefix + payload)
         let ip_writer = remote_ip.clone();
         tokio::spawn(async move {
-            use tokio::io::AsyncWriteExt;
             while let Some(envelope) = rx.recv().await {
                 let bytes = match serde_json::to_vec(&envelope) {
                     Ok(b) => b,
                     Err(e) => {
-                        error!(error = %e, "Failed to serialize MessageEnvelope");
+                        error!(error = %e, "Failed to serialize envelope");
                         continue;
                     }
                 };
 
                 let len = (bytes.len() as u32).to_be_bytes();
-                if let Err(e) = write_half.write_all(&len).await {
-                    error!(ip = %ip_writer, error = %e, "Failed writing length to socket");
-                    break;
-                }
-                if let Err(e) = write_half.write_all(&bytes).await {
-                    error!(ip = %ip_writer, error = %e, "Failed writing payload to socket");
-                    break;
-                }
-                if let Err(e) = write_half.flush().await {
-                    error!(ip = %ip_writer, error = %e, "Failed flushing socket");
+                if write_half.write_all(&len).await.is_err()
+                    || write_half.write_all(&bytes).await.is_err()
+                    || write_half.flush().await.is_err()
+                {
+                    error!(ip = %ip_writer, "Socket write error");
                     break;
                 }
             }
         });
 
-        // 2. 独立读取循环：从 read_half 不断读取 Frame 驱动状态机
+        // Frame Reader Loop
         let engine = self.clone();
         let conn_clone = Arc::clone(&conn);
         tokio::spawn(async move {
@@ -527,175 +750,6 @@ impl NetworkEngine {
         (tx, conn)
     }
 
-    pub async fn send_message(&self, recipient_mac: String, content: String) -> Result<(), String> {
-        let recipient_ip = self
-            .storage
-            .get_peer(&recipient_mac)
-            .await
-            .map(|p| p.last_known_ip)
-            .unwrap_or_else(|| "unknown".to_string());
-        let msg_id = Uuid::new_v4().to_string();
-        info!(
-            msg_id = %msg_id,
-            recipient_mac = %recipient_mac,
-            recipient_ip = %recipient_ip,
-            "Queueing new outgoing chat message"
-        );
-
-        let msg = PersistentMessage {
-            msg_id,
-            peer_mac: recipient_mac.clone(),
-            is_outgoing: true,
-            content,
-            timestamp: chrono_now_timestamp(),
-            status: MessageStatus::Pending,
-        };
-
-        self.storage.append_message(recipient_mac.clone(), msg).await;
-
-        let engine = self.clone();
-        let mac_clone = recipient_mac.clone();
-        tokio::spawn(async move {
-            engine.flush_outbox(&mac_clone).await;
-        });
-
-        Ok(())
-    }
-
-    pub async fn flush_outbox(&self, peer_mac: &str) {
-        let peer_ip = self.storage.get_peer(peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
-        let pending = self.storage.get_pending_messages(peer_mac).await;
-        if pending.is_empty() {
-            debug!(peer_mac = %peer_mac, ip = %peer_ip, "No pending messages to flush");
-            return;
-        }
-
-        info!(
-            peer_mac = %peer_mac,
-            ip = %peer_ip,
-            count = pending.len(),
-            "Flushing outbox pending queue"
-        );
-
-        match self.get_or_connect(peer_mac).await {
-            Ok(conn) => {
-                for msg in pending {
-                    debug!(
-                        peer_mac = %peer_mac,
-                        ip = %peer_ip,
-                        msg_id = %msg.msg_id,
-                        "Attempting outbox message delivery"
-                    );
-
-                    let env = MessageEnvelope {
-                        version: 1,
-                        msg_id: msg.msg_id.clone(),
-                        sender_mac: self.self_mac.clone(),
-                        payload: MessagePayload::ChatMessage {
-                            content: msg.content.clone(),
-                        },
-                    };
-
-                    if let Err(e) = conn.send_envelope(&env).await {
-                        error!(
-                            peer_mac = %peer_mac,
-                            ip = %peer_ip,
-                            msg_id = %msg.msg_id,
-                            error = %e,
-                            "Failed transmitting outbox message. Evicting dead connection"
-                        );
-                        self.connections.write().await.remove(peer_mac);
-                        break;
-                    } else {
-                        self.emit_event(format!("MSG_SENT:{}", peer_mac)).await;
-                    }
-                }
-            }
-            Err(e) => {
-                warn!(
-                    peer_mac = %peer_mac,
-                    ip = %peer_ip,
-                    error = %e,
-                    "Cannot flush outbox: unable to connect to peer endpoint"
-                );
-            }
-        }
-    }
-
-    pub async fn run_scan_and_flush_cycle(&self) {
-        info!("Starting mDNS peer scan and outbox flush cycle");
-
-        match crate::api::discovery::scan_lan_peers().await {
-            Ok(discovered_peers) => {
-                info!(
-                    count = discovered_peers.len(),
-                    "Discovery scan complete; processing peers"
-                );
-
-                for peer in discovered_peers {
-                    let mac = peer.mac_address.clone();
-                    let record = PeerRecord {
-                        mac_address: mac.clone(),
-                        last_known_ip: peer.ip.clone(),
-                        port: ProtocolConfig::SERVICE_PORT,
-                        device_name: peer.device_name,
-                        last_seen: chrono_now_timestamp(),
-                    };
-
-                    self.storage.upsert_peer(record).await;
-                    self.flush_outbox(&mac).await;
-                }
-                self.emit_event("PEER_LIST_UPDATED".to_string()).await;
-            }
-            Err(e) => {
-                error!(error = ?e, "mDNS LAN peer discovery scan failed");
-            }
-        }
-    }
-
-    pub async fn start_listener(
-        &self,
-        port: u16,
-        notify_sink: StreamSink<String>,
-    ) -> Result<(), String> {
-        self.register_notify_sink(notify_sink).await;
-
-        let engine = self.clone();
-        let addr = format!("0.0.0.0:{}", port);
-
-        let listener = TcpListener::bind(&addr).await.map_err(|e| {
-            let err = format!("Failed to bind listener to {addr}: {e}");
-            error!(%err);
-            err
-        })?;
-
-        info!(address = %addr, "TCP server listener successfully bound and listening");
-
-        tokio::spawn(async move {
-            loop {
-                match listener.accept().await {
-                    Ok((stream, peer_addr)) => {
-                        let ip = peer_addr.ip().to_string();
-                        info!(peer_addr = %peer_addr, ip = %ip, "Accepted incoming TCP connection");
-                        let engine_clone = engine.clone();
-                        tokio::spawn(async move {
-                            engine_clone.handle_incoming_stream(stream, ip).await;
-                        });
-                    }
-                    Err(e) => {
-                        error!(error = %e, "Failed accepting incoming TCP stream");
-                    }
-                }
-            }
-        });
-
-        Ok(())
-    }
-
-    async fn handle_incoming_stream(&self, stream: TcpStream, ip: String) {
-        self.setup_connection(stream, ip, String::new()).await;
-    }
-
     async fn handle_read_loop(
         &self,
         mut read_half: tokio::net::tcp::OwnedReadHalf,
@@ -703,79 +757,41 @@ impl NetworkEngine {
         mut current_peer_mac: String,
         current_peer_ip: String,
     ) {
-        debug!(
-            initial_peer_mac = %current_peer_mac,
-            ip = %current_peer_ip,
-            "Entering connection event loop"
-        );
-
         loop {
-            // 从 OwnedReadHalf 循环解析 Packet
             let mut len_bytes = [0u8; 4];
-            if let Err(e) = read_half.read_exact(&mut len_bytes).await {
-                debug!(
-                    remote_mac = %current_peer_mac,
-                    ip = %current_peer_ip,
-                    error = %e,
-                    "TCP stream read length error (connection closed)"
-                );
+            if read_half.read_exact(&mut len_bytes).await.is_err() {
                 break;
             }
 
             let len = u32::from_be_bytes(len_bytes) as usize;
             let mut buffer = vec![0u8; len];
-            if let Err(e) = read_half.read_exact(&mut buffer).await {
-                error!(
-                    remote_mac = %current_peer_mac,
-                    ip = %current_peer_ip,
-                    error = %e,
-                    "Failed reading payload from socket"
-                );
+            if read_half.read_exact(&mut buffer).await.is_err() {
                 break;
             }
 
             let env: MessageEnvelope = match serde_json::from_slice(&buffer) {
                 Ok(env) => env,
                 Err(e) => {
-                    error!(
-                        remote_mac = %current_peer_mac,
-                        ip = %current_peer_ip,
-                        error = %e,
-                        "Deserialization failed"
-                    );
+                    error!(error = %e, "Deserialization failed");
                     continue;
                 }
             };
 
             match env.payload {
                 MessagePayload::Handshake { sender_mac } => {
-                    info!(
-                        remote_mac = %sender_mac,
-                        ip = %current_peer_ip,
-                        "Received Handshake envelope. Registering peer connection"
-                    );
                     current_peer_mac = sender_mac.clone();
                     *conn.remote_mac.write().await = sender_mac.clone();
-                    self.connections
-                        .write()
-                        .await
-                        .insert(sender_mac, Arc::clone(&conn));
+                    self.connections.write().await.insert(sender_mac.clone(), Arc::clone(&conn));
+                    self.storage.set_peer_online_status(&sender_mac, true).await;
+                    self.emit_event("PEER_LIST_UPDATED".to_string()).await;
                 }
                 MessagePayload::ChatMessage { content } => {
-                    info!(
-                        sender_mac = %env.sender_mac,
-                        ip = %current_peer_ip,
-                        msg_id = %env.msg_id,
-                        "Received ChatMessage envelope"
-                    );
-
                     if current_peer_mac.is_empty() {
                         current_peer_mac = env.sender_mac.clone();
                         *conn.remote_mac.write().await = env.sender_mac.clone();
-                        self.connections
-                            .write()
-                            .await
-                            .insert(env.sender_mac.clone(), Arc::clone(&conn));
+                        self.connections.write().await.insert(env.sender_mac.clone(), Arc::clone(&conn));
+                        self.storage.set_peer_online_status(&env.sender_mac, true).await;
+                        self.emit_event("PEER_LIST_UPDATED".to_string()).await;
                     }
 
                     let msg = PersistentMessage {
@@ -798,50 +814,35 @@ impl NetworkEngine {
                         },
                     };
 
-                    if let Err(e) = conn.send_envelope(&ack).await {
-                        warn!(
-                            remote_mac = %env.sender_mac,
-                            ip = %current_peer_ip,
-                            error = %e,
-                            "Failed sending ACK to peer"
-                        );
-                    }
-
+                    let _ = conn.send_envelope(&ack).await;
                     self.emit_event(format!("NEW_MSG:{}", env.sender_mac)).await;
                 }
                 MessagePayload::Ack { target_msg_id } => {
-                    let primary_target = if !current_peer_mac.is_empty() {
+                    let target = if !current_peer_mac.is_empty() {
                         &current_peer_mac
                     } else {
                         &env.sender_mac
                     };
 
-                    info!(
-                        peer_mac = %primary_target,
-                        ip = %current_peer_ip,
-                        target_msg_id = %target_msg_id,
-                        "Received ACK envelope for message"
-                    );
-
-                    let marked = self.storage.mark_acked(primary_target, &target_msg_id).await;
-                    if marked {
-                        self.emit_event(format!("ACK:{}", primary_target)).await;
+                    if self.storage.mark_acked(target, &target_msg_id).await {
+                        self.emit_event(format!("ACK:{}", target)).await;
                     }
                 }
             }
         }
 
-        // 清理断开连接
         if !current_peer_mac.is_empty() {
             self.connections.write().await.remove(&current_peer_mac);
-            info!(
-                peer_mac = %current_peer_mac,
-                ip = %current_peer_ip,
-                "Evicted disconnected peer from connection map"
-            );
+            self.storage.set_peer_online_status(&current_peer_mac, false).await;
+            self.emit_event("PEER_LIST_UPDATED".to_string()).await;
+            info!(peer_mac = %current_peer_mac, ip = %current_peer_ip, "Closed peer connection removed and marked offline");
         }
     }
 }
+
+// =============================================================================
+// 5. Utility Functions
+// =============================================================================
 
 pub fn chrono_now_timestamp() -> i64 {
     std::time::SystemTime::now()

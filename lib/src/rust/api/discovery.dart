@@ -16,9 +16,9 @@ Future<void> registerBonjourService({required String macAddress}) => RustLib
     .crateApiDiscoveryRegisterBonjourService(macAddress: macAddress);
 
 /// Asynchronous mDNS LAN scanning using tokio::task::spawn_blocking
-/// to keep the async executor unblocked.
-Future<List<PeerInfo>> scanLanPeers() =>
-    RustLib.instance.api.crateApiDiscoveryScanLanPeers();
+/// Filter out both self IP and self MAC address.
+Future<List<PeerInfo>> scanLanPeers({required String selfMac}) =>
+    RustLib.instance.api.crateApiDiscoveryScanLanPeers(selfMac: selfMac);
 
 Future<String> getDeviceIdentifier() =>
     RustLib.instance.api.crateApiDiscoveryGetDeviceIdentifier();

@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1690476631;
+  int get rustContentHash => 906970235;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -116,6 +116,12 @@ abstract class RustLibApi extends BaseApi {
 
   Future<LocalStorage> crateApiProtocolLocalStorageOpen({
     required PathBuf dbPath,
+  });
+
+  Future<void> crateApiProtocolLocalStorageSetPeerOnlineStatus({
+    required LocalStorage that,
+    required String mac,
+    required bool isOnline,
   });
 
   Future<void> crateApiProtocolLocalStorageUpsertPeer({
@@ -199,7 +205,9 @@ abstract class RustLibApi extends BaseApi {
     required NetworkEngine engine,
   });
 
-  Future<List<PeerInfo>> crateApiDiscoveryScanLanPeers();
+  Future<List<PeerInfo>> crateApiDiscoveryScanLanPeers({
+    required String selfMac,
+  });
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LocalStorage;
@@ -500,6 +508,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "LocalStorage_open", argNames: ["dbPath"]);
 
   @override
+  Future<void> crateApiProtocolLocalStorageSetPeerOnlineStatus({
+    required LocalStorage that,
+    required String mac,
+    required bool isOnline,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+            that,
+            serializer,
+          );
+          sse_encode_String(mac, serializer);
+          sse_encode_bool(isOnline, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiProtocolLocalStorageSetPeerOnlineStatusConstMeta,
+        argValues: [that, mac, isOnline],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiProtocolLocalStorageSetPeerOnlineStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: "LocalStorage_set_peer_online_status",
+        argNames: ["that", "mac", "isOnline"],
+      );
+
+  @override
   Future<void> crateApiProtocolLocalStorageUpsertPeer({
     required LocalStorage that,
     required PeerRecord record,
@@ -516,7 +564,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 9,
             port: port_,
           );
         },
@@ -549,7 +597,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -584,7 +632,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(selfMac, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -622,7 +670,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 12,
             port: port_,
           );
         },
@@ -660,7 +708,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 13,
             port: port_,
           );
         },
@@ -696,7 +744,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 14,
             port: port_,
           );
         },
@@ -731,7 +779,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 15,
             port: port_,
           );
         },
@@ -771,7 +819,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 15,
+              funcId: 16,
               port: port_,
             );
           },
@@ -809,7 +857,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 17,
             port: port_,
           );
         },
@@ -850,7 +898,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 18,
             port: port_,
           );
         },
@@ -891,7 +939,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 18,
+              funcId: 19,
               port: port_,
             );
           },
@@ -931,7 +979,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 20,
             port: port_,
           );
         },
@@ -961,7 +1009,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 21,
             port: port_,
           );
         },
@@ -988,7 +1036,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 22,
             port: port_,
           );
         },
@@ -1013,7 +1061,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -1038,7 +1086,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 24,
             port: port_,
           );
         },
@@ -1068,7 +1116,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 25,
             port: port_,
           );
         },
@@ -1101,7 +1149,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 26,
             port: port_,
           );
         },
@@ -1134,7 +1182,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 27,
             port: port_,
           );
         },
@@ -1170,7 +1218,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1189,15 +1237,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "scan_and_flush", argNames: ["engine"]);
 
   @override
-  Future<List<PeerInfo>> crateApiDiscoveryScanLanPeers() {
+  Future<List<PeerInfo>> crateApiDiscoveryScanLanPeers({
+    required String selfMac,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(selfMac, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1206,14 +1257,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiDiscoveryScanLanPeersConstMeta,
-        argValues: [],
+        argValues: [selfMac],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta get kCrateApiDiscoveryScanLanPeersConstMeta =>
-      const TaskConstMeta(debugName: "scan_lan_peers", argNames: []);
+      const TaskConstMeta(debugName: "scan_lan_peers", argNames: ["selfMac"]);
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LocalStorage => wire
@@ -1421,14 +1472,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PeerRecord dco_decode_peer_record(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return PeerRecord(
       macAddress: dco_decode_String(arr[0]),
       lastKnownIp: dco_decode_String(arr[1]),
       port: dco_decode_u_16(arr[2]),
       deviceName: dco_decode_String(arr[3]),
       lastSeen: dco_decode_i_64(arr[4]),
+      isOnline: dco_decode_bool(arr[5]),
     );
   }
 
@@ -1720,12 +1772,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_port = sse_decode_u_16(deserializer);
     var var_deviceName = sse_decode_String(deserializer);
     var var_lastSeen = sse_decode_i_64(deserializer);
+    var var_isOnline = sse_decode_bool(deserializer);
     return PeerRecord(
       macAddress: var_macAddress,
       lastKnownIp: var_lastKnownIp,
       port: var_port,
       deviceName: var_deviceName,
       lastSeen: var_lastSeen,
+      isOnline: var_isOnline,
     );
   }
 
@@ -2039,6 +2093,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_16(self.port, serializer);
     sse_encode_String(self.deviceName, serializer);
     sse_encode_i_64(self.lastSeen, serializer);
+    sse_encode_bool(self.isOnline, serializer);
   }
 
   @protected
@@ -2136,6 +2191,15 @@ class LocalStorageImpl extends RustOpaque implements LocalStorage {
     targetMsgId: targetMsgId,
   );
 
+  Future<void> setPeerOnlineStatus({
+    required String mac,
+    required bool isOnline,
+  }) => RustLib.instance.api.crateApiProtocolLocalStorageSetPeerOnlineStatus(
+    that: this,
+    mac: mac,
+    isOnline: isOnline,
+  );
+
   Future<void> upsertPeer({required PeerRecord record}) => RustLib.instance.api
       .crateApiProtocolLocalStorageUpsertPeer(that: this, record: record);
 }
@@ -2171,14 +2235,12 @@ class NetworkEngineImpl extends RustOpaque implements NetworkEngine {
   Future<void> flushOutbox({required String peerMac}) => RustLib.instance.api
       .crateApiProtocolNetworkEngineFlushOutbox(that: this, peerMac: peerMac);
 
-  /// Exposes chat retrieval directly to Dart
   Future<List<PersistentMessage>> getMessages({required String peerMac}) =>
       RustLib.instance.api.crateApiProtocolNetworkEngineGetMessages(
         that: this,
         peerMac: peerMac,
       );
 
-  /// Exposes peer fetching directly to Dart
   Future<List<PeerRecord>> getPeers() =>
       RustLib.instance.api.crateApiProtocolNetworkEngineGetPeers(that: this);
 
@@ -2200,7 +2262,6 @@ class NetworkEngineImpl extends RustOpaque implements NetworkEngine {
   Stream<String> startListener({required int port}) => RustLib.instance.api
       .crateApiProtocolNetworkEngineStartListener(that: this, port: port);
 
-  /// Exposes peer insertion directly to Dart
   Future<void> upsertPeer({required PeerRecord record}) => RustLib.instance.api
       .crateApiProtocolNetworkEngineUpsertPeer(that: this, record: record);
 }
