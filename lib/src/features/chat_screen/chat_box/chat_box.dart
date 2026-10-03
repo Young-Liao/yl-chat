@@ -33,6 +33,42 @@ class _ChatBoxState extends State<ChatBox>
 
     _messageController = TextEditingController();
   }
+
+  void _registerMessageReceiver() {
+    currentMsgStream =
+        peerManager.addReceptionHandlerFor(peerId: chosenPeer.value!.name);
+    currentMsgStream.listen((envelope) {
+      switch (envelope.payload) {
+        case MessagePayload_Handshake(:final clientVersion, :final publicKey, :final peerId):
+          debugPrint('Handshake from $peerId (v$clientVersion)');
+          break;
+
+        case MessagePayload_ChatMessage(:final content):
+          debugPrint('Chat message: $content');
+          messages.add(ChatMessageModel(
+              senderInitials: 'PC',
+              text: content,
+              timestamp: formatTimestamp(envelope.timestamp),
+              isMe: false
+          ),
+          );
+          setState(() { });
+          break;
+
+        case MessagePayload_Ack(:final targetMsgId, :final status):
+          debugPrint('ACK for $targetMsgId: $status');
+          break;
+
+        case MessagePayload_Ping():
+          debugPrint('Received Ping');
+          break;
+
+        case MessagePayload_Pong():
+          debugPrint('Received Pong');
+          break;
+      }
+    });
+  }
  
   void _onPeerChanged() async {
     if (fromListener) {
@@ -53,41 +89,9 @@ class _ChatBoxState extends State<ChatBox>
         if (peerId != chosenPeer.value!.name) {
           throw Exception("The peerId isn't equal to the peerName. Fatal.");
         }
+        _registerMessageReceiver();
         setState(() { });
 
-        currentMsgStream =
-            peerManager.addReceptionHandlerFor(peerId: chosenPeer.value!.name);
-        currentMsgStream.listen((envelope) {
-          switch (envelope.payload) {
-            case MessagePayload_Handshake(:final clientVersion, :final publicKey, :final peerId):
-              debugPrint('Handshake from $peerId (v$clientVersion)');
-              break;
-
-            case MessagePayload_ChatMessage(:final content):
-              debugPrint('Chat message: $content');
-              messages.add(ChatMessageModel(
-                  senderInitials: 'PC',
-                  text: content,
-                  timestamp: formatTimestamp(envelope.timestamp),
-                  isMe: false
-                ),
-              );
-              setState(() { });
-              break;
-
-            case MessagePayload_Ack(:final targetMsgId, :final status):
-              debugPrint('ACK for $targetMsgId: $status');
-              break;
-
-            case MessagePayload_Ping():
-              debugPrint('Received Ping');
-              break;
-
-            case MessagePayload_Pong():
-              debugPrint('Received Pong');
-              break;
-          }
-        });
       } catch (e) {
         debugPrint("Failed to connect to peer ${chosenPeer.value!.name} :$e");
         chosenPeer.value = null;
@@ -103,6 +107,7 @@ class _ChatBoxState extends State<ChatBox>
     connectStream.listen((id) {
       fromListener = true;
       contactListKey.currentState?.selectByName(id);
+      _registerMessageReceiver();
       setState(() { });
     });
 
