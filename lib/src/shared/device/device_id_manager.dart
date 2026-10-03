@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
@@ -19,6 +20,7 @@ class DeviceIdManager {
 
       return deviceId;
     } catch (e) {
+      debugPrint("ERROR when getting deviceId: $e");
       // 容错处理：如果硬件或权限异常，返回一个临时的 UUID（这次启动有效）
       return const Uuid().v4();
     }

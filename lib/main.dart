@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:yl_chat/src/features/chat_screen/chat_screen.dart';
 import 'package:yl_chat/src/features/chat_screen/side_panel/side_panel.dart';
@@ -33,10 +34,13 @@ Future<void> main() async {
     await windowManager.focus();
   });
 
+  final docDir = await getApplicationDocumentsDirectory();
+  final dbPath = "${docDir.path}/app_chat.db";
+
   // Register local mDNS service on startup
   final macAddress = await DeviceIdManager.getOrCreateDeviceId();
   await registerBonjourService(macAddress: macAddress);
-  networkEngine = await NetworkEngine.newInstance(selfMac: macAddress);
+  networkEngine = await NetworkEngine.newInstance(selfMac: macAddress, dbPathStr: dbPath);
   networkEventStream = networkEngine.startListener(port: servicePort);
   initGlobalNetworkListener();
 

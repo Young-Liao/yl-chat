@@ -21,9 +21,6 @@ abstract class LocalStorage implements RustOpaqueInterface {
     required PersistentMessage msg,
   });
 
-  static Future<LocalStorage> default_() =>
-      RustLib.instance.api.crateApiProtocolLocalStorageDefault();
-
   Future<List<PeerRecord>> getAllPeers();
 
   Future<List<PersistentMessage>> getMessagesForPeer({required String peerMac});
@@ -36,6 +33,10 @@ abstract class LocalStorage implements RustOpaqueInterface {
     required String peerMac,
     required String targetMsgId,
   });
+
+  /// 初始化磁盘数据库（传入本地 sqlite 文件路径，例如 Flutter 导出的 app_doc_dir + "/chat.db"）
+  static Future<LocalStorage> open({required PathBuf dbPath}) =>
+      RustLib.instance.api.crateApiProtocolLocalStorageOpen(dbPath: dbPath);
 
   Future<void> upsertPeer({required PeerRecord record});
 }
@@ -55,8 +56,13 @@ abstract class NetworkEngine implements RustOpaqueInterface {
   Future<List<PeerRecord>> getPeers();
 
   // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
-  static Future<NetworkEngine> newInstance({required String selfMac}) =>
-      RustLib.instance.api.crateApiProtocolNetworkEngineNew(selfMac: selfMac);
+  static Future<NetworkEngine> newInstance({
+    required String selfMac,
+    required String dbPathStr,
+  }) => RustLib.instance.api.crateApiProtocolNetworkEngineNew(
+    selfMac: selfMac,
+    dbPathStr: dbPathStr,
+  );
 
   Stream<String> registerNotifySink();
 
@@ -73,7 +79,19 @@ abstract class NetworkEngine implements RustOpaqueInterface {
   Future<void> upsertPeer({required PeerRecord record});
 }
 
-enum MessageStatus { pending, acked }
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PathBuf>>
+abstract class PathBuf implements RustOpaqueInterface {}
+
+enum MessageStatus {
+  pending,
+  acked;
+
+  Future<void> asStr() =>
+      RustLib.instance.api.crateApiProtocolMessageStatusAsStr(that: this);
+
+  static Future<MessageStatus> fromStr({required String s}) =>
+      RustLib.instance.api.crateApiProtocolMessageStatusFromStr(s: s);
+}
 
 class PeerRecord {
   final String macAddress;

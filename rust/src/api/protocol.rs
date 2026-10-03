@@ -3,21 +3,40 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{mpsc, Mutex, RwLock};
+use tokio::sync::{mpsc, RwLock};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 use flutter_rust_bridge::frb;
 use crate::api::discovery::ProtocolConfig;
 use crate::frb_generated::StreamSink;
+use rusqlite::{params};
+use std::path::PathBuf;
+use tokio_rusqlite::Connection as AsyncConnection;
 
 // ==========================================
-// 1. Models & Shared Storage
+// 1. Models
 // ==========================================
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum MessageStatus {
     Pending,
     Acked,
+}
+
+impl MessageStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MessageStatus::Pending => "PENDING",
+            MessageStatus::Acked => "ACKED",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "ACKED" => MessageStatus::Acked,
+            _ => MessageStatus::Pending,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -39,127 +58,285 @@ pub struct PeerRecord {
     pub last_seen: i64,
 }
 
-#[derive(Default)]
+// ==========================================
+// 2. Disk Storage Engine (SQLite)
+// ==========================================
+
 pub struct LocalStorage {
-    peers: RwLock<HashMap<String, PeerRecord>>,
-    conversations: RwLock<HashMap<String, Vec<PersistentMessage>>>,
+    db: AsyncConnection,
 }
 
 impl LocalStorage {
+    /// 初始化磁盘数据库（传入本地 sqlite 文件路径，例如 Flutter 导出的 app_doc_dir + "/chat.db"）
+    pub async fn open(db_path: PathBuf) -> Result<Self, String> {
+        info!(path = ?db_path, "Opening SQLite database on disk");
+
+        let db = AsyncConnection::open(db_path)
+            .await
+            .map_err(|e| format!("Failed to open sqlite database: {e}"))?;
+
+        // 建表并配置 WAL 模式（提高并发读写性能）
+        db.call(|conn| {
+            conn.execute_batch(
+                "
+                PRAGMA journal_mode = WAL;
+                PRAGMA synchronous = NORMAL;
+
+                CREATE TABLE IF NOT EXISTS peers (
+                    mac_address TEXT PRIMARY KEY,
+                    last_known_ip TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    device_name TEXT NOT NULL,
+                    last_seen INTEGER NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS messages (
+                    msg_id TEXT PRIMARY KEY,
+                    peer_mac TEXT NOT NULL,
+                    is_outgoing INTEGER NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    status TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_messages_peer_mac ON messages(peer_mac);
+                ",
+            )?;
+            Ok(())
+        })
+            .await
+            .map_err(|e| format!("Failed to initialize database tables: {e}"))?;
+
+        Ok(Self { db })
+    }
+
     pub async fn upsert_peer(&self, record: PeerRecord) {
         debug!(
             mac = %record.mac_address,
             ip = %record.last_known_ip,
             name = %record.device_name,
-            "Upserting peer record in storage"
+            "Upserting peer record to SQLite"
         );
-        let mut peers = self.peers.write().await;
-        peers.insert(record.mac_address.clone(), record);
+
+        let res = self
+            .db
+            .call(move |conn| {
+                conn.execute(
+                    "INSERT INTO peers (mac_address, last_known_ip, port, device_name, last_seen)
+                     VALUES (?1, ?2, ?3, ?4, ?5)
+                     ON CONFLICT(mac_address) DO UPDATE SET
+                        last_known_ip = excluded.last_known_ip,
+                        port = excluded.port,
+                        device_name = excluded.device_name,
+                        last_seen = excluded.last_seen",
+                    params![
+                        record.mac_address,
+                        record.last_known_ip,
+                        record.port,
+                        record.device_name,
+                        record.last_seen
+                    ],
+                )?;
+                Ok(())
+            })
+            .await;
+
+        if let Err(e) = res {
+            error!(error = %e, "Failed to upsert peer into database");
+        }
     }
 
     pub async fn get_all_peers(&self) -> Vec<PeerRecord> {
-        let peers = self.peers.read().await;
-        let records: Vec<PeerRecord> = peers.values().cloned().collect();
-        debug!(count = records.len(), "Retrieved all peer records");
-        records
+        let res = self
+            .db
+            .call(|conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT mac_address, last_known_ip, port, device_name, last_seen FROM peers",
+                )?;
+                let rows = stmt.query_map([], |row| {
+                    Ok(PeerRecord {
+                        mac_address: row.get(0)?,
+                        last_known_ip: row.get(1)?,
+                        port: row.get(2)?,
+                        device_name: row.get(3)?,
+                        last_seen: row.get(4)?,
+                    })
+                })?;
+
+                let mut peers = Vec::new();
+                for peer in rows {
+                    peers.push(peer?);
+                }
+                Ok(peers)
+            })
+            .await;
+
+        match res {
+            Ok(peers) => {
+                debug!(count = peers.len(), "Retrieved all peer records from SQLite");
+                peers
+            }
+            Err(e) => {
+                error!(error = %e, "Failed to fetch all peers");
+                Vec::new()
+            }
+        }
     }
 
     pub async fn get_peer(&self, mac: &str) -> Option<PeerRecord> {
-        let peer = self.peers.read().await.get(mac).cloned();
-        if let Some(ref p) = peer {
-            debug!(mac = %mac, ip = %p.last_known_ip, "Found peer record in storage");
-        } else {
-            debug!(mac = %mac, "Peer lookup yielded no results");
-        }
-        peer
+        let mac_owned = mac.to_string();
+        self.db
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT mac_address, last_known_ip, port, device_name, last_seen FROM peers WHERE mac_address = ?1",
+                )?;
+                let mut rows = stmt.query_map(params![mac_owned], |row| {
+                    Ok(PeerRecord {
+                        mac_address: row.get(0)?,
+                        last_known_ip: row.get(1)?,
+                        port: row.get(2)?,
+                        device_name: row.get(3)?,
+                        last_seen: row.get(4)?,
+                    })
+                })?;
+
+                if let Some(peer) = rows.next() {
+                    Ok(peer.ok())
+                } else {
+                    Ok(None)
+                }
+            })
+            .await
+            .unwrap_or(None)
     }
 
     pub async fn append_message(&self, peer_mac: String, msg: PersistentMessage) {
-        let peer_ip = self.get_peer(&peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
         info!(
             msg_id = %msg.msg_id,
             peer_mac = %peer_mac,
-            ip = %peer_ip,
             is_outgoing = msg.is_outgoing,
-            "Appending persistent message to conversation"
+            "Persisting message to SQLite"
         );
-        let mut convs = self.conversations.write().await;
-        convs.entry(peer_mac).or_default().push(msg);
+
+        let res = self
+            .db
+            .call(move |conn| {
+                conn.execute(
+                    "INSERT INTO messages (msg_id, peer_mac, is_outgoing, content, timestamp, status)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                     ON CONFLICT(msg_id) DO UPDATE SET
+                        status = excluded.status,
+                        content = excluded.content",
+                    params![
+                        msg.msg_id,
+                        peer_mac,
+                        if msg.is_outgoing { 1 } else { 0 },
+                        msg.content,
+                        msg.timestamp,
+                        msg.status.as_str()
+                    ],
+                )?;
+                Ok(())
+            })
+            .await;
+
+        if let Err(e) = res {
+            error!(error = %e, "Failed to append message to SQLite");
+        }
     }
 
     pub async fn mark_acked(&self, peer_mac: &str, target_msg_id: &str) -> bool {
-        let peer_ip = self.get_peer(peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
-        let mut convs = self.conversations.write().await;
-        if let Some(messages) = convs.get_mut(peer_mac) {
-            if let Some(msg) = messages.iter_mut().find(|m| m.msg_id == target_msg_id) {
-                msg.status = MessageStatus::Acked;
-                info!(
-                    msg_id = %target_msg_id,
-                    peer_mac = %peer_mac,
-                    ip = %peer_ip,
-                    "Successfully marked message as Acked"
-                );
-                return true;
+        let msg_id_owned = target_msg_id.to_string();
+        let status_str = MessageStatus::Acked.as_str();
+
+        let res = self
+            .db
+            .call(move |conn| {
+                let rows = conn.execute(
+                    "UPDATE messages SET status = ?1 WHERE msg_id = ?2",
+                    params![status_str, msg_id_owned],
+                )?;
+                Ok(rows > 0)
+            })
+            .await;
+
+        match res {
+            Ok(true) => {
+                info!(msg_id = %target_msg_id, peer_mac = %peer_mac, "Marked message ACKED in database");
+                true
+            }
+            _ => {
+                warn!(msg_id = %target_msg_id, peer_mac = %peer_mac, "Failed to mark message ACKED in database");
+                false
             }
         }
-
-        // Fallback search across all conversations if peer_mac key mistargeted
-        for (mac, messages) in convs.iter_mut() {
-            if let Some(msg) = messages.iter_mut().find(|m| m.msg_id == target_msg_id) {
-                msg.status = MessageStatus::Acked;
-                info!(
-                    msg_id = %target_msg_id,
-                    peer_mac = %mac,
-                    "Successfully marked message as Acked via fallback search"
-                );
-                return true;
-            }
-        }
-
-        warn!(
-            msg_id = %target_msg_id,
-            peer_mac = %peer_mac,
-            ip = %peer_ip,
-            "Failed to mark message as Acked: message not found in conversation"
-        );
-        false
     }
 
     pub async fn get_messages_for_peer(&self, peer_mac: &str) -> Vec<PersistentMessage> {
-        let peer_ip = self.get_peer(peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
-        let convs = self.conversations.read().await;
-        let history = convs.get(peer_mac).cloned().unwrap_or_default();
-        debug!(
-            peer_mac = %peer_mac,
-            ip = %peer_ip,
-            count = history.len(),
-            "Fetched conversation history"
-        );
-        history
+        let mac_owned = peer_mac.to_string();
+        let res = self
+            .db
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status
+                     FROM messages WHERE peer_mac = ?1 ORDER BY timestamp ASC",
+                )?;
+                let rows = stmt.query_map(params![mac_owned], |row| {
+                    let is_outgoing_int: i32 = row.get(2)?;
+                    let status_str: String = row.get(5)?;
+                    Ok(PersistentMessage {
+                        msg_id: row.get(0)?,
+                        peer_mac: row.get(1)?,
+                        is_outgoing: is_outgoing_int == 1,
+                        content: row.get(3)?,
+                        timestamp: row.get(4)?,
+                        status: MessageStatus::from_str(&status_str),
+                    })
+                })?;
+
+                let mut list = Vec::new();
+                for msg in rows {
+                    list.push(msg?);
+                }
+                Ok(list)
+            })
+            .await;
+
+        res.unwrap_or_default()
     }
 
     pub async fn get_pending_messages(&self, peer_mac: &str) -> Vec<PersistentMessage> {
-        let peer_ip = self.get_peer(peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
-        let convs = self.conversations.read().await;
-        let pending: Vec<PersistentMessage> = convs
-            .get(peer_mac)
-            .map(|list| {
-                list.iter()
-                    .filter(|m| m.is_outgoing && m.status == MessageStatus::Pending)
-                    .cloned()
-                    .collect()
-            })
-            .unwrap_or_default();
+        let mac_owned = peer_mac.to_string();
+        let pending_status = MessageStatus::Pending.as_str();
 
-        if !pending.is_empty() {
-            debug!(
-                peer_mac = %peer_mac,
-                ip = %peer_ip,
-                pending_count = pending.len(),
-                "Found pending messages waiting for outbox delivery"
-            );
-        }
-        pending
+        let res = self
+            .db
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status
+                     FROM messages WHERE peer_mac = ?1 AND is_outgoing = 1 AND status = ?2 ORDER BY timestamp ASC",
+                )?;
+                let rows = stmt.query_map(params![mac_owned, pending_status], |row| {
+                    let status_str: String = row.get(5)?;
+                    Ok(PersistentMessage {
+                        msg_id: row.get(0)?,
+                        peer_mac: row.get(1)?,
+                        is_outgoing: true,
+                        content: row.get(3)?,
+                        timestamp: row.get(4)?,
+                        status: MessageStatus::from_str(&status_str),
+                    })
+                })?;
+
+                let mut list = Vec::new();
+                for msg in rows {
+                    list.push(msg?);
+                }
+                Ok(list)
+            })
+            .await;
+
+        res.unwrap_or_default()
     }
 }
 
@@ -213,14 +390,17 @@ pub struct NetworkEngine {
 }
 
 impl NetworkEngine {
-    pub fn new(self_mac: String) -> Self {
-        info!(self_mac = %self_mac, "Initializing NetworkEngine instance");
-        Self {
+    pub async fn new(self_mac: String, db_path_str: String) -> Result<Self, String> {
+        let db_path = PathBuf::from(db_path_str);
+        info!(self_mac = %self_mac, db_path = ?db_path, "Initializing NetworkEngine with SQLite storage");
+        let storage = LocalStorage::open(db_path).await?;
+
+        Ok(Self {
             self_mac,
-            storage: Arc::new(LocalStorage::default()),
+            storage: Arc::new(storage),
             connections: Arc::new(RwLock::new(HashMap::new())),
             notify_sink: Arc::new(RwLock::new(None)),
-        }
+        })
     }
 
     pub async fn register_notify_sink(&self, sink: StreamSink<String>) {
