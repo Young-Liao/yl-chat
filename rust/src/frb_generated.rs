@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -846896115;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1974505488;
 
 // Section: executor
 
@@ -489,6 +489,38 @@ fn wire__crate__api__protocol__PeerManager_send_message_with_impl(
                     })()
                     .await,
                 )
+            }
+        },
+    )
+}
+fn wire__crate__api__protocol__chrono_now_timestamp_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "chrono_now_timestamp",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Ok::<_, ()>(crate::api::protocol::chrono_now_timestamp())?;
+                    std::result::Result::Ok(output_ok)
+                })())
             }
         },
     )
@@ -990,18 +1022,21 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         9 => {
+            wire__crate__api__protocol__chrono_now_timestamp_impl(port, ptr, rust_vec_len, data_len)
+        }
+        10 => {
             wire__crate__api__network__get_device_identifier_impl(port, ptr, rust_vec_len, data_len)
         }
-        10 => wire__crate__api__protocol__get_sender_id_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__protocol__get_service_port_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__network__register_bonjour_service_impl(
+        11 => wire__crate__api__protocol__get_sender_id_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__protocol__get_service_port_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__network__register_bonjour_service_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        15 => wire__crate__api__network__scan_lan_peers_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__network__scan_lan_peers_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1014,7 +1049,7 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        12 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

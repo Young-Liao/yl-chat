@@ -20,7 +20,7 @@ class _ChatBoxState extends State<ChatBox>
   late final PeerManager peerManager;
   late Stream<String> connectStream;
   late Stream<MessageEnvelope> currentMsgStream;
-  List<ChatMessageBubble> messages = [];
+  List<ChatMessageModel> messages = [];
 
   late final TextEditingController _messageController;
 
@@ -35,15 +35,15 @@ class _ChatBoxState extends State<ChatBox>
   }
  
   void _onPeerChanged() async {
+    if (fromListener) {
+      fromListener = false;
+      return;
+    }
     if (chosenPeer.previousValue != null) {
       peerManager.disconnectPeer(peerId: chosenPeer.previousValue!.name);
     }
     if (chosenPeer.value != null) {
       messages.clear();
-      if (fromListener) {
-        fromListener = false;
-        return;
-      }
       try {
         final peerId = await peerManager.connectPeer(
             peerIp: chosenPeer.value!.ip,
@@ -53,6 +53,7 @@ class _ChatBoxState extends State<ChatBox>
         if (peerId != chosenPeer.value!.name) {
           throw Exception("The peerId isn't equal to the peerName. Fatal.");
         }
+        setState(() { });
 
         currentMsgStream =
             peerManager.addReceptionHandlerFor(peerId: chosenPeer.value!.name);
@@ -60,25 +61,31 @@ class _ChatBoxState extends State<ChatBox>
           switch (envelope.payload) {
             case MessagePayload_Handshake(:final clientVersion, :final publicKey, :final peerId):
               debugPrint('Handshake from $peerId (v$clientVersion)');
+              break;
 
             case MessagePayload_ChatMessage(:final content):
               debugPrint('Chat message: $content');
-              messages.add( ChatMessageBubble(
+              messages.add(ChatMessageModel(
                   senderInitials: 'PC',
                   text: content,
                   timestamp: formatTimestamp(envelope.timestamp),
                   isMe: false
                 ),
               );
+              setState(() { });
+              break;
 
             case MessagePayload_Ack(:final targetMsgId, :final status):
               debugPrint('ACK for $targetMsgId: $status');
+              break;
 
             case MessagePayload_Ping():
               debugPrint('Received Ping');
+              break;
 
             case MessagePayload_Pong():
               debugPrint('Received Pong');
+              break;
           }
         });
       } catch (e) {
@@ -96,6 +103,7 @@ class _ChatBoxState extends State<ChatBox>
     connectStream.listen((id) {
       fromListener = true;
       contactListKey.currentState?.selectByName(id);
+      setState(() { });
     });
 
     chosenPeer.addListener(_onPeerChanged);
@@ -191,7 +199,7 @@ class _ChatBoxState extends State<ChatBox>
     );
   }
 
-  void _handleSendMessage() {
+  Future<void> _handleSendMessage() async {
     // 4. Read text using .text.trim()
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
@@ -200,6 +208,14 @@ class _ChatBoxState extends State<ChatBox>
     // clientManager.sendChatMessage(peerId: targetPeerId, content: text);
     if (chosenPeer.value != null) {
       peerManager.sendChatMessage(peerId: chosenPeer.value!.name, content: text);
+      messages.add(ChatMessageModel(
+            senderInitials: 'ME',
+            text: text,
+            timestamp: formatTimestamp(await chronoNowTimestamp()),
+            isMe: true
+        )
+      );
+      setState(() { });
     }
 
     // 5. Clear the text input after sending
@@ -223,10 +239,21 @@ class _ChatBoxState extends State<ChatBox>
             decoration: BoxDecoration(
               color: theme.bgChat
             ),
-            child: ListView(
+            child: ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              children: messages,
-            )
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final msg = messages[index];
+                // 在这里把数据实时渲染成 Widget
+                return ChatMessageBubble(
+                  key: ValueKey(index), // 加上 Key 确保唯一性
+                  senderInitials: msg.senderInitials,
+                  text: msg.text,
+                  timestamp: msg.timestamp,
+                  isMe: msg.isMe,
+                );
+              },
+            ),
           )
         ),
         _buildChatInputField(context: context, controller: _messageController,
@@ -235,6 +262,21 @@ class _ChatBoxState extends State<ChatBox>
       ]
     );
   }
+}
+
+
+class ChatMessageModel {
+  final String senderInitials;
+  final String text;
+  final String timestamp;
+  final bool isMe;
+
+  ChatMessageModel({
+    required this.senderInitials,
+    required this.text,
+    required this.timestamp,
+    required this.isMe,
+  });
 }
 
 class ChatMessageBubble extends StatelessWidget

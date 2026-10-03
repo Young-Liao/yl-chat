@@ -8,10 +8,12 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'protocol.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `chrono_now_timestamp`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PeerSession`, `SessionType`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`
 // These functions are ignored (category: IgnoreBecauseExplicitAttribute): `add_session`, `close`, `connect`, `get_session`, `handshake`, `new_incoming`, `read_envelope`, `remove_session`, `send_chat_message`, `send_envelope`, `start_reception_loop`
+
+Future<PlatformInt64> chronoNowTimestamp() =>
+    RustLib.instance.api.crateApiProtocolChronoNowTimestamp();
 
 Future<String> getSenderId() =>
     RustLib.instance.api.crateApiProtocolGetSenderId();

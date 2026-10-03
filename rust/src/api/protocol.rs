@@ -432,7 +432,7 @@ impl Default for PeerManager {
     }
 }
 
-fn chrono_now_timestamp() -> i64 {
+pub fn chrono_now_timestamp() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
