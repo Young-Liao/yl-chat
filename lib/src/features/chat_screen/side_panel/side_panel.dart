@@ -99,7 +99,7 @@ class _SidePanelState extends State<SidePanel> {
           macAddress: record.macAddress,
           ip: record.lastKnownIp,
           lastMessage: "Tap to view conversation...",
-          statusColor: widget.theme.statusOnline,
+          statusColor: record.isOnline ? widget.theme.statusOnline : widget.theme.statusAway,
         );
       }).toList();
 
