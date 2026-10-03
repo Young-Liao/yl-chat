@@ -5,107 +5,151 @@
 
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
-part 'protocol.freezed.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PeerSession`, `SessionType`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`
-// These functions are ignored (category: IgnoreBecauseExplicitAttribute): `add_session`, `close`, `connect`, `get_session`, `handshake`, `new_incoming`, `read_envelope`, `remove_session`, `send_chat_message`, `send_envelope`, `start_reception_loop`
+// These functions are ignored because they are not marked as `pub`: `emit_event`, `get_or_connect`, `handle_connection_loop`, `handle_incoming_stream`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `MessageEnvelope`, `MessagePayload`, `PeerConnection`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored (category: IgnoreBecauseOwnerTyShouldIgnore): `read_envelope`, `send_envelope`
 
 Future<PlatformInt64> chronoNowTimestamp() =>
     RustLib.instance.api.crateApiProtocolChronoNowTimestamp();
 
-Future<String> getSenderId() =>
-    RustLib.instance.api.crateApiProtocolGetSenderId();
-
-Future<int> getServicePort() =>
-    RustLib.instance.api.crateApiProtocolGetServicePort();
-
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PeerManager>>
-abstract class PeerManager implements RustOpaqueInterface {
-  Stream<MessageEnvelope> addReceptionHandlerFor({required String peerId});
-
-  /// Connect to a remote peer and return its peer_id
-  Future<String> connectPeer({
-    required String peerIp,
-    required String senderId,
-    required int port,
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LocalStorage>>
+abstract class LocalStorage implements RustOpaqueInterface {
+  Future<void> appendMessage({
+    required String peerMac,
+    required PersistentMessage msg,
   });
 
-  Stream<String> createPeerListener({required String senderId});
+  static Future<LocalStorage> default_() =>
+      RustLib.instance.api.crateApiProtocolLocalStorageDefault();
 
-  static Future<PeerManager> default_() =>
-      RustLib.instance.api.crateApiProtocolPeerManagerDefault();
+  Future<List<PeerRecord>> getAllPeers();
 
-  /// Close session by peer_id
-  Future<void> disconnectPeer({required String peerId});
+  Future<List<PersistentMessage>> getMessagesForPeer({required String peerMac});
 
-  // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
-  static Future<PeerManager> newInstance() =>
-      RustLib.instance.api.crateApiProtocolPeerManagerNew();
+  Future<PeerRecord?> getPeer({required String mac});
 
-  /// Send chat message by peer_id
-  Future<String> sendChatMessage({
-    required String peerId,
-    required String content,
+  Future<List<PersistentMessage>> getPendingMessages({required String peerMac});
+
+  Future<void> markAcked({
+    required String peerMac,
+    required String targetMsgId,
   });
 
-  Future<void> sendMessageWith({
-    required String peerId,
-    required String content,
-  });
+  Future<void> upsertPeer({required PeerRecord record});
 }
 
-class MessageEnvelope {
-  final int version;
-  final String msgId;
-  final String senderId;
-  final PlatformInt64 timestamp;
-  final MessagePayload payload;
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NetworkEngine>>
+abstract class NetworkEngine implements RustOpaqueInterface {
+  String get selfMac;
 
-  const MessageEnvelope({
-    required this.version,
-    required this.msgId,
-    required this.senderId,
-    required this.timestamp,
-    required this.payload,
+  set selfMac(String selfMac);
+
+  /// Outbox Processor: Clears pending outgoing queue for a given peer
+  Future<void> flushOutbox({required String peerMac});
+
+  /// Exposes chat retrieval directly to Dart
+  Future<List<PersistentMessage>> getMessages({required String peerMac});
+
+  /// Exposes peer fetching directly to Dart
+  Future<List<PeerRecord>> getPeers();
+
+  // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
+  static Future<NetworkEngine> newInstance({required String selfMac}) =>
+      RustLib.instance.api.crateApiProtocolNetworkEngineNew(selfMac: selfMac);
+
+  /// Stores long-lived stream sink registered from start_listener
+  Stream<String> registerNotifySink();
+
+  /// Integrated mDNS discovery and outbox flush loop
+  Future<void> runScanAndFlushCycle();
+
+  /// High-level API to queue and deliver chat messages
+  Future<void> sendMessage({
+    required String recipientMac,
+    required String content,
+  });
+
+  /// Starts TCP server and registers active FRB notification stream
+  Stream<String> startListener({required int port});
+
+  /// Exposes peer insertion directly to Dart
+  Future<void> upsertPeer({required PeerRecord record});
+}
+
+enum MessageStatus { pending, acked }
+
+class PeerRecord {
+  final String macAddress;
+  final String lastKnownIp;
+  final int port;
+  final String deviceName;
+  final PlatformInt64 lastSeen;
+
+  const PeerRecord({
+    required this.macAddress,
+    required this.lastKnownIp,
+    required this.port,
+    required this.deviceName,
+    required this.lastSeen,
   });
 
   @override
   int get hashCode =>
-      version.hashCode ^
-      msgId.hashCode ^
-      senderId.hashCode ^
-      timestamp.hashCode ^
-      payload.hashCode;
+      macAddress.hashCode ^
+      lastKnownIp.hashCode ^
+      port.hashCode ^
+      deviceName.hashCode ^
+      lastSeen.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is MessageEnvelope &&
+      other is PeerRecord &&
           runtimeType == other.runtimeType &&
-          version == other.version &&
-          msgId == other.msgId &&
-          senderId == other.senderId &&
-          timestamp == other.timestamp &&
-          payload == other.payload;
+          macAddress == other.macAddress &&
+          lastKnownIp == other.lastKnownIp &&
+          port == other.port &&
+          deviceName == other.deviceName &&
+          lastSeen == other.lastSeen;
 }
 
-@freezed
-sealed class MessagePayload with _$MessagePayload {
-  const MessagePayload._();
+class PersistentMessage {
+  final String msgId;
+  final String peerMac;
+  final bool isOutgoing;
+  final String content;
+  final PlatformInt64 timestamp;
+  final MessageStatus status;
 
-  const factory MessagePayload.handshake({
-    required int clientVersion,
-    String? publicKey,
-    required String peerId,
-  }) = MessagePayload_Handshake;
-  const factory MessagePayload.chatMessage({required String content}) =
-      MessagePayload_ChatMessage;
-  const factory MessagePayload.ack({
-    required String targetMsgId,
-    required String status,
-  }) = MessagePayload_Ack;
-  const factory MessagePayload.ping() = MessagePayload_Ping;
-  const factory MessagePayload.pong() = MessagePayload_Pong;
+  const PersistentMessage({
+    required this.msgId,
+    required this.peerMac,
+    required this.isOutgoing,
+    required this.content,
+    required this.timestamp,
+    required this.status,
+  });
+
+  @override
+  int get hashCode =>
+      msgId.hashCode ^
+      peerMac.hashCode ^
+      isOutgoing.hashCode ^
+      content.hashCode ^
+      timestamp.hashCode ^
+      status.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PersistentMessage &&
+          runtimeType == other.runtimeType &&
+          msgId == other.msgId &&
+          peerMac == other.peerMac &&
+          isOutgoing == other.isOutgoing &&
+          content == other.content &&
+          timestamp == other.timestamp &&
+          status == other.status;
 }

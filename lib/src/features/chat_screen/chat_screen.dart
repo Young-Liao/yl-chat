@@ -28,9 +28,7 @@ class ChatScreen extends StatelessWidget {
           ),
           child: Row(children: [
             SidePanel(theme: theme),
-            if (chosenPeer != null) ...[
-              const Expanded(child: ChatBox()),
-            ]
+            const Expanded(child: ChatBox()),
           ],),
         )
       ),

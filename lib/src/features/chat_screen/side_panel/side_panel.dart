@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:yl_chat/main.dart';
-import 'package:yl_chat/src/rust/api/network.dart';
-import 'package:yl_chat/src/shared/network/peer_updater.dart';
+import 'package:yl_chat/src/rust/api/protocol.dart';
 import 'package:yl_chat/src/theme/abstract_theme.dart';
 
 class PeerItem {
@@ -38,44 +38,81 @@ class PeerItem {
 class SidePanel extends StatefulWidget {
   final AbstractTheme theme;
 
-  const SidePanel({super.key, required this.theme});
+  const SidePanel({
+    super.key,
+    required this.theme,
+  });
 
   @override
   State<StatefulWidget> createState() => _SidePanelState();
 }
 
 class _SidePanelState extends State<SidePanel> {
-  final peerUpdater = PeerUpdater();
+  StreamSubscription<String>? _notifySubscription;
+  Timer? _scanTimer;
   List<PeerItem> peerItems = [];
-  
+
   @override
   void initState() {
     super.initState();
-    peerUpdater.addListener(_onPeerUpdate);
-    _onPeerUpdate();
+    _subscribeToEngineEvents();
+    _triggerScanCycle();
+
+    // Periodically run mDNS scan + outbox flush cycle every 10 seconds
+    _scanTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _triggerScanCycle();
+    });
+  }
+
+  void _subscribeToEngineEvents() {
+    _notifySubscription = networkEventStream.listen((event) {
+      if (event == 'PEER_LIST_UPDATED') {
+        _reloadPeersFromStorage();
+      }
+    });
+  }
+
+  /// Triggers scan + outbox flush in Rust (runs in background thread)
+  Future<void> _triggerScanCycle() async {
+    try {
+      await networkEngine.runScanAndFlushCycle();
+      await _reloadPeersFromStorage();
+    } catch (e) {
+      debugPrint("Error running scan cycle: $e");
+    }
+  }
+
+  /// Fetches cached peer records directly from NetworkEngine storage
+  Future<void> _reloadPeersFromStorage() async {
+    try {
+      final records = await networkEngine.getPeers();
+      final updatedItems = records.map((record) {
+        return PeerItem(
+          initials: record.deviceName.isNotEmpty
+              ? record.deviceName.substring(0, 1).toUpperCase()
+              : "PC",
+          name: record.deviceName,
+          ip: record.lastKnownIp,
+          lastMessage: "Tap to view conversation...",
+          statusColor: widget.theme.statusOnline,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          peerItems = updatedItems;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error reading stored peers: $e");
+    }
   }
 
   @override
   void dispose() {
-    peerUpdater.removeListener(_onPeerUpdate);
+    _scanTimer?.cancel();
+    _notifySubscription?.cancel();
     super.dispose();
-  }
-
-  void _onPeerUpdate() async {
-    try {
-      final peers = await scanLanPeers();
-      debugPrint("peers: $peers");
-      peerItems = peers.map((info) => PeerItem(
-        initials: "PC",
-        name: info.deviceName,
-        ip: info.ip,
-        lastMessage: "Last Message...",
-        statusColor: widget.theme.statusOnline,
-      )).toList();
-      setState(() { });
-    } catch (e) {
-      debugPrint("Errors occurred when scanning lan peers: $e");
-    }
   }
 
   Widget _buildSearchBar(BuildContext context) {
@@ -152,6 +189,7 @@ class _SidePanelState extends State<SidePanel> {
                       color: theme.textMain,
                     ),
                   ),
+                  const SizedBox(width: 10),
                   Text(
                     "YL Chat",
                     style: TextStyle(
@@ -332,8 +370,6 @@ class ContactListWidget extends StatefulWidget {
 class ContactListWidgetState extends State<ContactListWidget> {
   int selectedIndex = 0;
 
-  /// Force select a contact item matching the provided [name].
-  /// Returns `true` if found and selected, otherwise `false`.
   bool selectByName(String name) {
     final index = widget.contacts.indexWhere((item) => item.name == name);
     if (index != -1) {
@@ -375,6 +411,4 @@ class ContactListWidgetState extends State<ContactListWidget> {
   }
 }
 
-
-// Key to control ContactListWidget state externally
 final GlobalKey<ContactListWidgetState> contactListKey = GlobalKey<ContactListWidgetState>();

@@ -1,3 +1,3 @@
 pub mod simple;
-pub mod network;
+pub mod discovery;
 pub mod protocol;

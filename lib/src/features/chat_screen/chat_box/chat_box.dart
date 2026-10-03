@@ -1,124 +1,112 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:yl_chat/main.dart';
 import 'package:yl_chat/src/features/chat_screen/chat_box/title_bar.dart';
 import 'package:yl_chat/src/rust/api/protocol.dart';
+import 'package:yl_chat/src/shared/device/device_id_manager.dart';
 import 'package:yl_chat/src/shared/tools/algorithms.dart';
 import 'package:yl_chat/src/theme/abstract_theme.dart';
 
-import '../side_panel/side_panel.dart';
-
-class ChatBox extends StatefulWidget
-{
+class ChatBox extends StatefulWidget {
   const ChatBox({super.key});
 
   @override
-  State<StatefulWidget> createState() => _ChatBoxState();
+  State<ChatBox> createState() => _ChatBoxState();
 }
 
-class _ChatBoxState extends State<ChatBox>
-{
-  late final PeerManager peerManager;
-  late Stream<String> connectStream;
-  late Stream<MessageEnvelope> currentMsgStream;
-  List<ChatMessageModel> messages = [];
+class _ChatBoxState extends State<ChatBox> {
+  StreamSubscription<String>? _notifySubscription;
 
-  late final TextEditingController _messageController;
-
-  bool fromListener = false;
+  List<PersistentMessage> _messages = [];
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _initPeerManager();
-
-    _messageController = TextEditingController();
-  }
-
-  void _registerMessageReceiver() {
-    currentMsgStream =
-        peerManager.addReceptionHandlerFor(peerId: chosenPeer.value!.name);
-    currentMsgStream.listen((envelope) {
-      switch (envelope.payload) {
-        case MessagePayload_Handshake(:final clientVersion, :final publicKey, :final peerId):
-          debugPrint('Handshake from $peerId (v$clientVersion)');
-          break;
-
-        case MessagePayload_ChatMessage(:final content):
-          debugPrint('Chat message: $content');
-          messages.add(ChatMessageModel(
-              senderInitials: 'PC',
-              text: content,
-              timestamp: formatTimestamp(envelope.timestamp),
-              isMe: false
-          ),
-          );
-          setState(() { });
-          break;
-
-        case MessagePayload_Ack(:final targetMsgId, :final status):
-          debugPrint('ACK for $targetMsgId: $status');
-          break;
-
-        case MessagePayload_Ping():
-          debugPrint('Received Ping');
-          break;
-
-        case MessagePayload_Pong():
-          debugPrint('Received Pong');
-          break;
-      }
-    });
-  }
- 
-  void _onPeerChanged() async {
-    if (fromListener) {
-      fromListener = false;
-      return;
-    }
-    if (chosenPeer.previousValue != null) {
-      peerManager.disconnectPeer(peerId: chosenPeer.previousValue!.name);
-    }
-    if (chosenPeer.value != null) {
-      messages.clear();
-      try {
-        final peerId = await peerManager.connectPeer(
-            peerIp: chosenPeer.value!.ip,
-            senderId: await getSenderId(),
-            port: await getServicePort()
-        );
-        if (peerId != chosenPeer.value!.name) {
-          throw Exception("The peerId isn't equal to the peerName. Fatal.");
-        }
-        _registerMessageReceiver();
-        setState(() { });
-
-      } catch (e) {
-        debugPrint("Failed to connect to peer ${chosenPeer.value!.name} :$e");
-        chosenPeer.value = null;
-      }
-    }
-  }
-
-  void _initPeerManager() async {
-    peerManager = await PeerManager.default_();
-    connectStream = peerManager.createPeerListener(
-      senderId: await getSenderId(),
-    );
-    connectStream.listen((id) {
-      fromListener = true;
-      contactListKey.currentState?.selectByName(id);
-      _registerMessageReceiver();
-      setState(() { });
-    });
-
+    _initEngineAndListener();
     chosenPeer.addListener(_onPeerChanged);
   }
-  
+
+  /// Initialize NetworkEngine, start TCP listener, and listen to notification stream
+  Future<void> _initEngineAndListener() async {
+    _notifySubscription = networkEventStream.listen((event) {
+      debugPrint('[NetworkEngine Event] $event');
+
+      if (chosenPeer.value == null) return;
+      final currentPeerMac = chosenPeer.value!.ip; // Using chosen peer identifier
+
+      if (event == 'NEW_MSG:$currentPeerMac' || event == 'ACK:$currentPeerMac') {
+        _refreshMessages();
+      }
+    });
+  }
+
+  /// Triggered whenever user switches selected contact in side panel
+  void _onPeerChanged() {
+    if (chosenPeer.value != null) {
+      _refreshMessages();
+    } else {
+      setState(() {
+        _messages = [];
+      });
+    }
+  }
+
+  /// Fetch chat history from Rust local storage
+  Future<void> _refreshMessages() async {
+    if (chosenPeer.value == null) return;
+    final peerMac = chosenPeer.value!.ip;
+
+    final history = await networkEngine.getMessages(peerMac: peerMac);
+    setState(() {
+      _messages = history;
+    });
+
+    _scrollToBottom();
+  }
+
+  /// Send message via NetworkEngine outbox
+  Future<void> _handleSendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty || chosenPeer.value == null) return;
+
+    final recipientMac = chosenPeer.value!.ip;
+    _messageController.clear();
+
+    try {
+      // 1. Append to outbox and attempt TCP delivery in Rust
+      await networkEngine.sendMessage(
+        recipientMac: recipientMac,
+        content: text,
+      );
+
+      // 2. Immediately update UI state from local storage
+      await _refreshMessages();
+    } catch (e) {
+      debugPrint('Failed to send message: $e');
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
-    super.dispose();
-    
     chosenPeer.removeListener(_onPeerChanged);
+    _notifySubscription?.cancel();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Widget _buildChatInputField({
@@ -133,24 +121,16 @@ class _ChatBoxState extends State<ChatBox>
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
       decoration: BoxDecoration(
         color: theme.bgPanel,
-        border: Border(
-          top: BorderSide(
-            color: theme.border
-          )
-        ),
-        borderRadius: BorderRadius.only(
-          bottomRight: Radius.circular(15.0)
-        )
+        border: Border(top: BorderSide(color: theme.border)),
+        borderRadius: const BorderRadius.only(bottomRight: Radius.circular(15.0)),
       ),
       child: Container(
         decoration: BoxDecoration(
           color: theme.bgDark,
-          borderRadius: BorderRadius.all(Radius.circular(15.0)),
-          border: Border.all(
-            color: theme.border
-          ),
+          borderRadius: const BorderRadius.all(Radius.circular(15.0)),
+          border: Border.all(color: theme.border),
         ),
-        padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
         child: Row(
           children: [
             IconButton(
@@ -164,8 +144,9 @@ class _ChatBoxState extends State<ChatBox>
               child: TextField(
                 controller: controller,
                 style: const TextStyle(color: Colors.white, fontSize: 14),
+                onSubmitted: (_) => onSend(),
                 decoration: const InputDecoration(
-                  hintText: 'Type a message or drop files here...',
+                  hintText: 'Type a message...',
                   hintStyle: TextStyle(color: Color(0xFF64748B), fontSize: 14),
                   border: InputBorder.none,
                   isDense: true,
@@ -204,93 +185,67 @@ class _ChatBoxState extends State<ChatBox>
     );
   }
 
-  Future<void> _handleSendMessage() async {
-    // 4. Read text using .text.trim()
-    final text = _messageController.text.trim();
-    if (text.isEmpty) return;
-
-    // Call your PeerManager / Rust API here
-    // clientManager.sendChatMessage(peerId: targetPeerId, content: text);
-    if (chosenPeer.value != null) {
-      peerManager.sendChatMessage(peerId: chosenPeer.value!.name, content: text);
-      messages.add(ChatMessageModel(
-            senderInitials: 'ME',
-            text: text,
-            timestamp: formatTimestamp(await chronoNowTimestamp()),
-            isMe: true
-        )
-      );
-      setState(() { });
-    }
-
-    // 5. Clear the text input after sending
-    _messageController.clear();
-  }
-
   @override
-  Widget build(BuildContext context)
-  {
+  Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final currentPeer = chosenPeer.value;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TitleBar(
-          name: chosenPeer.value?.name ?? "",
-          ip: chosenPeer.value?.ip ?? "",
-          status: chosenPeer.value != null ? "Online" : "",
+          name: currentPeer?.name ?? "Select a Contact",
+          ip: currentPeer?.ip ?? "",
+          status: currentPeer != null ? "Online" : "",
         ),
         Expanded(
           child: Container(
-            decoration: BoxDecoration(
-              color: theme.bgChat
-            ),
-            child: ListView.builder(
+            color: theme.bgChat,
+            child: _messages.isEmpty
+                ? Center(
+              child: Text(
+                currentPeer == null
+                    ? "Select a host from side panel to chat"
+                    : "No messages yet. Say hello!",
+                style: TextStyle(color: theme.textMuted),
+              ),
+            )
+                : ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16.0),
-              itemCount: messages.length,
+              itemCount: _messages.length,
               itemBuilder: (context, index) {
-                final msg = messages[index];
-                // 在这里把数据实时渲染成 Widget
+                final msg = _messages[index];
                 return ChatMessageBubble(
-                  key: ValueKey(index), // 加上 Key 确保唯一性
-                  senderInitials: msg.senderInitials,
-                  text: msg.text,
-                  timestamp: msg.timestamp,
-                  isMe: msg.isMe,
+                  key: ValueKey(msg.msgId),
+                  senderInitials: msg.isOutgoing ? 'ME' : 'PC',
+                  text: msg.content,
+                  timestamp: formatTimestamp(msg.timestamp),
+                  isMe: msg.isOutgoing,
+                  isAcked: msg.status == MessageStatus.acked,
                 );
               },
             ),
-          )
+          ),
         ),
-        _buildChatInputField(context: context, controller: _messageController,
-            onSend: _handleSendMessage,
-            onAttach: () {})
-      ]
+        _buildChatInputField(
+          context: context,
+          controller: _messageController,
+          onSend: _handleSendMessage,
+          onAttach: () {},
+        ),
+      ],
     );
   }
 }
 
-
-class ChatMessageModel {
-  final String senderInitials;
-  final String text;
-  final String timestamp;
-  final bool isMe;
-
-  ChatMessageModel({
-    required this.senderInitials,
-    required this.text,
-    required this.timestamp,
-    required this.isMe,
-  });
-}
-
-class ChatMessageBubble extends StatelessWidget
-{
+class ChatMessageBubble extends StatelessWidget {
   final String senderInitials;
   final String? text;
   final String? imageUrl;
   final String timestamp;
   final bool isMe;
+  final bool isAcked;
 
   const ChatMessageBubble({
     super.key,
@@ -298,19 +253,17 @@ class ChatMessageBubble extends StatelessWidget
     this.text,
     this.imageUrl,
     required this.timestamp,
-    this.isMe = false
+    this.isMe = false,
+    this.isAcked = false,
   });
 
   @override
-  Widget build(BuildContext context)
-  {
+  Widget build(BuildContext context) {
     final theme = context.appTheme;
 
-    // 气泡背景颜色
     final bubbleColor = isMe ? theme.bgBubbleOutgoing : theme.bgBubbleIncoming;
     final textColor = theme.textMain;
 
-    // 头像 Widget
     final avatar = CircleAvatar(
       radius: 18,
       backgroundColor: const Color(0xFF334155),
@@ -319,9 +272,9 @@ class ChatMessageBubble extends StatelessWidget
         style: const TextStyle(
           color: Colors.white,
           fontSize: 12,
-          fontWeight: FontWeight.bold
-        )
-      )
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
 
     return Padding(
@@ -330,87 +283,71 @@ class ChatMessageBubble extends StatelessWidget
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 如果是对端发来的消息，头像在左侧
           if (!isMe) ...[
             avatar,
-            const SizedBox(width: 8)
+            const SizedBox(width: 8),
           ],
-
-          // 气泡和时间戳主主体
           Flexible(
             child: Column(
               crossAxisAlignment:
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                // 图片展示
-                if (imageUrl != null) ...[
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl!,
-                        fit: BoxFit.cover,
-                        width: double.infinity
-                      )
-                    ),
-                  )
-                ],
-
-                // 普通文本消息
                 if (text != null) ...[
-                  // 消息气泡容器
                   Container(
                     constraints: const BoxConstraints(maxWidth: 320),
-                    padding: imageUrl != null
-                      ? const EdgeInsets.all(8.0)
-                      : const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
                     decoration: BoxDecoration(
                       color: bubbleColor,
                       borderRadius: BorderRadius.only(
                         bottomLeft: const Radius.circular(16),
                         bottomRight: const Radius.circular(16),
                         topLeft: Radius.circular(isMe ? 16 : 4),
-                        topRight: Radius.circular(isMe ? 4 : 16)
-                      )
+                        topRight: Radius.circular(isMe ? 4 : 16),
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          text!,
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 14,
-                            height: 1.4
-                          )
-                        )
-                      ]
-                    )
-                  )],
-
+                    child: Text(
+                      text!,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 4),
-
-                // 时间戳
-                Text(
-                  timestamp,
-                  style: TextStyle(
-                    color: theme.textMuted,
-                    fontSize: 11
-                  )
-                )
-              ]
-            )
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      timestamp,
+                      style: TextStyle(
+                        color: theme.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    if (isMe) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        isAcked ? Icons.done_all : Icons.access_time,
+                        size: 13,
+                        color: isAcked ? theme.textMain : theme.textMuted,
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
           ),
-
-          // 如果是自己发出的消息，头像在右侧
           if (isMe) ...[
             const SizedBox(width: 8),
-            avatar
-          ]
-        ]
-      )
+            avatar,
+          ],
+        ],
+      ),
     );
   }
 }

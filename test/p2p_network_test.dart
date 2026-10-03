@@ -7,12 +7,12 @@ import 'package:yl_chat/src/rust/frb_generated.dart';
 import 'package:yl_chat/src/rust/api/protocol.dart';
 
 void logStep(String step) {
-  print('[TEST-INFO] ${DateTime.now().toIso8601String()} -> $step');
+  print('[TEST-INFO] ${DateTime.now().toIso8601String()} ->$step');
 }
 
 void main() {
   setUpAll(() async {
-    logStep('Initializing RustLib...');
+    logStep('Initializing RustLib for bridge testing...');
     final dylibPath = Platform.isMacOS
         ? 'rust/target/debug/librust_lib_yl_chat.dylib'
         : 'rust/target/debug/rust_lib_yl_chat.dll';
@@ -25,99 +25,106 @@ void main() {
     logStep('RustLib initialized successfully.');
   });
 
-  test('Full P2P Server-Client Handshake and Messaging Flow', () async {
-    const serverId = 'server_node_1';
-    const clientId = 'client_node_1';
+  test('Full P2P Storage, Notification Stream, and Outbox Flow Test', () async {
+    const serverMac = 'AA:BB:CC:DD:EE:01';
+    const clientMac = 'AA:BB:CC:DD:EE:02';
 
-    logStep('1. Creating PeerManagers...');
-    final serverManager = await PeerManager.default_();
-    final clientManager = await PeerManager.default_();
+    const serverPort = 14981;
+    const clientPort = 14982;
 
-    logStep('2. Starting server listener...');
-    final Stream<String> serverConnectedStream = await serverManager.createPeerListener(
-      senderId: serverId,
-    );
+    logStep('1. Instantiating NetworkEngine instances...');
+    final serverEngine = await NetworkEngine.newInstance(selfMac: serverMac);
+    final clientEngine = await NetworkEngine.newInstance(selfMac: clientMac);
 
-    final serverConnectedCompleter = Completer<String>();
-    final serverConnectSub = serverConnectedStream.listen((id) {
-      logStep('Event received on serverConnectedStream: $id');
-      if (!serverConnectedCompleter.isCompleted) {
-        serverConnectedCompleter.complete(id);
+    logStep('2. Starting TCP listeners (FRB generates Dart Streams from Rust StreamSink)...');
+    // FRB converts `notify_sink: StreamSink<String>` in Rust into a `Stream<String>` return in Dart
+    final Stream<String> serverNotifyStream = await serverEngine.startListener(port: serverPort);
+    final Stream<String> clientNotifyStream = await clientEngine.startListener(port: clientPort);
+
+    logStep('3. Attaching Completers to listen for specific events...');
+    final serverMsgCompleter = Completer<String>();
+    final serverNotifySub = serverNotifyStream.listen((event) {
+      logStep('Server received event: $event');
+      if (event.startsWith('NEW_MSG:') && !serverMsgCompleter.isCompleted) {
+        serverMsgCompleter.complete(event);
       }
     });
 
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    logStep('3. Connecting client to peer (127.0.0.1:14981)...');
-    final remoteServerPeerId = await clientManager.connectPeer(
-      peerIp: '127.0.0.1',
-      senderId: clientId,
-      port: 14981,
-    );
-    logStep('Client connected. Returned remoteServerPeerId: $remoteServerPeerId');
-    expect(remoteServerPeerId, equals(serverId));
-
-    logStep('4. Waiting for server connected completer...');
-    final connectedClientId = await serverConnectedCompleter.future
-        .timeout(const Duration(seconds: 3));
-    logStep('Server confirmed connected client ID: $connectedClientId');
-    expect(connectedClientId, equals(clientId));
-
-    logStep('5. Adding reception handlers for server and client...');
-    final Stream<MessageEnvelope> serverMsgStream =
-    await serverManager.addReceptionHandlerFor(peerId: clientId);
-    final Stream<MessageEnvelope> clientMsgStream =
-    await clientManager.addReceptionHandlerFor(peerId: serverId);
-
-    final serverMsgCompleter = Completer<MessageEnvelope>();
-    final serverMsgSub = serverMsgStream.listen((env) {
-      logStep('Server received envelope: msg_id=${env.msgId}, payload=${env.payload.runtimeType}');
-      if (!serverMsgCompleter.isCompleted) {
-        serverMsgCompleter.complete(env);
+    final clientAckCompleter = Completer<String>();
+    final clientNotifySub = clientNotifyStream.listen((event) {
+      logStep('Client received event: $event');
+      if (event.startsWith('ACK:') && !clientAckCompleter.isCompleted) {
+        clientAckCompleter.complete(event);
       }
     });
 
-    final clientAckCompleter = Completer<MessageEnvelope>();
-    final clientAckSub = clientMsgStream.listen((env) {
-      logStep('Client received envelope: msg_id=${env.msgId}, payload=${env.payload.runtimeType}');
-      if (!clientAckCompleter.isCompleted) {
-        clientAckCompleter.complete(env);
-      }
-    });
-
-    logStep('6. Sending chat message from client to server...');
-    final sentMsgId = await clientManager.sendChatMessage(
-      peerId: serverId,
-      content: 'Hello from Flutter integration test!',
+    logStep('4. Injecting peer discovery records with ports...');
+    await clientEngine.upsertPeer(
+      record: PeerRecord(
+        macAddress: serverMac,
+        lastKnownIp: '127.0.0.1',
+        port: serverPort,
+        deviceName: 'Server_Node',
+        lastSeen: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      ),
     );
-    logStep('Chat message sent with id: $sentMsgId');
 
-    logStep('7. Awaiting server message completer...');
-    final serverEnvelope = await serverMsgCompleter.future
-        .timeout(const Duration(seconds: 3));
-    logStep('Server completer finished.');
-    expect(serverEnvelope.senderId, equals(clientId));
+    await serverEngine.upsertPeer(
+      record: PeerRecord(
+        macAddress: clientMac,
+        lastKnownIp: '127.0.0.1',
+        port: clientPort,
+        deviceName: 'Client_Node',
+        lastSeen: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      ),
+    );
 
-    logStep('8. Awaiting client ACK completer...');
-    final clientAckEnvelope = await clientAckCompleter.future
-        .timeout(const Duration(seconds: 3));
-    logStep('Client ACK completer finished.');
-    expect(clientAckEnvelope.senderId, equals(serverId));
+    logStep('5. Verifying stored peer records on client...');
+    final peers = await clientEngine.getPeers();
+    expect(peers.length, equals(1));
+    expect(peers.first.macAddress, equals(serverMac));
+    expect(peers.first.port, equals(serverPort));
 
-    logStep('9. Disconnecting peers first...');
-    await clientManager.disconnectPeer(peerId: serverId);
-    logStep('Client disconnected from server.');
-    await serverManager.disconnectPeer(peerId: clientId);
-    logStep('Server disconnected from client.');
+    logStep('6. Sending message from client to server via Outbox...');
+    const chatContent = 'Hello from Flutter P2P V2 Architecture!';
+    await clientEngine.sendMessage(
+      recipientMac: serverMac,
+      content: chatContent,
+    );
 
-    logStep('10. Cancelling Dart stream subscriptions...');
-    unawaited(serverConnectSub.cancel());
-    logStep('serverConnectSub cancelled.');
-    unawaited(serverMsgSub.cancel());
-    logStep('serverMsgSub cancelled.');
-    unawaited(clientAckSub.cancel());
-    logStep('clientAckSub cancelled.');
+    logStep('7. Checking client local storage for pending/sent message...');
+    final clientMessages = await clientEngine.getMessages(peerMac: serverMac);
+    expect(clientMessages.length, equals(1));
+    expect(clientMessages.first.content, equals(chatContent));
+    expect(clientMessages.first.isOutgoing, isTrue);
 
-    logStep('11. Test execution reached the very end!');
+    logStep('8. Waiting for server notification stream signal (NEW_MSG:...)...');
+    final notifyEvent = await serverMsgCompleter.future
+        .timeout(const Duration(seconds: 4));
+    logStep('Server notified: $notifyEvent');
+    expect(notifyEvent, equals('NEW_MSG:$clientMac'));
+
+    logStep('9. Querying server storage for received chat history...');
+    final serverMessages = await serverEngine.getMessages(peerMac: clientMac);
+    expect(serverMessages.length, equals(1));
+    expect(serverMessages.first.content, equals(chatContent));
+    expect(serverMessages.first.isOutgoing, isFalse);
+
+    logStep('10. Waiting for client ACK notification stream signal...');
+    final ackEvent = await clientAckCompleter.future
+        .timeout(const Duration(seconds: 4));
+    logStep('Client notified of ACK: $ackEvent');
+    expect(ackEvent, equals('ACK:$serverMac'));
+
+    logStep('11. Verifying ACK delivery status in client storage...');
+    final updatedClientMessages = await clientEngine.getMessages(peerMac: serverMac);
+    expect(updatedClientMessages.first.status, equals(MessageStatus.acked));
+    logStep('Message status successfully updated to ACKED on client.');
+
+    logStep('12. Cleaning up stream subscriptions...');
+    unawaited(serverNotifySub.cancel());
+    unawaited(clientNotifySub.cancel());
+
+    logStep('13. Test completed cleanly!');
   });
 }

@@ -10,29 +10,39 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ProtocolConfig`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `eq`, `fmt`, `hash`
 
-Future<void> registerBonjourService() =>
-    RustLib.instance.api.crateApiNetworkRegisterBonjourService();
+Future<void> registerBonjourService({required String macAddress}) => RustLib
+    .instance
+    .api
+    .crateApiDiscoveryRegisterBonjourService(macAddress: macAddress);
 
+/// Asynchronous mDNS LAN scanning using tokio::task::spawn_blocking
+/// to keep the async executor unblocked.
 Future<List<PeerInfo>> scanLanPeers() =>
-    RustLib.instance.api.crateApiNetworkScanLanPeers();
+    RustLib.instance.api.crateApiDiscoveryScanLanPeers();
 
 Future<String> getDeviceIdentifier() =>
-    RustLib.instance.api.crateApiNetworkGetDeviceIdentifier();
+    RustLib.instance.api.crateApiDiscoveryGetDeviceIdentifier();
 
 class PeerInfo {
+  final String macAddress;
   final String ip;
   final String deviceName;
 
-  const PeerInfo({required this.ip, required this.deviceName});
+  const PeerInfo({
+    required this.macAddress,
+    required this.ip,
+    required this.deviceName,
+  });
 
   @override
-  int get hashCode => ip.hashCode ^ deviceName.hashCode;
+  int get hashCode => macAddress.hashCode ^ ip.hashCode ^ deviceName.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is PeerInfo &&
           runtimeType == other.runtimeType &&
+          macAddress == other.macAddress &&
           ip == other.ip &&
           deviceName == other.deviceName;
 }
