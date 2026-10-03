@@ -6,6 +6,7 @@ import 'package:yl_chat/src/rust/api/discovery.dart';
 import 'package:yl_chat/src/rust/api/protocol.dart';
 import 'package:yl_chat/src/rust/frb_generated.dart';
 import 'package:yl_chat/src/shared/device/device_id_manager.dart';
+import 'package:yl_chat/src/shared/network/network_service.dart';
 import 'package:yl_chat/src/shared/tools/previous_value_notifier.dart';
 
 PreviousValueNotifier<PeerItem?> chosenPeer = PreviousValueNotifier(null);
@@ -37,6 +38,7 @@ Future<void> main() async {
   await registerBonjourService(macAddress: macAddress);
   networkEngine = await NetworkEngine.newInstance(selfMac: macAddress);
   networkEventStream = networkEngine.startListener(port: servicePort);
+  initGlobalNetworkListener();
 
   runApp(const MyApp());
 }

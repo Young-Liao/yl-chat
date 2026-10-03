@@ -1,11 +1,13 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:yl_chat/main.dart';
 import 'package:yl_chat/src/features/chat_screen/chat_box/title_bar.dart';
 import 'package:yl_chat/src/rust/api/protocol.dart';
-import 'package:yl_chat/src/shared/device/device_id_manager.dart';
 import 'package:yl_chat/src/shared/tools/algorithms.dart';
 import 'package:yl_chat/src/theme/abstract_theme.dart';
+
+import '../../../shared/network/network_service.dart';
 
 class ChatBox extends StatefulWidget {
   const ChatBox({super.key});
@@ -26,74 +28,104 @@ class _ChatBoxState extends State<ChatBox> {
     super.initState();
     _initEngineAndListener();
     chosenPeer.addListener(_onPeerChanged);
-  }
 
-  /// Initialize NetworkEngine, start TCP listener, and listen to notification stream
-  Future<void> _initEngineAndListener() async {
-    _notifySubscription = networkEventStream.listen((event) {
-      debugPrint('[NetworkEngine Event] $event');
-
-      if (chosenPeer.value == null) return;
-      final currentPeerMac = chosenPeer.value!.macAddress; // Using chosen peer identifier
-
-      if (event == 'NEW_MSG:$currentPeerMac' || event == 'ACK:$currentPeerMac') {
-        _refreshMessages();
-      }
-    });
-  }
-
-  /// Triggered whenever user switches selected contact in side panel
-  void _onPeerChanged() {
+    // 如果初始化时已经选择了联系人，主动拉取一次历史记录
     if (chosenPeer.value != null) {
       _refreshMessages();
-    } else {
-      setState(() {
-        _messages = [];
-      });
     }
   }
 
-  /// Fetch chat history from Rust local storage
-  Future<void> _refreshMessages() async {
-    if (chosenPeer.value == null) return;
-    final peerMac = chosenPeer.value!.macAddress;
+  /// 订阅 Rust 底层网络事件通知
+  void _initEngineAndListener() {
+    _notifySubscription?.cancel();
+    _notifySubscription = globalNetworkStream.listen(
+          (event) {
+        debugPrint('[NetworkEngine Event] $event');
 
-    final history = await networkEngine.getMessages(peerMac: peerMac);
-    setState(() {
-      _messages = history;
-    });
+        final currentPeer = chosenPeer.value;
+        if (currentPeer == null) return;
+        final currentPeerMac = currentPeer.macAddress;
 
-    _scrollToBottom();
+        // 捕获新消息、对端ACK回复、或本地发送完成事件，强行刷新UI
+        if (event == 'NEW_MSG:$currentPeerMac' ||
+            event == 'ACK:$currentPeerMac' ||
+            event == 'MSG_SENT:$currentPeerMac' ||
+            event == 'PEER_LIST_UPDATED') {
+          _refreshMessages();
+        }
+      },
+      onError: (error) {
+        debugPrint('[NetworkEngine Event Error] $error');
+      },
+    );
   }
 
-  /// Send message via NetworkEngine outbox
+  /// 切换联系人时的回调
+  void _onPeerChanged() {
+    if (!mounted) return;
+
+    // 切换联系人时先清空列表，防止 UI 闪烁显示上一个人的聊天记录
+    setState(() {
+      _messages = [];
+    });
+
+    if (chosenPeer.value != null) {
+      _refreshMessages();
+    }
+  }
+
+  /// 从 Rust LocalStorage 中主动刷新消息历史记录
+  Future<void> _refreshMessages() async {
+    final currentPeer = chosenPeer.value;
+    if (currentPeer == null) return;
+
+    debugPrint("kajflafjaldsfja;ld;f;kn");
+    try {
+      final history = await networkEngine.getMessages(peerMac: currentPeer.macAddress);
+      if (mounted) {
+        setState(() {
+          _messages = history;
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch messages: $e');
+    }
+  }
+
+  /// 发送消息逻辑
   Future<void> _handleSendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || chosenPeer.value == null) return;
+    final currentPeer = chosenPeer.value;
 
-    final recipientMac = chosenPeer.value!.macAddress;
+    if (text.isEmpty || currentPeer == null) return;
+
+    final recipientMac = currentPeer.macAddress;
     _messageController.clear();
 
     try {
-      // 1. Append to outbox and attempt TCP delivery in Rust
+      debugPrint("Sending message to $recipientMac: $text");
+
+      // 1. 调用 Rust API 追加进 Outbox 并尝试 TCP 直连发送
       await networkEngine.sendMessage(
         recipientMac: recipientMac,
         content: text,
       );
 
-      // 2. Immediately update UI state from local storage
+      // 2. 发送完成后立刻重新拉取 Storage，保证 UI 第一时间渲染该消息
       await _refreshMessages();
     } catch (e) {
       debugPrint('Failed to send message: $e');
     }
   }
 
+  /// 自动滚动到底部
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
       }
@@ -188,53 +220,63 @@ class _ChatBoxState extends State<ChatBox> {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    final currentPeer = chosenPeer.value;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TitleBar(
-          name: currentPeer?.name ?? "Select a Contact",
-          ip: currentPeer?.ip ?? "",
-          status: currentPeer != null ? "Online" : "",
-        ),
-        Expanded(
-          child: Container(
-            color: theme.bgChat,
-            child: _messages.isEmpty
-                ? Center(
-              child: Text(
-                currentPeer == null
-                    ? "Select a host from side panel to chat"
-                    : "No messages yet. Say hello!",
-                style: TextStyle(color: theme.textMuted),
-              ),
-            )
-                : ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16.0),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return ChatMessageBubble(
-                  key: ValueKey(msg.msgId),
-                  senderInitials: msg.isOutgoing ? 'ME' : 'PC',
-                  text: msg.content,
-                  timestamp: formatTimestamp(msg.timestamp),
-                  isMe: msg.isOutgoing,
-                  isAcked: msg.status == MessageStatus.acked,
-                );
-              },
+    // 使用 ValueListenableBuilder 实时响应 chosenPeer 的变更
+    return ValueListenableBuilder(
+      valueListenable: chosenPeer,
+      builder: (context, currentPeer, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TitleBar(
+              name: currentPeer?.name ?? "Select a Contact",
+              ip: currentPeer?.ip ?? "",
+              status: currentPeer != null ? "Online" : "",
             ),
-          ),
-        ),
-        _buildChatInputField(
-          context: context,
-          controller: _messageController,
-          onSend: _handleSendMessage,
-          onAttach: () {},
-        ),
-      ],
+            Expanded(
+              child: Container(
+                color: theme.bgChat,
+                child: currentPeer == null
+                    ? Center(
+                  child: Text(
+                    "Select a host from side panel to chat",
+                    style: TextStyle(color: theme.textMuted),
+                  ),
+                )
+                    : _messages.isEmpty
+                    ? Center(
+                  child: Text(
+                    "No messages yet. Say hello!",
+                    style: TextStyle(color: theme.textMuted),
+                  ),
+                )
+                    : ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16.0),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = _messages[index];
+                    return ChatMessageBubble(
+                      key: ValueKey(msg.msgId),
+                      senderInitials: msg.isOutgoing ? 'ME' : 'PC',
+                      text: msg.content,
+                      timestamp: formatTimestamp(msg.timestamp),
+                      isMe: msg.isOutgoing,
+                      isAcked: msg.status == MessageStatus.acked,
+                    );
+                  },
+                ),
+              ),
+            ),
+            _buildChatInputField(
+              context: context,
+              controller: _messageController,
+              onSend: _handleSendMessage,
+              onAttach: () {},
+            ),
+          ],
+        );
+      },
     );
   }
 }

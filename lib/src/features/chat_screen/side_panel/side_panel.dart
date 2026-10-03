@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:yl_chat/main.dart';
 import 'package:yl_chat/src/rust/api/protocol.dart';
 import 'package:yl_chat/src/theme/abstract_theme.dart';
+
+import '../../../shared/network/network_service.dart';
 
 class PeerItem {
   final String initials;
@@ -42,27 +45,41 @@ class _SidePanelState extends State<SidePanel> {
   @override
   void initState() {
     super.initState();
-    _subscribeToEngineEvents();
-    _triggerScanCycle();
+    // 1. 初始加载：主动拉取一次本地存储中的 Peer 列表
+    _reloadPeersFromStorage();
 
-    // Periodically run mDNS scan + outbox flush cycle every 10 seconds
+    // 2. 监听 Rust 事件
+    _subscribeToEngineEvents();
+
+    // 3. 定期触发 mDNS 扫描并刷新 Outbox
     _scanTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       _triggerScanCycle();
     });
   }
 
   void _subscribeToEngineEvents() {
-    _notifySubscription = networkEventStream.listen((event) {
-      if (event == 'PEER_LIST_UPDATED') {
-        _reloadPeersFromStorage();
-      }
-    });
+    _notifySubscription?.cancel();
+    _notifySubscription = globalNetworkStream.listen(
+          (event) {
+        debugPrint("Dart UI Received Network Event: $event");
+        if (event == 'PEER_LIST_UPDATED' || event.startsWith('ACK:')) {
+          _reloadPeersFromStorage();
+        }
+      },
+      onError: (error) {
+        debugPrint("Network event stream error: $error");
+      },
+      onDone: () {
+        debugPrint("Network event stream completed.");
+      },
+    );
   }
 
-  /// Triggers scan + outbox flush in Rust (runs in background thread)
+  /// 触发扫描并更新 UI
   Future<void> _triggerScanCycle() async {
     try {
       await networkEngine.runScanAndFlushCycle();
+      // 强制触发一次 UI 刷新，防止事件通道丢失导致界面卡住
       await _reloadPeersFromStorage();
     } catch (e) {
       debugPrint("Error running scan cycle: $e");

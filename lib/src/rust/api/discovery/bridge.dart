@@ -7,30 +7,6 @@ import '../../frb_generated.dart';
 import '../protocol.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-/// Send message from UI: saves locally, notifies UI, then attempts flush
-Future<void> sendMessage({
-  required NetworkEngine engine,
-  required String recipientMac,
-  required String content,
-}) => RustLib.instance.api.crateApiDiscoveryBridgeSendMessage(
-  engine: engine,
-  recipientMac: recipientMac,
-  content: content,
-);
-
-/// Called by Flutter to pull chat history for a specific conversation peer
-Future<List<PersistentMessage>> getMessages({
-  required NetworkEngine engine,
-  required String peerMac,
-}) => RustLib.instance.api.crateApiDiscoveryBridgeGetMessages(
-  engine: engine,
-  peerMac: peerMac,
-);
-
-/// Called by Flutter to get all active peer records
-Future<List<PeerRecord>> getPeers({required NetworkEngine engine}) =>
-    RustLib.instance.api.crateApiDiscoveryBridgeGetPeers(engine: engine);
-
 /// Periodic scan tick called by Flutter timer
 Future<void> scanAndFlush({required NetworkEngine engine}) =>
     RustLib.instance.api.crateApiDiscoveryBridgeScanAndFlush(engine: engine);

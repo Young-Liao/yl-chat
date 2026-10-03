@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 521987892;
+  int get rustContentHash => -1448555092;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -176,15 +176,6 @@ abstract class RustLibApi extends BaseApi {
 
   Future<String> crateApiDiscoveryGetDeviceIdentifier();
 
-  Future<List<PersistentMessage>> crateApiDiscoveryBridgeGetMessages({
-    required NetworkEngine engine,
-    required String peerMac,
-  });
-
-  Future<List<PeerRecord>> crateApiDiscoveryBridgeGetPeers({
-    required NetworkEngine engine,
-  });
-
   String crateApiSimpleGreet({required String name});
 
   Future<void> crateApiSimpleInitApp();
@@ -198,12 +189,6 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<List<PeerInfo>> crateApiDiscoveryScanLanPeers();
-
-  Future<void> crateApiDiscoveryBridgeSendMessage({
-    required NetworkEngine engine,
-    required String recipientMac,
-    required String content,
-  });
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LocalStorage;
@@ -997,84 +982,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "get_device_identifier", argNames: []);
 
   @override
-  Future<List<PersistentMessage>> crateApiDiscoveryBridgeGetMessages({
-    required NetworkEngine engine,
-    required String peerMac,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-            engine,
-            serializer,
-          );
-          sse_encode_String(peerMac, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 22,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_persistent_message,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiDiscoveryBridgeGetMessagesConstMeta,
-        argValues: [engine, peerMac],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiDiscoveryBridgeGetMessagesConstMeta =>
-      const TaskConstMeta(
-        debugName: "get_messages",
-        argNames: ["engine", "peerMac"],
-      );
-
-  @override
-  Future<List<PeerRecord>> crateApiDiscoveryBridgeGetPeers({
-    required NetworkEngine engine,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-            engine,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 23,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_peer_record,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiDiscoveryBridgeGetPeersConstMeta,
-        argValues: [engine],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiDiscoveryBridgeGetPeersConstMeta =>
-      const TaskConstMeta(debugName: "get_peers", argNames: ["engine"]);
-
-  @override
   String crateApiSimpleGreet({required String name}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -1099,7 +1013,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1129,7 +1043,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 24,
             port: port_,
           );
         },
@@ -1165,7 +1079,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 25,
             port: port_,
           );
         },
@@ -1192,7 +1106,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 26,
             port: port_,
           );
         },
@@ -1209,46 +1123,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiDiscoveryScanLanPeersConstMeta =>
       const TaskConstMeta(debugName: "scan_lan_peers", argNames: []);
-
-  @override
-  Future<void> crateApiDiscoveryBridgeSendMessage({
-    required NetworkEngine engine,
-    required String recipientMac,
-    required String content,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-            engine,
-            serializer,
-          );
-          sse_encode_String(recipientMac, serializer);
-          sse_encode_String(content, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 29,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiDiscoveryBridgeSendMessageConstMeta,
-        argValues: [engine, recipientMac, content],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiDiscoveryBridgeSendMessageConstMeta =>
-      const TaskConstMeta(
-        debugName: "send_message",
-        argNames: ["engine", "recipientMac", "content"],
-      );
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LocalStorage => wire

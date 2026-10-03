@@ -323,7 +323,7 @@ impl NetworkEngine {
     }
 
     pub async fn register_notify_sink(&self, sink: StreamSink<String>) {
-        info!("Registering Flutter StreamSink for real-time notifications");
+        info!("Registering/Updating Flutter StreamSink for real-time notifications");
         let mut guard = self.notify_sink.write().await;
         *guard = Some(sink);
     }
@@ -406,7 +406,12 @@ impl NetworkEngine {
     }
 
     pub async fn send_message(&self, recipient_mac: String, content: String) -> Result<(), String> {
-        let recipient_ip = self.storage.get_peer(&recipient_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
+        let recipient_ip = self
+            .storage
+            .get_peer(&recipient_mac)
+            .await
+            .map(|p| p.last_known_ip)
+            .unwrap_or_else(|| "unknown".to_string());
         let msg_id = Uuid::new_v4().to_string();
         info!(
             msg_id = %msg_id,
@@ -424,8 +429,17 @@ impl NetworkEngine {
             status: MessageStatus::Pending,
         };
 
+        // 1. 先持久化写进本地数据库/内存
         self.storage.append_message(recipient_mac.clone(), msg).await;
-        self.flush_outbox(&recipient_mac).await;
+
+        // 2. 异步后台触发 flush_outbox，不阻塞当前 send_message 调用
+        let engine = self.clone();
+        let mac_clone = recipient_mac.clone();
+        tokio::spawn(async move {
+            engine.flush_outbox(&mac_clone).await;
+        });
+
+        // 3. 立即返回，前端 Flutter 界面可以瞬间完成发送操作并刷新 UI
         Ok(())
     }
 
@@ -438,51 +452,54 @@ impl NetworkEngine {
         }
 
         info!(
-            peer_mac = %peer_mac,
-            ip = %peer_ip,
-            count = pending.len(),
-            "Flushing outbox pending queue"
-        );
+        peer_mac = %peer_mac,
+        ip = %peer_ip,
+        count = pending.len(),
+        "Flushing outbox pending queue"
+    );
 
         match self.get_or_connect(peer_mac).await {
             Ok(conn) => {
                 for msg in pending {
                     debug!(
-                        peer_mac = %peer_mac,
-                        ip = %peer_ip,
-                        msg_id = %msg.msg_id,
-                        "Attempting outbox message delivery"
-                    );
+                    peer_mac = %peer_mac,
+                    ip = %peer_ip,
+                    msg_id = %msg.msg_id,
+                    "Attempting outbox message delivery"
+                );
 
                     let env = MessageEnvelope {
                         version: 1,
                         msg_id: msg.msg_id.clone(),
                         sender_mac: self.self_mac.clone(),
                         payload: MessagePayload::ChatMessage {
-                            content: msg.content,
+                            content: msg.content.clone(),
                         },
                     };
 
                     if let Err(e) = conn.send_envelope(&env).await {
                         error!(
-                            peer_mac = %peer_mac,
-                            ip = %peer_ip,
-                            msg_id = %msg.msg_id,
-                            error = %e,
-                            "Failed transmitting outbox message. Evicting dead connection"
-                        );
+                        peer_mac = %peer_mac,
+                        ip = %peer_ip,
+                        msg_id = %msg.msg_id,
+                        error = %e,
+                        "Failed transmitting outbox message. Evicting dead connection"
+                    );
                         self.connections.write().await.remove(peer_mac);
                         break;
+                    } else {
+                        // 【修复关键点 1】：TCP 发送成功后通知 UI 消息已送出（哪怕 ACK 还没回来）
+                        self.emit_event(format!("MSG_SENT:{}", peer_mac)).await;
                     }
                 }
             }
             Err(e) => {
                 warn!(
-                    peer_mac = %peer_mac,
-                    ip = %peer_ip,
-                    error = %e,
-                    "Cannot flush outbox: unable to connect to peer endpoint"
-                );
+                peer_mac = %peer_mac,
+                ip = %peer_ip,
+                error = %e,
+                "Cannot flush outbox: unable to connect to peer endpoint"
+            );
             }
         }
     }
@@ -603,6 +620,13 @@ impl NetworkEngine {
                             "Received ChatMessage envelope"
                         );
 
+                        // 【修复关键点 2】：自动纠正/更新当前连接的 remote_mac
+                        if current_peer_mac.is_empty() {
+                            current_peer_mac = env.sender_mac.clone();
+                            *conn.remote_mac.write().await = env.sender_mac.clone();
+                            self.connections.write().await.insert(env.sender_mac.clone(), Arc::clone(&conn));
+                        }
+
                         let msg = PersistentMessage {
                             msg_id: env.msg_id.clone(),
                             peer_mac: env.sender_mac.clone(),
@@ -612,16 +636,7 @@ impl NetworkEngine {
                             status: MessageStatus::Acked,
                         };
 
-                        self.storage
-                            .append_message(env.sender_mac.clone(), msg)
-                            .await;
-
-                        info!(
-                            recipient_mac = %env.sender_mac,
-                            ip = %current_peer_ip,
-                            target_msg_id = %env.msg_id,
-                            "Transmitting ACK response envelope back to peer"
-                        );
+                        self.storage.append_message(env.sender_mac.clone(), msg).await;
 
                         let ack = MessageEnvelope {
                             version: 1,
