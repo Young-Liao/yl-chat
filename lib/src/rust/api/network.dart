@@ -6,10 +6,33 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `get_device_identifier`, `get_local_ip`, `get_or_init_daemon`
+// These functions are ignored because they are not marked as `pub`: `get_local_ip`, `get_or_init_daemon`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ProtocolConfig`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `eq`, `fmt`, `hash`
 
 Future<void> registerBonjourService() =>
     RustLib.instance.api.crateApiNetworkRegisterBonjourService();
 
-Future<List<String>> scanLanPeers() =>
+Future<List<PeerInfo>> scanLanPeers() =>
     RustLib.instance.api.crateApiNetworkScanLanPeers();
+
+Future<String> getDeviceIdentifier() =>
+    RustLib.instance.api.crateApiNetworkGetDeviceIdentifier();
+
+class PeerInfo {
+  final String ip;
+  final String deviceName;
+
+  const PeerInfo({required this.ip, required this.deviceName});
+
+  @override
+  int get hashCode => ip.hashCode ^ deviceName.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PeerInfo &&
+          runtimeType == other.runtimeType &&
+          ip == other.ip &&
+          deviceName == other.deviceName;
+}

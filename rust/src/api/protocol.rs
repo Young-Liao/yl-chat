@@ -2,13 +2,14 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use flutter_rust_bridge::frb;
+use gethostname::gethostname;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, RwLock};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
-use crate::api::network::SERVICE_PORT;
+use crate::api::network::{get_device_identifier, ProtocolConfig};
 use crate::api::protocol::MessagePayload::{ChatMessage, Handshake};
 use crate::api::protocol::SessionType::Client;
 use crate::frb_generated::StreamSink;
@@ -387,7 +388,7 @@ impl PeerManager {
     pub async fn create_peer_listener(&self, sink: StreamSink<String>, sender_id: String) {
         let manager = self.clone();
         tokio::spawn(async move {
-            let bind_addr = format!("0.0.0.0:{}", SERVICE_PORT);
+            let bind_addr = format!("0.0.0.0:{}", ProtocolConfig::SERVICE_PORT);
             match TcpListener::bind(&bind_addr).await {
                 Ok(listener) => loop {
                     match listener.accept().await {
@@ -436,4 +437,13 @@ fn chrono_now_timestamp() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64
+}
+
+pub fn get_sender_id() -> String {
+    // TODO Custom ones...
+    get_device_identifier()
+}
+
+pub fn get_service_port() -> u16 {
+    ProtocolConfig::SERVICE_PORT
 }

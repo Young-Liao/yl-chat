@@ -21,6 +21,11 @@
             --status-away: #f59e0b;
             --scrollbar-thumb: #334155;
             --scrollbar-thumb-hover: #475569;
+
+            /* Traffic Lights Colors */
+            --tl-close: #ff5f56;
+            --tl-minimize: #ffbd2e;
+            --tl-maximize: #27c93f;
         }
 
         * {
@@ -65,11 +70,10 @@
             padding: 20px;
         }
 
-        /* Main Container */
+        /* Main Container - Fixed Dimensions */
         .app-container {
-            width: 100%;
-            max-width: 1200px;
-            height: 90vh;
+            width: 1200px;
+            height: 800px;
             background-color: var(--bg-panel);
             border-radius: 12px;
             display: flex;
@@ -91,6 +95,31 @@
             padding: 20px;
             border-bottom: 1px solid var(--border-color);
         }
+
+        /* Window Controls / Traffic Lights */
+        .window-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .traffic-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .traffic-light:hover {
+            opacity: 0.8;
+        }
+
+        .traffic-light.close { background-color: var(--tl-close); }
+        .traffic-light.minimize { background-color: var(--tl-minimize); }
+        .traffic-light.maximize { background-color: var(--tl-maximize); }
 
         .brand {
             display: flex;
@@ -259,7 +288,7 @@
 
         .message-row {
             display: flex;
-            align-items: flex-start; /* Aligns avatar with the top of the message */
+            align-items: flex-start;
             gap: 10px;
             max-width: 70%;
         }
@@ -309,7 +338,7 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
-        /* Refined Speech Bubble Borders Top-Aligned to Avatars */
+        /* Speech Bubble Borders Top-Aligned to Avatars */
         .incoming .message-bubble {
             background-color: var(--bg-bubble-incoming);
             border-radius: 4px 16px 16px 16px;
@@ -477,6 +506,13 @@
     <!-- Contacts Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
+            <!-- macOS Traffic Lights -->
+            <div class="window-controls">
+                <span class="traffic-light close" title="Close"></span>
+                <span class="traffic-light minimize" title="Minimize"></span>
+                <span class="traffic-light maximize" title="Maximize"></span>
+            </div>
+
             <div class="brand">
                 <svg width="24" height="24" viewBox="0 0 24 24">
                     <path d="M4 6h16v10H4z" fill="none" stroke="currentColor" stroke-width="2"/>

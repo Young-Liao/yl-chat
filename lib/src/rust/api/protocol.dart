@@ -13,6 +13,12 @@ part 'protocol.freezed.dart';
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`
 // These functions are ignored (category: IgnoreBecauseExplicitAttribute): `add_session`, `close`, `connect`, `get_session`, `handshake`, `new_incoming`, `read_envelope`, `remove_session`, `send_chat_message`, `send_envelope`, `start_reception_loop`
 
+Future<String> getSenderId() =>
+    RustLib.instance.api.crateApiProtocolGetSenderId();
+
+Future<int> getServicePort() =>
+    RustLib.instance.api.crateApiProtocolGetServicePort();
+
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PeerManager>>
 abstract class PeerManager implements RustOpaqueInterface {
   Stream<MessageEnvelope> addReceptionHandlerFor({required String peerId});

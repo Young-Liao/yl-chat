@@ -17,6 +17,5 @@ pub fn init_app() {
         .finish();
 
     // 设置为全局默认订阅器
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    let _ = tracing::subscriber::set_global_default(subscriber);
 }
