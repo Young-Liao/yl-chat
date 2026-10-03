@@ -37,6 +37,7 @@ Future<void> main() async {
 
   final docDir = await getApplicationDocumentsDirectory();
   String dbPath = p.join(docDir.path, 'app_chat.db');
+  dbPath.replaceAll(r"\", "/");
 
   // Register local mDNS service on startup
   final macAddress = await DeviceIdManager.getOrCreateDeviceId();
