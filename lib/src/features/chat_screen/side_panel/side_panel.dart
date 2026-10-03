@@ -7,6 +7,7 @@ import 'package:yl_chat/src/theme/abstract_theme.dart';
 class PeerItem {
   final String initials;
   final String name;
+  final String macAddress; // Added hardware ID key
   final String ip;
   final String lastMessage;
   final Color statusColor;
@@ -14,25 +15,11 @@ class PeerItem {
   PeerItem({
     required this.initials,
     required this.name,
+    required this.macAddress,
     required this.ip,
     required this.lastMessage,
     required this.statusColor,
   });
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-          other is PeerItem &&
-              runtimeType == other.runtimeType &&
-              initials == other.initials &&
-              name == other.name &&
-              ip == other.ip &&
-              lastMessage == other.lastMessage &&
-              statusColor == other.statusColor;
-
-  @override
-  int get hashCode =>
-      Object.hash(initials, name, ip, lastMessage, statusColor);
 }
 
 class SidePanel extends StatefulWidget {
@@ -92,6 +79,7 @@ class _SidePanelState extends State<SidePanel> {
               ? record.deviceName.substring(0, 1).toUpperCase()
               : "PC",
           name: record.deviceName,
+          macAddress: record.macAddress,
           ip: record.lastKnownIp,
           lastMessage: "Tap to view conversation...",
           statusColor: widget.theme.statusOnline,

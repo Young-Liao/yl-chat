@@ -34,7 +34,7 @@ class _ChatBoxState extends State<ChatBox> {
       debugPrint('[NetworkEngine Event] $event');
 
       if (chosenPeer.value == null) return;
-      final currentPeerMac = chosenPeer.value!.ip; // Using chosen peer identifier
+      final currentPeerMac = chosenPeer.value!.macAddress; // Using chosen peer identifier
 
       if (event == 'NEW_MSG:$currentPeerMac' || event == 'ACK:$currentPeerMac') {
         _refreshMessages();
@@ -56,7 +56,7 @@ class _ChatBoxState extends State<ChatBox> {
   /// Fetch chat history from Rust local storage
   Future<void> _refreshMessages() async {
     if (chosenPeer.value == null) return;
-    final peerMac = chosenPeer.value!.ip;
+    final peerMac = chosenPeer.value!.macAddress;
 
     final history = await networkEngine.getMessages(peerMac: peerMac);
     setState(() {
@@ -71,7 +71,7 @@ class _ChatBoxState extends State<ChatBox> {
     final text = _messageController.text.trim();
     if (text.isEmpty || chosenPeer.value == null) return;
 
-    final recipientMac = chosenPeer.value!.ip;
+    final recipientMac = chosenPeer.value!.macAddress;
     _messageController.clear();
 
     try {
