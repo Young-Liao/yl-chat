@@ -32,7 +32,7 @@ abstract class LocalStorage implements RustOpaqueInterface {
 
   Future<List<PersistentMessage>> getPendingMessages({required String peerMac});
 
-  Future<void> markAcked({
+  Future<bool> markAcked({
     required String peerMac,
     required String targetMsgId,
   });
@@ -46,7 +46,6 @@ abstract class NetworkEngine implements RustOpaqueInterface {
 
   set selfMac(String selfMac);
 
-  /// Outbox Processor: Clears pending outgoing queue for a given peer
   Future<void> flushOutbox({required String peerMac});
 
   /// Exposes chat retrieval directly to Dart
@@ -59,19 +58,15 @@ abstract class NetworkEngine implements RustOpaqueInterface {
   static Future<NetworkEngine> newInstance({required String selfMac}) =>
       RustLib.instance.api.crateApiProtocolNetworkEngineNew(selfMac: selfMac);
 
-  /// Stores long-lived stream sink registered from start_listener
   Stream<String> registerNotifySink();
 
-  /// Integrated mDNS discovery and outbox flush loop
   Future<void> runScanAndFlushCycle();
 
-  /// High-level API to queue and deliver chat messages
   Future<void> sendMessage({
     required String recipientMac,
     required String content,
   });
 
-  /// Starts TCP server and registers active FRB notification stream
   Stream<String> startListener({required int port});
 
   /// Exposes peer insertion directly to Dart

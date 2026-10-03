@@ -436,14 +436,14 @@ fn wire__crate__api__protocol__LocalStorage_mark_acked_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = Ok::<_, ()>({
+                        let output_ok = Ok::<_, ()>(
                             crate::api::protocol::LocalStorage::mark_acked(
                                 &*api_that_guard,
                                 &api_peer_mac,
                                 &api_target_msg_id,
                             )
-                            .await;
-                        })?;
+                            .await,
+                        )?;
                         std::result::Result::Ok(output_ok)
                     })()
                     .await,

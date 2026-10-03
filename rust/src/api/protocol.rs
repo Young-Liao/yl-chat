@@ -23,7 +23,7 @@ pub enum MessageStatus {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PersistentMessage {
     pub msg_id: String,
-    pub peer_mac: String, // Remote peer associated with this chat
+    pub peer_mac: String,
     pub is_outgoing: bool,
     pub content: String,
     pub timestamp: i64,
@@ -39,7 +39,6 @@ pub struct PeerRecord {
     pub last_seen: i64,
 }
 
-/// Shared In-Memory Storage
 #[derive(Default)]
 pub struct LocalStorage {
     peers: RwLock<HashMap<String, PeerRecord>>,
@@ -67,16 +66,20 @@ impl LocalStorage {
 
     pub async fn get_peer(&self, mac: &str) -> Option<PeerRecord> {
         let peer = self.peers.read().await.get(mac).cloned();
-        if peer.is_none() {
+        if let Some(ref p) = peer {
+            debug!(mac = %mac, ip = %p.last_known_ip, "Found peer record in storage");
+        } else {
             debug!(mac = %mac, "Peer lookup yielded no results");
         }
         peer
     }
 
     pub async fn append_message(&self, peer_mac: String, msg: PersistentMessage) {
+        let peer_ip = self.get_peer(&peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
         info!(
             msg_id = %msg.msg_id,
             peer_mac = %peer_mac,
+            ip = %peer_ip,
             is_outgoing = msg.is_outgoing,
             "Appending persistent message to conversation"
         );
@@ -84,7 +87,8 @@ impl LocalStorage {
         convs.entry(peer_mac).or_default().push(msg);
     }
 
-    pub async fn mark_acked(&self, peer_mac: &str, target_msg_id: &str) {
+    pub async fn mark_acked(&self, peer_mac: &str, target_msg_id: &str) -> bool {
+        let peer_ip = self.get_peer(peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
         let mut convs = self.conversations.write().await;
         if let Some(messages) = convs.get_mut(peer_mac) {
             if let Some(msg) = messages.iter_mut().find(|m| m.msg_id == target_msg_id) {
@@ -92,23 +96,42 @@ impl LocalStorage {
                 info!(
                     msg_id = %target_msg_id,
                     peer_mac = %peer_mac,
+                    ip = %peer_ip,
                     "Successfully marked message as Acked"
                 );
-                return;
+                return true;
             }
         }
+
+        // Fallback search across all conversations if peer_mac key mistargeted
+        for (mac, messages) in convs.iter_mut() {
+            if let Some(msg) = messages.iter_mut().find(|m| m.msg_id == target_msg_id) {
+                msg.status = MessageStatus::Acked;
+                info!(
+                    msg_id = %target_msg_id,
+                    peer_mac = %mac,
+                    "Successfully marked message as Acked via fallback search"
+                );
+                return true;
+            }
+        }
+
         warn!(
             msg_id = %target_msg_id,
             peer_mac = %peer_mac,
+            ip = %peer_ip,
             "Failed to mark message as Acked: message not found in conversation"
         );
+        false
     }
 
     pub async fn get_messages_for_peer(&self, peer_mac: &str) -> Vec<PersistentMessage> {
+        let peer_ip = self.get_peer(peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
         let convs = self.conversations.read().await;
         let history = convs.get(peer_mac).cloned().unwrap_or_default();
         debug!(
             peer_mac = %peer_mac,
+            ip = %peer_ip,
             count = history.len(),
             "Fetched conversation history"
         );
@@ -116,6 +139,7 @@ impl LocalStorage {
     }
 
     pub async fn get_pending_messages(&self, peer_mac: &str) -> Vec<PersistentMessage> {
+        let peer_ip = self.get_peer(peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
         let convs = self.conversations.read().await;
         let pending: Vec<PersistentMessage> = convs
             .get(peer_mac)
@@ -130,6 +154,7 @@ impl LocalStorage {
         if !pending.is_empty() {
             debug!(
                 peer_mac = %peer_mac,
+                ip = %peer_ip,
                 pending_count = pending.len(),
                 "Found pending messages waiting for outbox delivery"
             );
@@ -160,14 +185,17 @@ pub enum MessagePayload {
 
 #[frb(ignore)]
 pub struct PeerConnection {
-    pub remote_mac: String,
+    pub remote_mac: RwLock<String>,
+    pub remote_ip: String,
     stream: Mutex<TcpStream>,
 }
 
 impl PeerConnection {
     pub async fn send_envelope(&self, envelope: &MessageEnvelope) -> Result<(), String> {
+        let mac = self.remote_mac.read().await.clone();
         debug!(
-            remote_mac = %self.remote_mac,
+            remote_mac = %mac,
+            ip = %self.remote_ip,
             msg_id = %envelope.msg_id,
             payload_type = ?envelope.payload,
             "Serializing and transmitting envelope over TCP"
@@ -183,7 +211,8 @@ impl PeerConnection {
 
         guard.write_all(&len).await.map_err(|e| {
             error!(
-                remote_mac = %self.remote_mac,
+                remote_mac = %mac,
+                ip = %self.remote_ip,
                 error = %e,
                 "Failed to write length header bytes to socket"
             );
@@ -192,7 +221,8 @@ impl PeerConnection {
 
         guard.write_all(&bytes).await.map_err(|e| {
             error!(
-                remote_mac = %self.remote_mac,
+                remote_mac = %mac,
+                ip = %self.remote_ip,
                 error = %e,
                 "Failed to write payload bytes to socket"
             );
@@ -201,7 +231,8 @@ impl PeerConnection {
 
         guard.flush().await.map_err(|e| {
             error!(
-                remote_mac = %self.remote_mac,
+                remote_mac = %mac,
+                ip = %self.remote_ip,
                 error = %e,
                 "Failed to flush TCP stream"
             );
@@ -209,7 +240,8 @@ impl PeerConnection {
         })?;
 
         debug!(
-            remote_mac = %self.remote_mac,
+            remote_mac = %mac,
+            ip = %self.remote_ip,
             msg_id = %envelope.msg_id,
             bytes_sent = bytes.len(),
             "Successfully sent envelope"
@@ -220,10 +252,12 @@ impl PeerConnection {
     pub async fn read_envelope(&self) -> Result<MessageEnvelope, String> {
         let mut guard = self.stream.lock().await;
         let mut len_bytes = [0u8; 4];
+        let mac = self.remote_mac.read().await.clone();
 
         guard.read_exact(&mut len_bytes).await.map_err(|e| {
             debug!(
-                remote_mac = %self.remote_mac,
+                remote_mac = %mac,
+                ip = %self.remote_ip,
                 error = %e,
                 "TCP stream read length error (connection likely closed)"
             );
@@ -235,7 +269,8 @@ impl PeerConnection {
 
         guard.read_exact(&mut buffer).await.map_err(|e| {
             error!(
-                remote_mac = %self.remote_mac,
+                remote_mac = %mac,
+                ip = %self.remote_ip,
                 expected_len = len,
                 error = %e,
                 "Failed reading full frame content from socket"
@@ -245,7 +280,8 @@ impl PeerConnection {
 
         let envelope: MessageEnvelope = serde_json::from_slice(&buffer).map_err(|e| {
             error!(
-                remote_mac = %self.remote_mac,
+                remote_mac = %mac,
+                ip = %self.remote_ip,
                 error = %e,
                 "Deserialization failed for incoming message envelope"
             );
@@ -253,7 +289,8 @@ impl PeerConnection {
         })?;
 
         debug!(
-            remote_mac = %self.remote_mac,
+            remote_mac = %mac,
+            ip = %self.remote_ip,
             msg_id = %envelope.msg_id,
             payload_type = ?envelope.payload,
             "Read message envelope successfully"
@@ -285,14 +322,12 @@ impl NetworkEngine {
         }
     }
 
-    /// Stores long-lived stream sink registered from start_listener
     pub async fn register_notify_sink(&self, sink: StreamSink<String>) {
         info!("Registering Flutter StreamSink for real-time notifications");
         let mut guard = self.notify_sink.write().await;
         *guard = Some(sink);
     }
 
-    /// Helper to safely emit events to Flutter
     async fn emit_event(&self, event: String) {
         if let Some(ref sink) = *self.notify_sink.read().await {
             debug!(event = %event, "Emitting event sink update to Flutter UI");
@@ -307,37 +342,39 @@ impl NetworkEngine {
         }
     }
 
-    /// Connects or gets existing active connection socket
     async fn get_or_connect(&self, peer_mac: &str) -> Result<Arc<PeerConnection>, String> {
+        let peer_info = self.storage.get_peer(peer_mac).await;
+        let peer_ip = peer_info.as_ref().map(|p| p.last_known_ip.as_str()).unwrap_or("unknown");
+
         if let Some(conn) = self.connections.read().await.get(peer_mac) {
-            debug!(peer_mac = %peer_mac, "Reusing active TCP peer connection");
+            debug!(peer_mac = %peer_mac, ip = %conn.remote_ip, "Reusing active TCP peer connection");
             return Ok(Arc::clone(conn));
         }
 
-        info!(peer_mac = %peer_mac, "No active connection found. Querying storage for peer endpoint info");
-        let peer_info = self.storage.get_peer(peer_mac).await.ok_or_else(|| {
+        info!(peer_mac = %peer_mac, ip = %peer_ip, "No active connection found. Querying storage for peer endpoint info");
+        let peer_record = peer_info.ok_or_else(|| {
             let err = format!("Peer MAC {} not found in local storage", peer_mac);
-            error!(%err);
+            error!(mac = %peer_mac, %err);
             err
         })?;
 
-        let addr = format!("{}:{}", peer_info.last_known_ip, peer_info.port);
-        info!(peer_mac = %peer_mac, address = %addr, "Establishing new TCP connection to peer");
+        let addr = format!("{}:{}", peer_record.last_known_ip, peer_record.port);
+        info!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, address = %addr, "Establishing new TCP connection to peer");
 
         let stream = TcpStream::connect(&addr).await.map_err(|e| {
             let err = format!("Failed to connect to {addr}: {e}");
-            warn!(peer_mac = %peer_mac, address = %addr, error = %e, "TCP connection attempt failed");
+            warn!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, address = %addr, error = %e, "TCP connection attempt failed");
             err
         })?;
 
-        info!(peer_mac = %peer_mac, address = %addr, "TCP connection established successfully");
+        info!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, address = %addr, "TCP connection established successfully");
 
         let conn = Arc::new(PeerConnection {
-            remote_mac: peer_mac.to_string(),
+            remote_mac: RwLock::new(peer_mac.to_string()),
+            remote_ip: peer_record.last_known_ip.clone(),
             stream: Mutex::new(stream),
         });
 
-        // Send handshake envelope
         let handshake = MessageEnvelope {
             version: 1,
             msg_id: Uuid::new_v4().to_string(),
@@ -347,7 +384,7 @@ impl NetworkEngine {
             },
         };
 
-        info!(peer_mac = %peer_mac, "Sending outbound handshake");
+        info!(peer_mac = %peer_mac, ip = %peer_record.last_known_ip, "Sending outbound handshake");
         conn.send_envelope(&handshake).await?;
 
         self.connections
@@ -355,25 +392,26 @@ impl NetworkEngine {
             .await
             .insert(peer_mac.to_string(), Arc::clone(&conn));
 
-        // Background reader task for outbound connection (receives ACKs / incoming messages)
         let engine = self.clone();
         let conn_clone = Arc::clone(&conn);
         let peer_mac_owned = peer_mac.to_string();
+        let peer_ip_owned = peer_record.last_known_ip.clone();
 
         tokio::spawn(async move {
-            debug!(peer_mac = %peer_mac_owned, "Spawning background socket listener loop for outbound peer");
-            engine.handle_connection_loop(conn_clone, peer_mac_owned).await;
+            debug!(peer_mac = %peer_mac_owned, ip = %peer_ip_owned, "Spawning background socket listener loop for outbound peer");
+            engine.handle_connection_loop(conn_clone, peer_mac_owned, peer_ip_owned).await;
         });
 
         Ok(conn)
     }
 
-    /// High-level API to queue and deliver chat messages
     pub async fn send_message(&self, recipient_mac: String, content: String) -> Result<(), String> {
+        let recipient_ip = self.storage.get_peer(&recipient_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
         let msg_id = Uuid::new_v4().to_string();
         info!(
             msg_id = %msg_id,
             recipient_mac = %recipient_mac,
+            recipient_ip = %recipient_ip,
             "Queueing new outgoing chat message"
         );
 
@@ -391,16 +429,17 @@ impl NetworkEngine {
         Ok(())
     }
 
-    /// Outbox Processor: Clears pending outgoing queue for a given peer
     pub async fn flush_outbox(&self, peer_mac: &str) {
+        let peer_ip = self.storage.get_peer(peer_mac).await.map(|p| p.last_known_ip).unwrap_or_else(|| "unknown".to_string());
         let pending = self.storage.get_pending_messages(peer_mac).await;
         if pending.is_empty() {
-            debug!(peer_mac = %peer_mac, "No pending messages to flush");
+            debug!(peer_mac = %peer_mac, ip = %peer_ip, "No pending messages to flush");
             return;
         }
 
         info!(
             peer_mac = %peer_mac,
+            ip = %peer_ip,
             count = pending.len(),
             "Flushing outbox pending queue"
         );
@@ -410,6 +449,7 @@ impl NetworkEngine {
                 for msg in pending {
                     debug!(
                         peer_mac = %peer_mac,
+                        ip = %peer_ip,
                         msg_id = %msg.msg_id,
                         "Attempting outbox message delivery"
                     );
@@ -426,6 +466,7 @@ impl NetworkEngine {
                     if let Err(e) = conn.send_envelope(&env).await {
                         error!(
                             peer_mac = %peer_mac,
+                            ip = %peer_ip,
                             msg_id = %msg.msg_id,
                             error = %e,
                             "Failed transmitting outbox message. Evicting dead connection"
@@ -438,6 +479,7 @@ impl NetworkEngine {
             Err(e) => {
                 warn!(
                     peer_mac = %peer_mac,
+                    ip = %peer_ip,
                     error = %e,
                     "Cannot flush outbox: unable to connect to peer endpoint"
                 );
@@ -445,7 +487,6 @@ impl NetworkEngine {
         }
     }
 
-    /// Integrated mDNS discovery and outbox flush loop
     pub async fn run_scan_and_flush_cycle(&self) {
         info!("Starting mDNS peer scan and outbox flush cycle");
 
@@ -460,7 +501,7 @@ impl NetworkEngine {
                     let mac = peer.mac_address.clone();
                     let record = PeerRecord {
                         mac_address: mac.clone(),
-                        last_known_ip: peer.ip,
+                        last_known_ip: peer.ip.clone(),
                         port: ProtocolConfig::SERVICE_PORT,
                         device_name: peer.device_name,
                         last_seen: chrono_now_timestamp(),
@@ -477,7 +518,6 @@ impl NetworkEngine {
         }
     }
 
-    /// Starts TCP server and registers active FRB notification stream
     pub async fn start_listener(
         &self,
         port: u16,
@@ -500,10 +540,11 @@ impl NetworkEngine {
             loop {
                 match listener.accept().await {
                     Ok((stream, peer_addr)) => {
-                        info!(peer_addr = %peer_addr, "Accepted incoming TCP connection");
+                        let ip = peer_addr.ip().to_string();
+                        info!(peer_addr = %peer_addr, ip = %ip, "Accepted incoming TCP connection");
                         let engine_clone = engine.clone();
                         tokio::spawn(async move {
-                            engine_clone.handle_incoming_stream(stream).await;
+                            engine_clone.handle_incoming_stream(stream, ip).await;
                         });
                     }
                     Err(e) => {
@@ -516,22 +557,25 @@ impl NetworkEngine {
         Ok(())
     }
 
-    async fn handle_incoming_stream(&self, stream: TcpStream) {
+    async fn handle_incoming_stream(&self, stream: TcpStream, ip: String) {
         let conn = Arc::new(PeerConnection {
-            remote_mac: String::new(),
+            remote_mac: RwLock::new(String::new()),
+            remote_ip: ip.clone(),
             stream: Mutex::new(stream),
         });
 
-        self.handle_connection_loop(conn, String::new()).await;
+        self.handle_connection_loop(conn, String::new(), ip).await;
     }
 
     async fn handle_connection_loop(
         &self,
         conn: Arc<PeerConnection>,
         mut current_peer_mac: String,
+        current_peer_ip: String,
     ) {
         debug!(
             initial_peer_mac = %current_peer_mac,
+            ip = %current_peer_ip,
             "Entering connection event loop"
         );
 
@@ -541,9 +585,11 @@ impl NetworkEngine {
                     MessagePayload::Handshake { sender_mac } => {
                         info!(
                             remote_mac = %sender_mac,
+                            ip = %current_peer_ip,
                             "Received Handshake envelope. Registering peer connection"
                         );
                         current_peer_mac = sender_mac.clone();
+                        *conn.remote_mac.write().await = sender_mac.clone();
                         self.connections
                             .write()
                             .await
@@ -552,6 +598,7 @@ impl NetworkEngine {
                     MessagePayload::ChatMessage { content } => {
                         info!(
                             sender_mac = %env.sender_mac,
+                            ip = %current_peer_ip,
                             msg_id = %env.msg_id,
                             "Received ChatMessage envelope"
                         );
@@ -571,6 +618,7 @@ impl NetworkEngine {
 
                         info!(
                             recipient_mac = %env.sender_mac,
+                            ip = %current_peer_ip,
                             target_msg_id = %env.msg_id,
                             "Transmitting ACK response envelope back to peer"
                         );
@@ -587,6 +635,7 @@ impl NetworkEngine {
                         if let Err(e) = conn.send_envelope(&ack).await {
                             warn!(
                                 remote_mac = %env.sender_mac,
+                                ip = %current_peer_ip,
                                 error = %e,
                                 "Failed sending ACK to peer"
                             );
@@ -595,25 +644,30 @@ impl NetworkEngine {
                         self.emit_event(format!("NEW_MSG:{}", env.sender_mac)).await;
                     }
                     MessagePayload::Ack { target_msg_id } => {
-                        let peer_mac = if env.sender_mac.is_empty() {
+                        // Use current_peer_mac as primary target for outbound connections
+                        let primary_target = if !current_peer_mac.is_empty() {
                             &current_peer_mac
                         } else {
                             &env.sender_mac
                         };
 
                         info!(
-                            peer_mac = %peer_mac,
+                            peer_mac = %primary_target,
+                            ip = %current_peer_ip,
                             target_msg_id = %target_msg_id,
                             "Received ACK envelope for message"
                         );
 
-                        self.storage.mark_acked(peer_mac, &target_msg_id).await;
-                        self.emit_event(format!("ACK:{}", peer_mac)).await;
+                        let marked = self.storage.mark_acked(primary_target, &target_msg_id).await;
+                        if marked {
+                            self.emit_event(format!("ACK:{}", primary_target)).await;
+                        }
                     }
                 },
                 Err(e) => {
                     warn!(
                         peer_mac = %current_peer_mac,
+                        ip = %current_peer_ip,
                         error = %e,
                         "Connection event loop terminated/closed for peer"
                     );
@@ -621,6 +675,7 @@ impl NetworkEngine {
                         self.connections.write().await.remove(&current_peer_mac);
                         info!(
                             peer_mac = %current_peer_mac,
+                            ip = %current_peer_ip,
                             "Evicted disconnected peer from connection map"
                         );
                     }

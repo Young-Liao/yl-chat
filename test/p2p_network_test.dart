@@ -7,7 +7,7 @@ import 'package:yl_chat/src/rust/frb_generated.dart';
 import 'package:yl_chat/src/rust/api/protocol.dart';
 
 void logStep(String step) {
-  print('[TEST-INFO] ${DateTime.now().toIso8601String()} ->$step');
+  print('[TEST-INFO] ${DateTime.now().toIso8601String()} -> $step');
 }
 
 void main() {
@@ -26,8 +26,8 @@ void main() {
   });
 
   test('Full P2P Storage, Notification Stream, and Outbox Flow Test', () async {
-    const serverMac = 'AA:BB:CC:DD:EE:01';
-    const clientMac = 'AA:BB:CC:DD:EE:02';
+    const serverMac = 'd858e9a7-0ae6-4c58-9a8b-bb032b14a137';
+    const clientMac = 'a140a591-149a-459e-b2e0-d0e435f92df9';
 
     const serverPort = 14981;
     const clientPort = 14982;
@@ -36,8 +36,7 @@ void main() {
     final serverEngine = await NetworkEngine.newInstance(selfMac: serverMac);
     final clientEngine = await NetworkEngine.newInstance(selfMac: clientMac);
 
-    logStep('2. Starting TCP listeners (FRB generates Dart Streams from Rust StreamSink)...');
-    // FRB converts `notify_sink: StreamSink<String>` in Rust into a `Stream<String>` return in Dart
+    logStep('2. Starting TCP listeners...');
     final Stream<String> serverNotifyStream = await serverEngine.startListener(port: serverPort);
     final Stream<String> clientNotifyStream = await clientEngine.startListener(port: clientPort);
 
@@ -51,10 +50,14 @@ void main() {
     });
 
     final clientAckCompleter = Completer<String>();
+    int clientAckCount = 0;
     final clientNotifySub = clientNotifyStream.listen((event) {
       logStep('Client received event: $event');
-      if (event.startsWith('ACK:') && !clientAckCompleter.isCompleted) {
-        clientAckCompleter.complete(event);
+      if (event.startsWith('ACK:')) {
+        clientAckCount++;
+        if (!clientAckCompleter.isCompleted) {
+          clientAckCompleter.complete(event);
+        }
       }
     });
 
@@ -92,11 +95,11 @@ void main() {
       content: chatContent,
     );
 
-    logStep('7. Checking client local storage for pending/sent message...');
-    final clientMessages = await clientEngine.getMessages(peerMac: serverMac);
-    expect(clientMessages.length, equals(1));
-    expect(clientMessages.first.content, equals(chatContent));
-    expect(clientMessages.first.isOutgoing, isTrue);
+    logStep('7. Checking client local storage for initial pending message...');
+    final clientMessagesInitial = await clientEngine.getMessages(peerMac: serverMac);
+    expect(clientMessagesInitial.length, equals(1));
+    expect(clientMessagesInitial.first.content, equals(chatContent));
+    expect(clientMessagesInitial.first.isOutgoing, isTrue);
 
     logStep('8. Waiting for server notification stream signal (NEW_MSG:...)...');
     final notifyEvent = await serverMsgCompleter.future
@@ -114,17 +117,42 @@ void main() {
     final ackEvent = await clientAckCompleter.future
         .timeout(const Duration(seconds: 4));
     logStep('Client notified of ACK: $ackEvent');
-    expect(ackEvent, equals('ACK:$serverMac'));
+
+    // EXPLICIT BUG CATCHER #1: Ensure ACK is attributed to the server, not receiver's self MAC
+    expect(
+      ackEvent,
+      equals('ACK:$serverMac'),
+      reason: 'ACK event MAC must match target peer conversation ID ($serverMac), not internal receiver MAC',
+    );
 
     logStep('11. Verifying ACK delivery status in client storage...');
     final updatedClientMessages = await clientEngine.getMessages(peerMac: serverMac);
-    expect(updatedClientMessages.first.status, equals(MessageStatus.acked));
+    expect(updatedClientMessages.length, equals(1));
+
+    // EXPLICIT BUG CATCHER #2: Ensure storage state actually transitions to Acked
+    expect(
+      updatedClientMessages.first.status,
+      equals(MessageStatus.acked),
+      reason: 'Message status failed to transition to MessageStatus.acked due to MAC lookup mismatch',
+    );
     logStep('Message status successfully updated to ACKED on client.');
 
-    logStep('12. Cleaning up stream subscriptions...');
+    logStep('12. Testing Outbox Re-transmission Prevention...');
+    // EXPLICIT BUG CATCHER #3: Simulate mDNS background flush cycle
+    await clientEngine.flushOutbox(peerMac: serverMac);
+
+    // Allow brief async event processing window
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    final postFlushMessages = await clientEngine.getMessages(peerMac: serverMac);
+    expect(postFlushMessages.length, equals(1));
+    expect(postFlushMessages.first.status, equals(MessageStatus.acked));
+    expect(clientAckCount, equals(1), reason: 'Flushing an acked outbox should not trigger duplicate re-transmissions or extra ACKs');
+
+    logStep('13. Cleaning up stream subscriptions...');
     unawaited(serverNotifySub.cancel());
     unawaited(clientNotifySub.cancel());
 
-    logStep('13. Test completed cleanly!');
+    logStep('14. Test completed cleanly!');
   });
 }

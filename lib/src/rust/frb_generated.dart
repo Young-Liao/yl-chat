@@ -110,7 +110,7 @@ abstract class RustLibApi extends BaseApi {
     required String peerMac,
   });
 
-  Future<void> crateApiProtocolLocalStorageMarkAcked({
+  Future<bool> crateApiProtocolLocalStorageMarkAcked({
     required LocalStorage that,
     required String peerMac,
     required String targetMsgId,
@@ -452,7 +452,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiProtocolLocalStorageMarkAcked({
+  Future<bool> crateApiProtocolLocalStorageMarkAcked({
     required LocalStorage that,
     required String peerMac,
     required String targetMsgId,
@@ -475,7 +475,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiProtocolLocalStorageMarkAckedConstMeta,
@@ -2086,7 +2086,7 @@ class LocalStorageImpl extends RustOpaque implements LocalStorage {
     peerMac: peerMac,
   );
 
-  Future<void> markAcked({
+  Future<bool> markAcked({
     required String peerMac,
     required String targetMsgId,
   }) => RustLib.instance.api.crateApiProtocolLocalStorageMarkAcked(
@@ -2127,7 +2127,6 @@ class NetworkEngineImpl extends RustOpaque implements NetworkEngine {
         selfMac: selfMac,
       );
 
-  /// Outbox Processor: Clears pending outgoing queue for a given peer
   Future<void> flushOutbox({required String peerMac}) => RustLib.instance.api
       .crateApiProtocolNetworkEngineFlushOutbox(that: this, peerMac: peerMac);
 
@@ -2142,15 +2141,12 @@ class NetworkEngineImpl extends RustOpaque implements NetworkEngine {
   Future<List<PeerRecord>> getPeers() =>
       RustLib.instance.api.crateApiProtocolNetworkEngineGetPeers(that: this);
 
-  /// Stores long-lived stream sink registered from start_listener
   Stream<String> registerNotifySink() => RustLib.instance.api
       .crateApiProtocolNetworkEngineRegisterNotifySink(that: this);
 
-  /// Integrated mDNS discovery and outbox flush loop
   Future<void> runScanAndFlushCycle() => RustLib.instance.api
       .crateApiProtocolNetworkEngineRunScanAndFlushCycle(that: this);
 
-  /// High-level API to queue and deliver chat messages
   Future<void> sendMessage({
     required String recipientMac,
     required String content,
@@ -2160,7 +2156,6 @@ class NetworkEngineImpl extends RustOpaque implements NetworkEngine {
     content: content,
   );
 
-  /// Starts TCP server and registers active FRB notification stream
   Stream<String> startListener({required int port}) => RustLib.instance.api
       .crateApiProtocolNetworkEngineStartListener(that: this, port: port);
 
