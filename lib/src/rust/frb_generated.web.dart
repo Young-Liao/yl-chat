@@ -17,7 +17,6 @@ import 'api/messaging/service.dart';
 import 'api/messaging/traits.dart';
 import 'api/models.dart';
 import 'api/simple.dart';
-import 'api/storage/sqlite.dart';
 import 'api/storage/traits.dart';
 import 'api/utils.dart';
 import 'dart:async';
@@ -65,10 +64,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_FileTransferServiceHandlePtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_LocalStorageHandlePtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_MessagingServiceHandlePtr => wire
@@ -146,12 +141,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  LocalStorageHandle
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    dynamic raw,
-  );
-
-  @protected
   MessagingServiceHandle
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     dynamic raw,
@@ -214,12 +203,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   FileTransferServiceHandle
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
-    dynamic raw,
-  );
-
-  @protected
-  LocalStorageHandle
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
     dynamic raw,
   );
 
@@ -308,12 +291,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  LocalStorageHandle
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    dynamic raw,
-  );
-
-  @protected
   MessagingServiceHandle
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     dynamic raw,
@@ -378,6 +355,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ChunkHeader dco_decode_chunk_header(dynamic raw);
+
+  @protected
+  double dco_decode_f_64(dynamic raw);
 
   @protected
   FileTransferRecord dco_decode_file_transfer_record(dynamic raw);
@@ -511,12 +491,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  LocalStorageHandle
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   MessagingServiceHandle
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     SseDeserializer deserializer,
@@ -579,12 +553,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   FileTransferServiceHandle
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  LocalStorageHandle
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
     SseDeserializer deserializer,
   );
 
@@ -673,12 +641,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  LocalStorageHandle
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   MessagingServiceHandle
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     SseDeserializer deserializer,
@@ -751,6 +713,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ChunkHeader sse_decode_chunk_header(SseDeserializer deserializer);
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer);
 
   @protected
   FileTransferRecord sse_decode_file_transfer_record(
@@ -904,13 +869,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    LocalStorageHandle self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     MessagingServiceHandle self,
     SseSerializer serializer,
@@ -983,13 +941,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
     FileTransferServiceHandle self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    LocalStorageHandle self,
     SseSerializer serializer,
   );
 
@@ -1093,13 +1044,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    LocalStorageHandle self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     MessagingServiceHandle self,
     SseSerializer serializer,
@@ -1187,6 +1131,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_chunk_header(ChunkHeader self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer);
 
   @protected
   void sse_encode_file_transfer_record(
@@ -1434,22 +1381,6 @@ class RustLibWire implements BaseWire {
       );
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-        ptr,
-      );
-
-  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     int ptr,
   ) => wasmModule
@@ -1629,16 +1560,6 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
-    int ptr,
-  );
-
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
     int ptr,
   );
 

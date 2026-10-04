@@ -82,6 +82,14 @@ class FileTransferRecord {
     required this.isOutgoing,
   });
 
+  /// 获取当前传输百分比 (范围: 0 - 100)
+  Future<int> progressPercentage() => RustLib.instance.api
+      .crateApiModelsFileTransferRecordProgressPercentage(that: this);
+
+  /// 获取当前传输进度的浮点值 (范围: 0.0 - 1.0)
+  Future<double> progressRatio() => RustLib.instance.api
+      .crateApiModelsFileTransferRecordProgressRatio(that: this);
+
   @override
   int get hashCode =>
       transferId.hashCode ^

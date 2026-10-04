@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
 import 'package:yl_chat/main.dart';
 import 'package:yl_chat/src/features/chat_screen/chat_box/title_bar.dart';
-import 'package:yl_chat/src/shared/tools/algorithms.dart';
 import 'package:yl_chat/src/shared/tools/file_picker_util.dart';
 import 'package:yl_chat/src/theme/abstract_theme.dart';
 
@@ -101,40 +101,47 @@ class _ChatBoxState extends State<ChatBox> {
   /// 发送消息逻辑
   Future<void> _handleSendMessage() async {
     final text = _messageController.text;
+    final files = [..._pickedFiles];
     _focusNode.requestFocus();
     final currentPeer = chosenPeer.value;
 
-    if (text.isEmpty || currentPeer == null) return;
+    if (currentPeer == null) return;
 
-    final recipientMac = currentPeer.macAddress;
     _messageController.clear();
+    _pickedFiles.clear();
+    final recipientMac = currentPeer.macAddress;
 
-    for (final attachment in _pickedFiles) {
-      try {
-        await networkEngine.sendFile(
-            recipientMac: recipientMac,
-            filePathStr: attachment.file.path
-        );
+    if (files.isNotEmpty) {
 
-        await _refreshMessages();
-      } catch (e) {
-        debugPrint('Failed to send file: $e');
+      for (final attachment in files) {
+        try {
+          await networkEngine.sendFile(
+              recipientMac: recipientMac,
+              filePathStr: attachment.file.path
+          );
+
+          await _refreshMessages();
+        } catch (e) {
+          debugPrint('Failed to send file: $e');
+        }
       }
     }
 
-    try {
-      debugPrint("Sending message to $recipientMac: $text");
+    if (text.isNotEmpty) {
+      try {
+        debugPrint("Sending message to $recipientMac: $text");
 
-      // 1. 调用 Rust API 追加进 Outbox 并尝试 TCP 直连发送
-      await networkEngine.sendMessage(
-        recipientMac: recipientMac,
-        content: text,
-      );
+        // 1. 调用 Rust API 追加进 Outbox 并尝试 TCP 直连发送
+        await networkEngine.sendMessage(
+          recipientMac: recipientMac,
+          content: text,
+        );
 
-      // 2. 发送完成后立刻重新拉取 Storage，保证 UI 第一时间渲染该消息
-      await _refreshMessages();
-    } catch (e) {
-      debugPrint('Failed to send message: $e');
+        // 2. 发送完成后立刻重新拉取 Storage，保证 UI 第一时间渲染该消息
+        await _refreshMessages();
+      } catch (e) {
+        debugPrint('Failed to send message: $e');
+      }
     }
   }
 
@@ -388,6 +395,13 @@ class ChatMessageBubble extends StatelessWidget {
   final bool isMe;
   final bool isAcked;
 
+  // 新增文件传输进度相关参数
+  final bool isTransferring;
+  final String? fileName;
+  final double progress; // 0.0 ~ 1.0 (例如 0.45 代表 45%)
+  final String? currentSizeText; // 例如 "2.1 MB"
+  final String? totalSizeText; // 例如 "4.8 MB"
+
   const ChatMessageBubble({
     super.key,
     required this.senderInitials,
@@ -396,7 +410,98 @@ class ChatMessageBubble extends StatelessWidget {
     required this.timestamp,
     this.isMe = false,
     this.isAcked = false,
+    // 新增参数默认值
+    this.isTransferring = false,
+    this.fileName,
+    this.progress = 0.0,
+    this.currentSizeText,
+    this.totalSizeText,
   });
+
+  /// 构建传输进度卡片 Widget (根据图片完美还原 UI)
+  Widget _buildTransferProgressCard(AbstractTheme theme) {
+    final percentageInt = (progress.clamp(0.0, 1.0) * 100).toInt();
+
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: theme.bgDark, // 深色卡片背景
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.border, // 边框颜色
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // 左侧蓝底图标
+              FilePickerUtil.buildFileIcon(FilePickerUtil.getFileTypeConfig(fileName ?? "")),
+              const SizedBox(width: 10),
+              // 右侧文件名与大小信息
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 文件名
+                    Text(
+                      fileName ?? 'File',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // 45% 与 2.1 MB / 4.8 MB 左右分布
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$percentageInt%',
+                          style: const TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (currentSizeText != null && totalSizeText != null)
+                          Text(
+                            '$currentSizeText / $totalSizeText',
+                            style: const TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // 蓝色进度条
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              minHeight: 6,
+              backgroundColor: const Color(0xFF0F172A), // 进度条未完成背景
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF3B82F6), // 蓝色进度
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildImageWidget(String path) {
     final bool isNetwork = path.startsWith('http://') || path.startsWith('https://');
@@ -442,7 +547,7 @@ class ChatMessageBubble extends StatelessWidget {
         ),
       ),
       child: Text(
-        text!,
+        text ?? '',
         style: TextStyle(
           color: textColor,
           fontSize: 14,
@@ -456,13 +561,20 @@ class ChatMessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
 
-    final bubbleColor = isMe ? theme.bgBubbleOutgoing : theme.bgBubbleIncoming;
-    final textColor = theme.textMain;
+    // 假设 context.appTheme 的逻辑
+    final bubbleColor = isMe ? const Color(0xFF2563EB) : const Color(0xFF263354);
+    final textColor = Colors.white;
 
+    // 内容逻辑控制
     Widget contentWidget;
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
+    if (isTransferring) {
+      // 显示传输进度卡片
+      contentWidget = _buildTransferProgressCard(theme);
+    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
+      // 显示完工图片
       contentWidget = _buildImageWidget(imageUrl!);
     } else {
+      // 显示普通文本
       contentWidget = _buildTextBubble(bubbleColor, textColor);
     }
 
@@ -501,8 +613,8 @@ class ChatMessageBubble extends StatelessWidget {
                   children: [
                     Text(
                       timestamp,
-                      style: TextStyle(
-                        color: theme.textMuted,
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
                         fontSize: 11,
                       ),
                     ),
@@ -511,7 +623,7 @@ class ChatMessageBubble extends StatelessWidget {
                       Icon(
                         isAcked ? Icons.done_all : Icons.access_time,
                         size: 13,
-                        color: isAcked ? theme.textMain : theme.textMuted,
+                        color: isAcked ? Colors.white : const Color(0xFF94A3B8),
                       ),
                     ],
                   ],
@@ -550,91 +662,10 @@ class AttachmentItem extends StatelessWidget {
   }
 
   // 根据文件后缀获取对应的图标与背景色
-  _FileTypeConfig _getFileTypeConfig() {
-    final ext = fileName.split('.').last.toLowerCase();
-
-    switch (ext) {
-      case 'pdf':
-        return const _FileTypeConfig(
-          icon: Icons.picture_as_pdf,
-          color: Color(0xFFE53935),
-          bgColor: Color(0xFFFFEBEE),
-        );
-      case 'doc':
-      case 'docx':
-        return const _FileTypeConfig(
-          icon: Icons.description,
-          color: Color(0xFF1E88E5),
-          bgColor: Color(0xFFE3F2FD),
-        );
-      case 'xls':
-      case 'xlsx':
-      case 'csv':
-        return const _FileTypeConfig(
-          icon: Icons.table_chart,
-          color: Color(0xFF43A047),
-          bgColor: Color(0xFFE8F5E9),
-        );
-      case 'ppt':
-      case 'pptx':
-        return const _FileTypeConfig(
-          icon: Icons.slideshow,
-          color: Color(0xFFFB8C00),
-          bgColor: Color(0xFFFFF3E0),
-        );
-      case 'zip':
-      case 'rar':
-      case '7z':
-      case 'tar':
-      case 'gz':
-        return const _FileTypeConfig(
-          icon: Icons.folder_zip,
-          color: Color(0xFF7E57C2),
-          bgColor: Color(0xFFEDE7F6),
-        );
-      case 'mp3':
-      case 'wav':
-      case 'aac':
-      case 'flac':
-      case 'm4a':
-        return const _FileTypeConfig(
-          icon: Icons.audio_file,
-          color: Color(0xFF00ACC1),
-          bgColor: Color(0xFFE0F7FA),
-        );
-      case 'mp4':
-      case 'mov':
-      case 'avi':
-      case 'mkv':
-        return const _FileTypeConfig(
-          icon: Icons.video_file,
-          color: Color(0xFFD81B60),
-          bgColor: Color(0xFFFCE4EC),
-        );
-      case 'txt':
-      case 'md':
-      case 'json':
-      case 'dart':
-      case 'js':
-      case 'html':
-      case 'css':
-        return const _FileTypeConfig(
-          icon: Icons.code,
-          color: Color(0xFF546E7A),
-          bgColor: Color(0xFFECEFF1),
-        );
-      default:
-        return const _FileTypeConfig(
-          icon: Icons.insert_drive_file,
-          color: Color(0xFF757575),
-          bgColor: Color(0xFFF5F5F5),
-        );
-    }
-  }
 
   // 渲染左侧预览图或文件图标
   Widget _buildThumbnail() {
-    final typeConfig = _getFileTypeConfig();
+    final typeConfig = FilePickerUtil.getFileTypeConfig(fileName);
 
     // 如果是图片，且本地文件可用，尝试加载图片
     if (_isImage && file != null && file!.existsSync()) {
@@ -642,26 +673,13 @@ class AttachmentItem extends StatelessWidget {
         file!,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          return _buildFallbackIcon(typeConfig);
+          return FilePickerUtil.buildFileIcon(typeConfig);
         },
       );
     }
 
     // 非图片或文件不存在时，渲染对应文件类型的图标
-    return _buildFallbackIcon(typeConfig);
-  }
-
-  Widget _buildFallbackIcon(_FileTypeConfig config) {
-    return Container(
-      color: config.bgColor,
-      child: Center(
-        child: Icon(
-          config.icon,
-          color: config.color,
-          size: 26,
-        ),
-      ),
-    );
+    return FilePickerUtil.buildFileIcon(typeConfig);
   }
 
   @override
@@ -736,38 +754,54 @@ class AttachmentItem extends StatelessWidget {
   }
 }
 
-// 辅助数据结构：存储文件类型的图标与背景颜色
-class _FileTypeConfig {
-  final IconData icon;
-  final Color color;
-  final Color bgColor;
-
-  const _FileTypeConfig({
-    required this.icon,
-    required this.color,
-    required this.bgColor,
-  });
-}
-
-
 extension PersistentMessageX on PersistentMessage {
   bool get isImageMessage => fileType == FileType.image;
+
+  /// 判断当前消息是否处于传输/发送中
+  bool get isTransferring => status == MessageStatus.pending;
 
   ChatMessageBubble toBubble({
     required String myInitials,
     required String peerInitials,
+    double transferProgress = 0.0, // 支持外部传入实时传输进度 (0.0 ~ 1.0)
+    BigInt? transferredBytes,       // 支持外部传入已传输字节数
   }) {
     final DateTime dt = DateTime.fromMillisecondsSinceEpoch(timestamp.toInt());
-    final String timeStr = "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+    final String timeStr =
+        "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+
+    // 计算字节文本 (例如: "2.1 MB / 4.8 MB")
+    String? currentSizeStr;
+    String? totalSizeStr;
+
+    if (fileSize != null && fileSize! > BigInt.zero) {
+      final int totalInt = fileSize!.toInt();
+      totalSizeStr = FilePickerUtil.formatBytes(totalInt);
+
+      if (transferredBytes != null) {
+        currentSizeStr = FilePickerUtil.formatBytes(transferredBytes.toInt());
+      } else {
+        // 若未传入已传输字节，则根据 progress 比例换算
+        final currentInt = (totalInt * transferProgress.clamp(0.0, 1.0)).toInt();
+        currentSizeStr = FilePickerUtil.formatBytes(currentInt);
+      }
+    }
 
     return ChatMessageBubble(
       key: ValueKey(msgId),
       senderInitials: isOutgoing ? myInitials : peerInitials,
       text: isImageMessage ? null : content,
-      imageUrl: isImageMessage ? filePath : null,
+      // 未传输完成时不用直接显示图片，由进度卡片展示
+      imageUrl: (isImageMessage && !isTransferring) ? filePath : null,
       timestamp: timeStr,
       isMe: isOutgoing,
-      isAcked: status == MessageStatus.pending || status == MessageStatus.acked,
+      isAcked: status == MessageStatus.acked,
+      // 传输卡片所需参数
+      isTransferring: isTransferring && isImageMessage,
+      fileName: fileName ?? (filePath != null ? p.basename(filePath!) : 'image.png'),
+      progress: transferProgress,
+      currentSizeText: currentSizeStr,
+      totalSizeText: totalSizeStr,
     );
   }
 }

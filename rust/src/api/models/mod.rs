@@ -153,3 +153,18 @@ pub struct MessageEnvelope {
     pub sender_mac: String,
     pub payload: MessagePayload,
 }
+
+impl FileTransferRecord {
+    /// 获取当前传输进度的浮点值 (范围: 0.0 - 1.0)
+    pub fn progress_ratio(&self) -> f64 {
+        if self.total_chunks == 0 {
+            return 1.0;
+        }
+        (self.received_chunks as f64 / self.total_chunks as f64).min(1.0)
+    }
+
+    /// 获取当前传输百分比 (范围: 0 - 100)
+    pub fn progress_percentage(&self) -> u8 {
+        (self.progress_ratio() * 100.0) as u8
+    }
+}

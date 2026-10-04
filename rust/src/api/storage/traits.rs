@@ -29,6 +29,9 @@ pub trait StorageRepository: Send + Sync {
     async fn mark_transfer_completed(&self, transfer_id: &str);
     async fn get_pending_outbound_transfers(&self, peer_mac: &str) -> Vec<FileTransferRecord>;
     async fn get_file_transfer(&self, transfer_id: &str) -> Option<FileTransferRecord>;
+    async fn update_transfer_progress(&self, transfer_id: &str, received_chunks: u32) -> Result<(), String>;
+
+    async fn get_transfer_progress(&self, transfer_id: &str) -> Option<(u32, u32)>; // (received_chunks, total_chunks)
 }
 
 // =========================================================================

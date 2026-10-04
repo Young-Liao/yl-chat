@@ -8,7 +8,7 @@ use crate::api::models::{
     FileType, FileTransferRecord, MessageEnvelope, MessagePayload, MessageStatus, PeerRecord,
     PersistentMessage,
 };
-use crate::api::storage::sqlite::{LocalStorage, LocalStorageHandle};
+use crate::api::storage::sqlite::{LocalStorage};
 use crate::api::storage::traits::{StorageRepository, StorageRepositoryHandle};
 use crate::api::utils::chrono_now_timestamp;
 
@@ -487,7 +487,13 @@ impl NetworkEngine {
                     }
                 }
                 MessagePayload::ChunkAck { transfer_id, chunk_index } => {
-                    self.storage.record_outbound_chunk_ack(transfer_id, chunk_index).await;
+                    self.storage.record_outbound_chunk_ack(transfer_id.clone(), chunk_index).await;
+                    match self.storage.update_transfer_progress(&transfer_id, chunk_index).await {
+                        Ok(_) => {},
+                        Err(e) => {
+                            error!("Error when updating transfer progress: {e}");
+                        }
+                    }
                 }
                 MessagePayload::FileCompleteAck { transfer_id } => {
                     let target = if !current_peer_mac.is_empty() {

@@ -647,99 +647,39 @@ impl StorageRepository for LocalStorage {
             .await
             .unwrap_or(None)
     }
-}
 
-// =========================================================================
-// FRB Opaque 包装层（供 Dart 端安全的生成和调用）
-// =========================================================================
 
-pub struct LocalStorageHandle {
-    pub(crate) inner: Arc<LocalStorage>,
-}
-
-impl LocalStorageHandle {
-    pub async fn open(db_path: String) -> Result<Self, String> {
-        let path = PathBuf::from(db_path);
-        let storage = LocalStorage::open(path).await?;
-        Ok(Self {
-            inner: Arc::new(storage),
-        })
+    async fn update_transfer_progress(&self, transfer_id: &str, received_chunks: u32) -> Result<(), String> {
+        let tid = transfer_id.to_string();
+        self.db
+            .call(move |conn| {
+                conn.execute(
+                    "UPDATE file_transfers SET received_chunks = ?1 WHERE transfer_id = ?2",
+                    params![received_chunks, tid],
+                )?;
+                Ok(())
+            })
+            .await
+            .map_err(|e| format!("Failed to update transfer progress: {e}"))
     }
 
-    pub fn as_storage_repository(&self) -> StorageRepositoryHandle {
-        StorageRepositoryHandle {
-            inner: Arc::clone(&self.inner) as Arc<dyn StorageRepository>,
-        }
-    }
-
-    // Peer 操作
-    pub async fn upsert_peer(&self, record: PeerRecord) {
-        self.inner.upsert_peer(record).await;
-    }
-
-    pub async fn set_peer_online_status(&self, mac: String, is_online: bool) {
-        self.inner.set_peer_online_status(&mac, is_online).await;
-    }
-
-    pub async fn get_all_peers(&self) -> Vec<PeerRecord> {
-        self.inner.get_all_peers().await
-    }
-
-    pub async fn get_peer(&self, mac: String) -> Option<PeerRecord> {
-        self.inner.get_peer(&mac).await
-    }
-
-    // Message 操作
-    pub async fn has_message(&self, msg_id: String) -> bool {
-        self.inner.has_message(&msg_id).await
-    }
-
-    pub async fn append_message(&self, peer_mac: String, msg: PersistentMessage) {
-        self.inner.append_message(peer_mac, msg).await;
-    }
-
-    pub async fn mark_acked(&self, peer_mac: String, target_msg_id: String) -> bool {
-        self.inner.mark_acked(&peer_mac, &target_msg_id).await
-    }
-
-    pub async fn get_messages_for_peer(&self, peer_mac: String) -> Vec<PersistentMessage> {
-        self.inner.get_messages_for_peer(&peer_mac).await
-    }
-
-    pub async fn get_pending_messages(&self, peer_mac: String) -> Vec<PersistentMessage> {
-        self.inner.get_pending_messages(&peer_mac).await
-    }
-
-    // FileTransfer 操作
-    pub async fn insert_file_transfer(&self, record: FileTransferRecord) {
-        self.inner.insert_file_transfer(record).await;
-    }
-
-    pub async fn record_chunk_received(&self, transfer_id: String, chunk_index: u32) -> Result<u32, String> {
-        self.inner.record_chunk_received(transfer_id, chunk_index).await
-    }
-
-    pub async fn record_outbound_chunk_ack(&self, transfer_id: String, chunk_index: u32) {
-        self.inner.record_outbound_chunk_ack(transfer_id, chunk_index).await;
-    }
-
-    pub async fn get_acked_outbound_chunks(&self, transfer_id: String) -> Vec<u32> {
-        self.inner.get_acked_outbound_chunks(&transfer_id).await.into_iter().collect()
-    }
-
-    pub async fn clear_file_transfer_trackers(&self, transfer_id: String) {
-        self.inner.clear_file_transfer_trackers(&transfer_id).await;
-    }
-
-    pub async fn mark_transfer_completed(&self, transfer_id: String) {
-        self.inner.mark_transfer_completed(&transfer_id).await;
-    }
-
-    pub async fn get_pending_outbound_transfers(&self, peer_mac: String) -> Vec<FileTransferRecord> {
-        self.inner.get_pending_outbound_transfers(&peer_mac).await
-    }
-
-    pub async fn get_file_transfer(&self, transfer_id: String) -> Option<FileTransferRecord> {
-        self.inner.get_file_transfer(&transfer_id).await
+    async fn get_transfer_progress(&self, transfer_id: &str) -> Option<(u32, u32)> {
+        let tid = transfer_id.to_string();
+        self.db
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT received_chunks, total_chunks FROM file_transfers WHERE transfer_id = ?1",
+                )?;
+                let mut rows = stmt.query(params![tid])?;
+                if let Some(row) = rows.next()? {
+                    let received: u32 = row.get(0)?;
+                    let total: u32 = row.get(1)?;
+                    Ok(Some((received, total)))
+                } else {
+                    Ok(None)
+                }
+            })
+            .await
+            .unwrap_or(None)
     }
 }

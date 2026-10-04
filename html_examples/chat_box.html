@@ -54,7 +54,6 @@
             background: var(--scrollbar-thumb-hover);
         }
 
-        /* Firefox scrollbar support */
         * {
             scrollbar-width: thin;
             scrollbar-color: var(--scrollbar-thumb) transparent;
@@ -89,7 +88,7 @@
             animation: shake 0.45s ease-in-out;
         }
 
-        /* Main Container - Fixed Dimensions */
+        /* Main Container */
         .app-container {
             width: 1200px;
             height: 800px;
@@ -115,7 +114,6 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        /* Window Controls / Traffic Lights */
         .window-controls {
             display: flex;
             align-items: center;
@@ -301,7 +299,6 @@
             gap: 10px;
         }
 
-        /* Window Shaking Button */
         .shake-btn {
             background-color: rgba(239, 68, 68, 0.15);
             color: #f87171;
@@ -388,7 +385,6 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
-        /* Speech Bubble Borders Top-Aligned to Avatars */
         .incoming .message-bubble {
             background-color: var(--bg-bubble-incoming);
             border-radius: 4px 16px 16px 16px;
@@ -406,7 +402,7 @@
             padding: 0 2px;
         }
 
-        /* Standalone Image Message (No Speech Bubble Background) */
+        /* Standalone Image Message (Finished Transfer) */
         .image-message {
             position: relative;
             max-width: 320px;
@@ -431,7 +427,6 @@
             display: block;
         }
 
-        /* Overlay details on image hover */
         .image-overlay {
             position: absolute;
             bottom: 0;
@@ -458,6 +453,91 @@
             text-overflow: ellipsis;
         }
 
+        /* ==================================================
+           File Transfer Progress Card Style (No Image Preview)
+        ================================================== */
+        .transfer-progress-card {
+            width: 280px;
+            background-color: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .transfer-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .transfer-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background-color: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .transfer-details {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .transfer-filename {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .transfer-status-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar-track {
+            width: 100%;
+            height: 6px;
+            background-color: var(--bg-dark);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--accent);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.2s ease;
+        }
+
+        .progress-bar-fill.active {
+            background: linear-gradient(90deg, var(--accent) 0%, #60a5fa 50%, var(--accent) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
         /* Video & File Attachments */
         .media-attachment {
             border-radius: 8px;
@@ -474,62 +554,6 @@
             border-radius: 8px;
         }
 
-        .file-attachment {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 6px;
-        }
-
-        .file-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--accent);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-
-        .file-details {
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .file-name {
-            font-size: 13px;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .file-size {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .download-btn {
-            color: var(--text-main);
-            text-decoration: none;
-            font-size: 12px;
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 6px 12px;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-
-        .download-btn:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-
         /* Chat Input Area Container */
         .chat-input-container {
             padding: 16px 24px;
@@ -537,7 +561,6 @@
             border-top: 1px solid var(--border-color);
         }
 
-        /* Unified Composite Input Wrapper */
         .input-composite-box {
             display: flex;
             flex-direction: column;
@@ -552,7 +575,6 @@
             border-color: var(--accent);
         }
 
-        /* Attached Image Attachment Header Bar */
         .image-preview-bar {
             display: none;
             align-items: center;
@@ -637,7 +659,6 @@
             background-color: rgba(239, 68, 68, 0.1);
         }
 
-        /* Input Controls Row */
         .input-controls-row {
             display: flex;
             align-items: center;
@@ -690,7 +711,6 @@
             background-color: var(--accent-hover);
         }
 
-        /* Hidden File Input */
         input[type="file"] {
             display: none;
         }
@@ -702,7 +722,6 @@
     <!-- Contacts Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <!-- macOS Traffic Lights -->
             <div class="window-controls">
                 <span class="traffic-light close" title="Close"></span>
                 <span class="traffic-light minimize" title="Minimize"></span>
@@ -720,7 +739,6 @@
         </div>
 
         <div class="contacts-list">
-            <!-- Contact 1 -->
             <div class="contact-card active">
                 <div class="avatar-wrapper">
                     <div class="avatar">JD</div>
@@ -735,7 +753,6 @@
                 </div>
             </div>
 
-            <!-- Contact 2 -->
             <div class="contact-card">
                 <div class="avatar-wrapper">
                     <div class="avatar">DEV</div>
@@ -750,7 +767,6 @@
                 </div>
             </div>
 
-            <!-- Contact 3 -->
             <div class="contact-card">
                 <div class="avatar-wrapper">
                     <div class="avatar">AS</div>
@@ -769,7 +785,6 @@
 
     <!-- Main Chat Area -->
     <div class="chat-area">
-        <!-- Active Chat Header -->
         <div class="chat-header">
             <div class="active-user">
                 <div class="avatar-wrapper">
@@ -782,7 +797,6 @@
                 </div>
             </div>
 
-            <!-- Header Action Controls -->
             <div class="header-actions">
                 <button class="shake-btn" id="shakeBtn" title="Send window nudge/shake">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -797,7 +811,6 @@
         <!-- Messages Stream -->
         <div class="messages-container" id="messagesContainer">
 
-            <!-- Text Message Incoming -->
             <div class="message-row incoming">
                 <div class="chat-avatar">JD</div>
                 <div class="message-content">
@@ -808,18 +821,36 @@
                 </div>
             </div>
 
-            <!-- Text Message Outgoing -->
-            <div class="message-row outgoing">
-                <div class="chat-avatar me">ME</div>
+            <!-- 接收方：图片正在传输中（进度条状态，不显示预览图） -->
+            <div class="message-row incoming">
+                <div class="chat-avatar">JD</div>
                 <div class="message-content">
-                    <div class="message-bubble">
-                        Yes, I just finished pulling them down. Here is the schematic screenshot you asked for.
+                    <div class="transfer-progress-card" id="transfer-1001">
+                        <div class="transfer-header">
+                            <div class="transfer-icon">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </div>
+                            <div class="transfer-details">
+                                <span class="transfer-filename" title="raw_photo_4k.png">raw_photo_4k.png</span>
+                                <div class="transfer-status-text">
+                                    <span class="transfer-percentage">45%</span>
+                                    <span class="transfer-size">2.1 MB / 4.8 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill active" style="width: 45%;"></div>
+                        </div>
                     </div>
                     <span class="message-meta">10:43 AM</span>
                 </div>
             </div>
 
-            <!-- Separate Standalone Image Message Outgoing (No Bubble Background) -->
+            <!-- 已传输完成的独立图片 -->
             <div class="message-row outgoing">
                 <div class="chat-avatar me">ME</div>
                 <div class="message-content">
@@ -833,43 +864,11 @@
                 </div>
             </div>
 
-            <!-- Video Message Incoming -->
-            <div class="message-row incoming">
-                <div class="chat-avatar">JD</div>
-                <div class="message-content">
-                    <div class="message-bubble">
-                        <div class="media-attachment">
-                            <video controls>
-                                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
-                        Check out this screen recording demo.
-                    </div>
-                    <span class="message-meta">10:45 AM</span>
-                </div>
-            </div>
-
-            <!-- Separate Standalone Image Message Incoming (No Bubble Background) -->
-            <div class="message-row incoming">
-                <div class="chat-avatar">JD</div>
-                <div class="message-content">
-                    <div class="image-message">
-                        <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80" alt="Incoming Graphic">
-                        <div class="image-overlay">
-                            <span class="image-info">network_topology.png</span>
-                        </div>
-                    </div>
-                    <span class="message-meta">10:46 AM</span>
-                </div>
-            </div>
-
         </div>
 
         <!-- Chat Input Area -->
         <div class="chat-input-container">
             <div class="input-composite-box">
-                <!-- Attached Image Attachment Header Bar -->
                 <div class="image-preview-bar" id="imagePreviewBar">
                     <div class="preview-thumbnail-container">
                         <img id="imagePreviewThumb" class="preview-thumbnail" src="" alt="Preview">
@@ -888,10 +887,7 @@
                     </button>
                 </div>
 
-                <!-- Input Controls Row -->
                 <form class="input-controls-row" id="chatForm">
-
-                    <!-- Image Attachment Button -->
                     <label class="attachment-btn" id="attachBtnLabel" title="Attach Image">
                         <input type="file" id="imageInput" accept="image/*">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -901,7 +897,6 @@
                         </svg>
                     </label>
 
-                    <!-- Video Attachment -->
                     <label class="attachment-btn" title="Attach Video">
                         <input type="file" accept="video/*">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -910,7 +905,6 @@
                         </svg>
                     </label>
 
-                    <!-- General File Attachment -->
                     <label class="attachment-btn" title="Attach Document/File">
                         <input type="file">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -918,10 +912,8 @@
                         </svg>
                     </label>
 
-                    <!-- Text Input -->
                     <input type="text" class="chat-input" id="chatInput" placeholder="Type a message or drop files here...">
 
-                    <!-- Send Button -->
                     <button type="submit" class="send-btn">
                         Send
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -937,7 +929,6 @@
 </div>
 
 <script>
-    // Elements
     const appContainer = document.getElementById('appContainer');
     const shakeBtn = document.getElementById('shakeBtn');
     const imageInput = document.getElementById('imageInput');
@@ -952,8 +943,8 @@
     const messagesContainer = document.getElementById('messagesContainer');
 
     let pendingImageSrc = null;
+    let pendingFileObject = null;
 
-    // Helper: Formats Byte sizes cleanly
     function formatBytes(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -962,7 +953,7 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
-    // 1. Window Shaking Handler
+    // Window Shaking Handler
     shakeBtn.addEventListener('click', () => {
         appContainer.classList.add('shake');
         setTimeout(() => {
@@ -970,10 +961,11 @@
         }, 450);
     });
 
-    // 2. Image File Selection & Preview
+    // Image Input Selection
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            pendingFileObject = file;
             const reader = new FileReader();
             reader.onload = (event) => {
                 pendingImageSrc = event.target.result;
@@ -988,15 +980,121 @@
         }
     });
 
-    // Clear Attachment
+    // Clear Selected Attachment
     removeImgBtn.addEventListener('click', () => {
         pendingImageSrc = null;
+        pendingFileObject = null;
         imageInput.value = '';
         imagePreviewBar.classList.remove('active');
         attachBtnLabel.classList.remove('has-attachment');
     });
 
-    // 3. Send Message Logic
+    // --------------------------------------------------
+    // 图片传输进度控制逻辑
+    // --------------------------------------------------
+
+    /**
+     * 创建无图片预览的图片传输进度卡片
+     */
+    function createTransferCard(transferId, fileName, totalBytes, isOutgoing = true) {
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const row = document.createElement('div');
+        row.className = `message-row ${isOutgoing ? 'outgoing' : 'incoming'}`;
+        row.innerHTML = `
+            <div class="chat-avatar ${isOutgoing ? 'me' : ''}">${isOutgoing ? 'ME' : 'JD'}</div>
+            <div class="message-content">
+                <div class="transfer-progress-card" id="${transferId}">
+                    <div class="transfer-header">
+                        <div class="transfer-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                        </div>
+                        <div class="transfer-details">
+                            <span class="transfer-filename" title="${fileName}">${fileName}</span>
+                            <div class="transfer-status-text">
+                                <span class="transfer-percentage">0%</span>
+                                <span class="transfer-size">0 KB / ${formatBytes(totalBytes)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill active" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <span class="message-meta">${now}</span>
+            </div>
+        `;
+        messagesContainer.appendChild(row);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    /**
+     * 更新传输百分比和已发/收数据量
+     */
+    function updateTransferProgress(transferId, percent, currentBytes, totalBytes) {
+        const card = document.getElementById(transferId);
+        if (!card) return;
+
+        const fill = card.querySelector('.progress-bar-fill');
+        const percentText = card.querySelector('.transfer-percentage');
+        const sizeText = card.querySelector('.transfer-size');
+
+        const safePercent = Math.min(100, Math.max(0, percent));
+        fill.style.width = `${safePercent}%`;
+        percentText.textContent = `${Math.round(safePercent)}%`;
+        sizeText.textContent = `${formatBytes(currentBytes)} / ${formatBytes(totalBytes)}`;
+    }
+
+    /**
+     * 传输完成后，替换卡片为真实图片
+     */
+    function finishTransfer(transferId, imageUrl, fileName) {
+        const card = document.getElementById(transferId);
+        if (!card) return;
+
+        const imageMessage = document.createElement('div');
+        imageMessage.className = 'image-message';
+        imageMessage.innerHTML = `
+            <img src="${imageUrl}" alt="${fileName}">
+            <div class="image-overlay">
+                <span class="image-info">${fileName}</span>
+            </div>
+        `;
+
+        card.parentNode.replaceChild(imageMessage, card);
+    }
+
+    /**
+     * 模拟实时传输过程的 Demo 函数
+     */
+    function simulateImageUpload(transferId, fileName, totalBytes, imgSrc) {
+        createTransferCard(transferId, fileName, totalBytes, true);
+
+        let currentBytes = 0;
+        const step = totalBytes / 20; // 模拟分20次传输完毕
+
+        const interval = setInterval(() => {
+            currentBytes += step;
+            if (currentBytes >= totalBytes) {
+                currentBytes = totalBytes;
+                updateTransferProgress(transferId, 100, totalBytes, totalBytes);
+                clearInterval(interval);
+
+                // 传输完成后延迟 300ms 替换为实体图片
+                setTimeout(() => {
+                    finishTransfer(transferId, imgSrc, fileName);
+                }, 300);
+            } else {
+                const percent = (currentBytes / totalBytes) * 100;
+                updateTransferProgress(transferId, percent, currentBytes, totalBytes);
+            }
+        }, 120);
+    }
+
+    // Submit Chat Form
     chatForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const text = chatInput.value.trim();
@@ -1005,27 +1103,14 @@
 
         const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // Render separate standalone image message if attached
-        if (pendingImageSrc) {
-            const imgRow = document.createElement('div');
-            imgRow.className = 'message-row outgoing';
-            imgRow.innerHTML = `
-                <div class="chat-avatar me">ME</div>
-                <div class="message-content">
-                    <div class="image-message">
-                        <img src="${pendingImageSrc}" alt="Sent Image">
-                        <div class="image-overlay">
-                            <span class="image-info">${imagePreviewName.textContent}</span>
-                        </div>
-                    </div>
-                    <span class="message-meta">${now}</span>
-                </div>
-            `;
-            messagesContainer.appendChild(imgRow);
+        // 如果附带了图片，触发进度条模拟逻辑
+        if (pendingImageSrc && pendingFileObject) {
+            const transferId = 'transfer-' + Date.now();
+            simulateImageUpload(transferId, pendingFileObject.name, pendingFileObject.size, pendingImageSrc);
             removeImgBtn.click();
         }
 
-        // Render standard text message if text was typed
+        // 发送普通文本消息
         if (text) {
             const textRow = document.createElement('div');
             textRow.className = 'message-row outgoing';

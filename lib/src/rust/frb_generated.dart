@@ -14,7 +14,6 @@ import 'api/messaging/service.dart';
 import 'api/messaging/traits.dart';
 import 'api/models.dart';
 import 'api/simple.dart';
-import 'api/storage/sqlite.dart';
 import 'api/storage/traits.dart';
 import 'api/utils.dart';
 import 'dart:async';
@@ -80,7 +79,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -1989191928;
+  int get rustContentHash => -768142253;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -192,110 +191,6 @@ abstract class RustLibApi extends BaseApi {
     required FileTransferServiceHandle that,
     required String recipientMac,
     required String filePathStr,
-  });
-
-  Future<void> crateApiStorageSqliteLocalStorageHandleAppendMessage({
-    required LocalStorageHandle that,
-    required String peerMac,
-    required PersistentMessage msg,
-  });
-
-  Future<StorageRepositoryHandle>
-  crateApiStorageSqliteLocalStorageHandleAsStorageRepository({
-    required LocalStorageHandle that,
-  });
-
-  Future<void>
-  crateApiStorageSqliteLocalStorageHandleClearFileTransferTrackers({
-    required LocalStorageHandle that,
-    required String transferId,
-  });
-
-  Future<Uint32List>
-  crateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunks({
-    required LocalStorageHandle that,
-    required String transferId,
-  });
-
-  Future<List<PeerRecord>> crateApiStorageSqliteLocalStorageHandleGetAllPeers({
-    required LocalStorageHandle that,
-  });
-
-  Future<FileTransferRecord?>
-  crateApiStorageSqliteLocalStorageHandleGetFileTransfer({
-    required LocalStorageHandle that,
-    required String transferId,
-  });
-
-  Future<List<PersistentMessage>>
-  crateApiStorageSqliteLocalStorageHandleGetMessagesForPeer({
-    required LocalStorageHandle that,
-    required String peerMac,
-  });
-
-  Future<PeerRecord?> crateApiStorageSqliteLocalStorageHandleGetPeer({
-    required LocalStorageHandle that,
-    required String mac,
-  });
-
-  Future<List<PersistentMessage>>
-  crateApiStorageSqliteLocalStorageHandleGetPendingMessages({
-    required LocalStorageHandle that,
-    required String peerMac,
-  });
-
-  Future<List<FileTransferRecord>>
-  crateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfers({
-    required LocalStorageHandle that,
-    required String peerMac,
-  });
-
-  Future<bool> crateApiStorageSqliteLocalStorageHandleHasMessage({
-    required LocalStorageHandle that,
-    required String msgId,
-  });
-
-  Future<void> crateApiStorageSqliteLocalStorageHandleInsertFileTransfer({
-    required LocalStorageHandle that,
-    required FileTransferRecord record,
-  });
-
-  Future<bool> crateApiStorageSqliteLocalStorageHandleMarkAcked({
-    required LocalStorageHandle that,
-    required String peerMac,
-    required String targetMsgId,
-  });
-
-  Future<void> crateApiStorageSqliteLocalStorageHandleMarkTransferCompleted({
-    required LocalStorageHandle that,
-    required String transferId,
-  });
-
-  Future<LocalStorageHandle> crateApiStorageSqliteLocalStorageHandleOpen({
-    required String dbPath,
-  });
-
-  Future<int> crateApiStorageSqliteLocalStorageHandleRecordChunkReceived({
-    required LocalStorageHandle that,
-    required String transferId,
-    required int chunkIndex,
-  });
-
-  Future<void> crateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAck({
-    required LocalStorageHandle that,
-    required String transferId,
-    required int chunkIndex,
-  });
-
-  Future<void> crateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatus({
-    required LocalStorageHandle that,
-    required String mac,
-    required bool isOnline,
-  });
-
-  Future<void> crateApiStorageSqliteLocalStorageHandleUpsertPeer({
-    required LocalStorageHandle that,
-    required PeerRecord record,
   });
 
   Future<void> crateApiMessagingTraitsMessagingServiceHandleFlushOutbox({
@@ -544,6 +439,14 @@ abstract class RustLibApi extends BaseApi {
 
   Future<PlatformInt64> crateApiUtilsChronoNowTimestamp();
 
+  Future<int> crateApiModelsFileTransferRecordProgressPercentage({
+    required FileTransferRecord that,
+  });
+
+  Future<double> crateApiModelsFileTransferRecordProgressRatio({
+    required FileTransferRecord that,
+  });
+
   Future<void> crateApiModelsFileTypeAsStr({required FileType that});
 
   Future<FileType> crateApiModelsFileTypeFromStr({required String s});
@@ -641,15 +544,6 @@ abstract class RustLibApi extends BaseApi {
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_FileTransferServiceHandlePtr;
-
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_LocalStorageHandle;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_LocalStorageHandle;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_LocalStorageHandlePtr;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_MessagingServiceHandle;
@@ -1428,768 +1322,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiStorageSqliteLocalStorageHandleAppendMessage({
-    required LocalStorageHandle that,
-    required String peerMac,
-    required PersistentMessage msg,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerMac, serializer);
-          sse_encode_box_autoadd_persistent_message(msg, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 18,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleAppendMessageConstMeta,
-        argValues: [that, peerMac, msg],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleAppendMessageConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_append_message",
-        argNames: ["that", "peerMac", "msg"],
-      );
-
-  @override
-  Future<StorageRepositoryHandle>
-  crateApiStorageSqliteLocalStorageHandleAsStorageRepository({
-    required LocalStorageHandle that,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 19,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleAsStorageRepositoryConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleAsStorageRepositoryConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_as_storage_repository",
-        argNames: ["that"],
-      );
-
-  @override
-  Future<void>
-  crateApiStorageSqliteLocalStorageHandleClearFileTransferTrackers({
-    required LocalStorageHandle that,
-    required String transferId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(transferId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 20,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleClearFileTransferTrackersConstMeta,
-        argValues: [that, transferId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleClearFileTransferTrackersConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_clear_file_transfer_trackers",
-        argNames: ["that", "transferId"],
-      );
-
-  @override
-  Future<Uint32List>
-  crateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunks({
-    required LocalStorageHandle that,
-    required String transferId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(transferId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 21,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_prim_u_32_strict,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunksConstMeta,
-        argValues: [that, transferId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunksConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_get_acked_outbound_chunks",
-        argNames: ["that", "transferId"],
-      );
-
-  @override
-  Future<List<PeerRecord>> crateApiStorageSqliteLocalStorageHandleGetAllPeers({
-    required LocalStorageHandle that,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 22,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_peer_record,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiStorageSqliteLocalStorageHandleGetAllPeersConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleGetAllPeersConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_get_all_peers",
-        argNames: ["that"],
-      );
-
-  @override
-  Future<FileTransferRecord?>
-  crateApiStorageSqliteLocalStorageHandleGetFileTransfer({
-    required LocalStorageHandle that,
-    required String transferId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(transferId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 23,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_file_transfer_record,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleGetFileTransferConstMeta,
-        argValues: [that, transferId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleGetFileTransferConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_get_file_transfer",
-        argNames: ["that", "transferId"],
-      );
-
-  @override
-  Future<List<PersistentMessage>>
-  crateApiStorageSqliteLocalStorageHandleGetMessagesForPeer({
-    required LocalStorageHandle that,
-    required String peerMac,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerMac, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 24,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_persistent_message,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleGetMessagesForPeerConstMeta,
-        argValues: [that, peerMac],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleGetMessagesForPeerConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_get_messages_for_peer",
-        argNames: ["that", "peerMac"],
-      );
-
-  @override
-  Future<PeerRecord?> crateApiStorageSqliteLocalStorageHandleGetPeer({
-    required LocalStorageHandle that,
-    required String mac,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(mac, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 25,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_peer_record,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiStorageSqliteLocalStorageHandleGetPeerConstMeta,
-        argValues: [that, mac],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageSqliteLocalStorageHandleGetPeerConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_get_peer",
-        argNames: ["that", "mac"],
-      );
-
-  @override
-  Future<List<PersistentMessage>>
-  crateApiStorageSqliteLocalStorageHandleGetPendingMessages({
-    required LocalStorageHandle that,
-    required String peerMac,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerMac, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 26,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_persistent_message,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleGetPendingMessagesConstMeta,
-        argValues: [that, peerMac],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleGetPendingMessagesConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_get_pending_messages",
-        argNames: ["that", "peerMac"],
-      );
-
-  @override
-  Future<List<FileTransferRecord>>
-  crateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfers({
-    required LocalStorageHandle that,
-    required String peerMac,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerMac, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 27,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_file_transfer_record,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfersConstMeta,
-        argValues: [that, peerMac],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfersConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_get_pending_outbound_transfers",
-        argNames: ["that", "peerMac"],
-      );
-
-  @override
-  Future<bool> crateApiStorageSqliteLocalStorageHandleHasMessage({
-    required LocalStorageHandle that,
-    required String msgId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(msgId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 28,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiStorageSqliteLocalStorageHandleHasMessageConstMeta,
-        argValues: [that, msgId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleHasMessageConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_has_message",
-        argNames: ["that", "msgId"],
-      );
-
-  @override
-  Future<void> crateApiStorageSqliteLocalStorageHandleInsertFileTransfer({
-    required LocalStorageHandle that,
-    required FileTransferRecord record,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_box_autoadd_file_transfer_record(record, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 29,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleInsertFileTransferConstMeta,
-        argValues: [that, record],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleInsertFileTransferConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_insert_file_transfer",
-        argNames: ["that", "record"],
-      );
-
-  @override
-  Future<bool> crateApiStorageSqliteLocalStorageHandleMarkAcked({
-    required LocalStorageHandle that,
-    required String peerMac,
-    required String targetMsgId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerMac, serializer);
-          sse_encode_String(targetMsgId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 30,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiStorageSqliteLocalStorageHandleMarkAckedConstMeta,
-        argValues: [that, peerMac, targetMsgId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleMarkAckedConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_mark_acked",
-        argNames: ["that", "peerMac", "targetMsgId"],
-      );
-
-  @override
-  Future<void> crateApiStorageSqliteLocalStorageHandleMarkTransferCompleted({
-    required LocalStorageHandle that,
-    required String transferId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(transferId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 31,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleMarkTransferCompletedConstMeta,
-        argValues: [that, transferId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleMarkTransferCompletedConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_mark_transfer_completed",
-        argNames: ["that", "transferId"],
-      );
-
-  @override
-  Future<LocalStorageHandle> crateApiStorageSqliteLocalStorageHandleOpen({
-    required String dbPath,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(dbPath, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 32,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiStorageSqliteLocalStorageHandleOpenConstMeta,
-        argValues: [dbPath],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiStorageSqliteLocalStorageHandleOpenConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_open",
-        argNames: ["dbPath"],
-      );
-
-  @override
-  Future<int> crateApiStorageSqliteLocalStorageHandleRecordChunkReceived({
-    required LocalStorageHandle that,
-    required String transferId,
-    required int chunkIndex,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(transferId, serializer);
-          sse_encode_u_32(chunkIndex, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 33,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_u_32,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleRecordChunkReceivedConstMeta,
-        argValues: [that, transferId, chunkIndex],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleRecordChunkReceivedConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_record_chunk_received",
-        argNames: ["that", "transferId", "chunkIndex"],
-      );
-
-  @override
-  Future<void> crateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAck({
-    required LocalStorageHandle that,
-    required String transferId,
-    required int chunkIndex,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(transferId, serializer);
-          sse_encode_u_32(chunkIndex, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 34,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAckConstMeta,
-        argValues: [that, transferId, chunkIndex],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAckConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_record_outbound_chunk_ack",
-        argNames: ["that", "transferId", "chunkIndex"],
-      );
-
-  @override
-  Future<void> crateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatus({
-    required LocalStorageHandle that,
-    required String mac,
-    required bool isOnline,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(mac, serializer);
-          sse_encode_bool(isOnline, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 35,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatusConstMeta,
-        argValues: [that, mac, isOnline],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatusConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_set_peer_online_status",
-        argNames: ["that", "mac", "isOnline"],
-      );
-
-  @override
-  Future<void> crateApiStorageSqliteLocalStorageHandleUpsertPeer({
-    required LocalStorageHandle that,
-    required PeerRecord record,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-            that,
-            serializer,
-          );
-          sse_encode_box_autoadd_peer_record(record, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 36,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiStorageSqliteLocalStorageHandleUpsertPeerConstMeta,
-        argValues: [that, record],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiStorageSqliteLocalStorageHandleUpsertPeerConstMeta =>
-      const TaskConstMeta(
-        debugName: "LocalStorageHandle_upsert_peer",
-        argNames: ["that", "record"],
-      );
-
-  @override
   Future<void> crateApiMessagingTraitsMessagingServiceHandleFlushOutbox({
     required MessagingServiceHandle that,
     required String peerMac,
@@ -2206,7 +1338,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 18,
             port: port_,
           );
         },
@@ -2245,7 +1377,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 19,
             port: port_,
           );
         },
@@ -2287,7 +1419,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 20,
             port: port_,
           );
         },
@@ -2327,7 +1459,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 21,
             port: port_,
           );
         },
@@ -2365,7 +1497,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 22,
             port: port_,
           );
         },
@@ -2402,7 +1534,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 23,
             port: port_,
           );
         },
@@ -2443,7 +1575,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 24,
             port: port_,
           );
         },
@@ -2480,7 +1612,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 25,
             port: port_,
           );
         },
@@ -2519,7 +1651,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 26,
             port: port_,
           );
         },
@@ -2555,7 +1687,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 27,
             port: port_,
           );
         },
@@ -2591,7 +1723,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 28,
             port: port_,
           );
         },
@@ -2631,7 +1763,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 48,
+              funcId: 29,
               port: port_,
             );
           },
@@ -2671,7 +1803,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 30,
             port: port_,
           );
         },
@@ -2713,7 +1845,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 31,
             port: port_,
           );
         },
@@ -2753,7 +1885,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 32,
             port: port_,
           );
         },
@@ -2794,7 +1926,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 52,
+              funcId: 33,
               port: port_,
             );
           },
@@ -2834,7 +1966,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 34,
             port: port_,
           );
         },
@@ -2870,7 +2002,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 35,
             port: port_,
           );
         },
@@ -2910,7 +2042,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 36,
             port: port_,
           );
         },
@@ -2945,7 +2077,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2980,7 +2112,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(remoteIp, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -3018,7 +2150,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 39,
             port: port_,
           );
         },
@@ -3060,7 +2192,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 59,
+            funcId: 40,
             port: port_,
           );
         },
@@ -3101,7 +2233,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 60,
+            funcId: 41,
             port: port_,
           );
         },
@@ -3142,7 +2274,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 42,
             port: port_,
           );
         },
@@ -3181,7 +2313,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 62,
+            funcId: 43,
             port: port_,
           );
         },
@@ -3222,7 +2354,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 44,
             port: port_,
           );
         },
@@ -3263,7 +2395,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 45,
             port: port_,
           );
         },
@@ -3303,7 +2435,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 65,
+            funcId: 46,
             port: port_,
           );
         },
@@ -3344,7 +2476,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 66,
+            funcId: 47,
             port: port_,
           );
         },
@@ -3385,7 +2517,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 67,
+            funcId: 48,
             port: port_,
           );
         },
@@ -3425,7 +2557,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 68,
+            funcId: 49,
             port: port_,
           );
         },
@@ -3465,7 +2597,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 69,
+            funcId: 50,
             port: port_,
           );
         },
@@ -3507,7 +2639,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 70,
+            funcId: 51,
             port: port_,
           );
         },
@@ -3548,7 +2680,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 52,
             port: port_,
           );
         },
@@ -3587,7 +2719,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 53,
             port: port_,
           );
         },
@@ -3628,7 +2760,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 54,
             port: port_,
           );
         },
@@ -3671,7 +2803,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 55,
             port: port_,
           );
         },
@@ -3713,7 +2845,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 75,
+            funcId: 56,
             port: port_,
           );
         },
@@ -3753,7 +2885,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 57,
             port: port_,
           );
         },
@@ -3792,7 +2924,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 77,
+            funcId: 58,
             port: port_,
           );
         },
@@ -3834,7 +2966,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 78,
+            funcId: 59,
             port: port_,
           );
         },
@@ -3876,7 +3008,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 60,
             port: port_,
           );
         },
@@ -3917,7 +3049,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 80,
+            funcId: 61,
             port: port_,
           );
         },
@@ -3959,7 +3091,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 81,
+            funcId: 62,
             port: port_,
           );
         },
@@ -3996,7 +3128,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 82,
+            funcId: 63,
             port: port_,
           );
         },
@@ -4026,7 +3158,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 83,
+            funcId: 64,
             port: port_,
           );
         },
@@ -4045,6 +3177,73 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "chrono_now_timestamp", argNames: []);
 
   @override
+  Future<int> crateApiModelsFileTransferRecordProgressPercentage({
+    required FileTransferRecord that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_file_transfer_record(that, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 65,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_8,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiModelsFileTransferRecordProgressPercentageConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiModelsFileTransferRecordProgressPercentageConstMeta =>
+      const TaskConstMeta(
+        debugName: "file_transfer_record_progress_percentage",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<double> crateApiModelsFileTransferRecordProgressRatio({
+    required FileTransferRecord that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_file_transfer_record(that, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 66,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_f_64,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiModelsFileTransferRecordProgressRatioConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiModelsFileTransferRecordProgressRatioConstMeta =>
+      const TaskConstMeta(
+        debugName: "file_transfer_record_progress_ratio",
+        argNames: ["that"],
+      );
+
+  @override
   Future<void> crateApiModelsFileTypeAsStr({required FileType that}) {
     return handler.executeNormal(
       NormalTask(
@@ -4054,7 +3253,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 84,
+            funcId: 67,
             port: port_,
           );
         },
@@ -4082,7 +3281,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 85,
+            funcId: 68,
             port: port_,
           );
         },
@@ -4109,7 +3308,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 86,
+            funcId: 69,
             port: port_,
           );
         },
@@ -4134,7 +3333,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 87)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -4159,7 +3358,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 88,
+            funcId: 71,
             port: port_,
           );
         },
@@ -4187,7 +3386,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 89,
+            funcId: 72,
             port: port_,
           );
         },
@@ -4220,7 +3419,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 90,
+            funcId: 73,
             port: port_,
           );
         },
@@ -4253,7 +3452,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 91,
+            funcId: 74,
             port: port_,
           );
         },
@@ -4289,7 +3488,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 92,
+            funcId: 75,
             port: port_,
           );
         },
@@ -4319,7 +3518,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 93,
+            funcId: 76,
             port: port_,
           );
         },
@@ -4400,14 +3599,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_FileTransferServiceHandle => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle;
-
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_LocalStorageHandle => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_LocalStorageHandle => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_MessagingServiceHandle => wire
@@ -4546,15 +3737,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LocalStorageHandle
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return LocalStorageHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
   MessagingServiceHandle
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     dynamic raw,
@@ -4665,15 +3847,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return FileTransferServiceHandleImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
-  }
-
-  @protected
-  LocalStorageHandle
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return LocalStorageHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -4819,15 +3992,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LocalStorageHandle
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return LocalStorageHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
   MessagingServiceHandle
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     dynamic raw,
@@ -4956,6 +4120,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       chunkHash: dco_decode_String(arr[5]),
       fileHash: dco_decode_String(arr[6]),
     );
+  }
+
+  @protected
+  double dco_decode_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
   }
 
   @protected
@@ -5309,18 +4479,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LocalStorageHandle
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return LocalStorageHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
   MessagingServiceHandle
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     SseDeserializer deserializer,
@@ -5447,18 +4605,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return FileTransferServiceHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  LocalStorageHandle
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return LocalStorageHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -5633,18 +4779,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LocalStorageHandle
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return LocalStorageHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
   MessagingServiceHandle
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     SseDeserializer deserializer,
@@ -5800,6 +4934,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       chunkHash: var_chunkHash,
       fileHash: var_fileHash,
     );
+  }
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat64();
   }
 
   @protected
@@ -6254,19 +5394,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    LocalStorageHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as LocalStorageHandleImpl).frbInternalSseEncode(move: true),
-      serializer,
-    );
-  }
-
-  @protected
-  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     MessagingServiceHandle self,
     SseSerializer serializer,
@@ -6408,19 +5535,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as FileTransferServiceHandleImpl).frbInternalSseEncode(move: false),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    LocalStorageHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as LocalStorageHandleImpl).frbInternalSseEncode(move: false),
       serializer,
     );
   }
@@ -6615,19 +5729,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
-    LocalStorageHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as LocalStorageHandleImpl).frbInternalSseEncode(move: null),
-      serializer,
-    );
-  }
-
-  @protected
-  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
     MessagingServiceHandle self,
     SseSerializer serializer,
@@ -6794,6 +5895,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.offset, serializer);
     sse_encode_String(self.chunkHash, serializer);
     sse_encode_String(self.fileHash, serializer);
+  }
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat64(self);
   }
 
   @protected
@@ -7421,160 +6528,6 @@ class FileTransferServiceHandleImpl extends RustOpaque
         that: this,
         recipientMac: recipientMac,
         filePathStr: filePathStr,
-      );
-}
-
-@sealed
-class LocalStorageHandleImpl extends RustOpaque implements LocalStorageHandle {
-  // Not to be used by end users
-  LocalStorageHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
-    : super.frbInternalDcoDecode(wire, _kStaticData);
-
-  // Not to be used by end users
-  LocalStorageHandleImpl.frbInternalSseDecode(
-    BigInt ptr,
-    int externalSizeOnNative,
-  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
-
-  static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_LocalStorageHandle,
-    rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_LocalStorageHandle,
-    rustArcDecrementStrongCountPtr: RustLib
-        .instance
-        .api
-        .rust_arc_decrement_strong_count_LocalStorageHandlePtr,
-  );
-
-  Future<void> appendMessage({
-    required String peerMac,
-    required PersistentMessage msg,
-  }) =>
-      RustLib.instance.api.crateApiStorageSqliteLocalStorageHandleAppendMessage(
-        that: this,
-        peerMac: peerMac,
-        msg: msg,
-      );
-
-  Future<StorageRepositoryHandle> asStorageRepository() => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleAsStorageRepository(that: this);
-
-  Future<void> clearFileTransferTrackers({required String transferId}) =>
-      RustLib.instance.api
-          .crateApiStorageSqliteLocalStorageHandleClearFileTransferTrackers(
-            that: this,
-            transferId: transferId,
-          );
-
-  Future<Uint32List> getAckedOutboundChunks({required String transferId}) =>
-      RustLib.instance.api
-          .crateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunks(
-            that: this,
-            transferId: transferId,
-          );
-
-  Future<List<PeerRecord>> getAllPeers() => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleGetAllPeers(that: this);
-
-  Future<FileTransferRecord?> getFileTransfer({required String transferId}) =>
-      RustLib.instance.api
-          .crateApiStorageSqliteLocalStorageHandleGetFileTransfer(
-            that: this,
-            transferId: transferId,
-          );
-
-  Future<List<PersistentMessage>> getMessagesForPeer({
-    required String peerMac,
-  }) => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleGetMessagesForPeer(
-        that: this,
-        peerMac: peerMac,
-      );
-
-  Future<PeerRecord?> getPeer({required String mac}) => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleGetPeer(that: this, mac: mac);
-
-  Future<List<PersistentMessage>> getPendingMessages({
-    required String peerMac,
-  }) => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleGetPendingMessages(
-        that: this,
-        peerMac: peerMac,
-      );
-
-  Future<List<FileTransferRecord>> getPendingOutboundTransfers({
-    required String peerMac,
-  }) => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfers(
-        that: this,
-        peerMac: peerMac,
-      );
-
-  Future<bool> hasMessage({required String msgId}) =>
-      RustLib.instance.api.crateApiStorageSqliteLocalStorageHandleHasMessage(
-        that: this,
-        msgId: msgId,
-      );
-
-  Future<void> insertFileTransfer({required FileTransferRecord record}) =>
-      RustLib.instance.api
-          .crateApiStorageSqliteLocalStorageHandleInsertFileTransfer(
-            that: this,
-            record: record,
-          );
-
-  Future<bool> markAcked({
-    required String peerMac,
-    required String targetMsgId,
-  }) => RustLib.instance.api.crateApiStorageSqliteLocalStorageHandleMarkAcked(
-    that: this,
-    peerMac: peerMac,
-    targetMsgId: targetMsgId,
-  );
-
-  Future<void> markTransferCompleted({required String transferId}) => RustLib
-      .instance
-      .api
-      .crateApiStorageSqliteLocalStorageHandleMarkTransferCompleted(
-        that: this,
-        transferId: transferId,
-      );
-
-  Future<int> recordChunkReceived({
-    required String transferId,
-    required int chunkIndex,
-  }) => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleRecordChunkReceived(
-        that: this,
-        transferId: transferId,
-        chunkIndex: chunkIndex,
-      );
-
-  Future<void> recordOutboundChunkAck({
-    required String transferId,
-    required int chunkIndex,
-  }) => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAck(
-        that: this,
-        transferId: transferId,
-        chunkIndex: chunkIndex,
-      );
-
-  Future<void> setPeerOnlineStatus({
-    required String mac,
-    required bool isOnline,
-  }) => RustLib.instance.api
-      .crateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatus(
-        that: this,
-        mac: mac,
-        isOnline: isOnline,
-      );
-
-  Future<void> upsertPeer({required PeerRecord record}) =>
-      RustLib.instance.api.crateApiStorageSqliteLocalStorageHandleUpsertPeer(
-        that: this,
-        record: record,
       );
 }
 

@@ -196,11 +196,14 @@ impl FileTransferService for DefaultFileTransferService {
                 return Err(e);
             }
 
+            /*
             (self.event_emitter)(format!(
                 "FILE_SEND_PROGRESS:{}:{}",
                 transfer_id,
                 ((chunk_index + 1) as f32 / record.total_chunks as f32 * 100.0) as u32
             ));
+            */
+            self.storage.update_transfer_progress(transfer_id, chunk_index).await?;
         }
 
         Ok(())
