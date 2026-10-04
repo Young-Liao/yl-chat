@@ -77,5 +77,8 @@
         <string>_ylchat._tcp</string>
         <string>_ylchat._udp</string>
     </array>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>我们需要访问您的相册以选择文件</string>
 </dict>
 </plist>
