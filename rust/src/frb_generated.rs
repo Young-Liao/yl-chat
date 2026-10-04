@@ -27,13 +27,14 @@
 
 // Section: imports
 
-use std::path::PathBuf;
 use crate::api::protocol::*;
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
+
+use std::path::PathBuf;
 
 flutter_rust_bridge::frb_generated_boilerplate!(
     default_stream_sink_codec = SseCodec,
@@ -2340,6 +2341,8 @@ mod io {
 
     // Section: boilerplate
 
+    use std::path::PathBuf;
+
     flutter_rust_bridge::frb_generated_boilerplate_io!();
 
     #[unsafe(no_mangle)]
@@ -2406,6 +2409,8 @@ mod web {
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
+
+    use std::path::PathBuf;
 
     flutter_rust_bridge::frb_generated_boilerplate_web!();
 

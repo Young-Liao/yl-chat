@@ -1,3 +1,5 @@
+use flutter_rust_bridge::frb;
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -7,10 +9,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, RwLock};
 use tokio_rusqlite::Connection as AsyncConnection;
-use rusqlite::params;
-use uuid::Uuid;
 use tracing::{debug, error, info, warn};
-use flutter_rust_bridge::frb;
+use uuid::Uuid;
 
 use crate::api::discovery::ProtocolConfig;
 use crate::frb_generated::StreamSink;
@@ -73,9 +73,29 @@ pub struct MessageEnvelope {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
 pub enum MessagePayload {
-    Handshake { sender_mac: String },
-    ChatMessage { content: String },
-    Ack { target_msg_id: String },
+    Handshake {
+        sender_mac: String,
+    },
+    ChatMessage {
+        content: String,
+    },
+
+    ImageTransferInit {
+        transfer_id: String,
+        file_name: String,
+        file_size: u64,
+        total_chunks: u32,
+        file_hash: String,
+    },
+
+    ImageChunk {
+        header: ChunkHeader,
+        data: Vec<u8>,
+    },
+
+    Ack {
+        target_msg_id: String, // UUID (chunk_uuid or transfer_id)
+    },
 }
 
 // =============================================================================
@@ -92,9 +112,8 @@ impl LocalStorage {
 
         if let Some(parent) = db_path.parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent).map_err(|e| {
-                    format!("Failed to create database directory: {:?}", e)
-                })?;
+                fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create database directory: {:?}", e))?;
             }
         }
 
@@ -150,7 +169,10 @@ impl LocalStorage {
 
                 if !has_is_online {
                     info!("Adding missing 'is_online' column to existing peers table");
-                    conn.execute("ALTER TABLE peers ADD COLUMN is_online INTEGER NOT NULL DEFAULT 0", [])?;
+                    conn.execute(
+                        "ALTER TABLE peers ADD COLUMN is_online INTEGER NOT NULL DEFAULT 0",
+                        [],
+                    )?;
                 }
 
                 Ok(())
@@ -190,8 +212,8 @@ impl LocalStorage {
                 )?;
                 Ok(())
             })
-                .await
-                .map_err(|e| format!("Failed to force recreate SQLite database tables: {e}"))?;
+            .await
+            .map_err(|e| format!("Failed to force recreate SQLite database tables: {e}"))?;
         }
 
         Ok(Self { db })
@@ -269,13 +291,10 @@ impl LocalStorage {
             })
             .await;
 
-        match res {
-            Ok(peers) => peers,
-            Err(e) => {
-                error!(error = %e, "Failed to fetch all peers");
-                Vec::new()
-            }
-        }
+        res.unwrap_or_else(|e| {
+            error!(error = %e, "Failed to fetch all peers");
+            Vec::new()
+        })
     }
 
     pub async fn get_peer(&self, mac: &str) -> Option<PeerRecord> {
@@ -305,6 +324,18 @@ impl LocalStorage {
             })
             .await
             .unwrap_or(None)
+    }
+
+    pub async fn has_message(&self, msg_id: &str) -> bool {
+        let msg_id_owned = msg_id.to_string();
+        self.db
+            .call(move |conn| {
+                let mut stmt = conn.prepare("SELECT 1 FROM messages WHERE msg_id = ?1 LIMIT 1")?;
+                let exists = stmt.exists(params![msg_id_owned])?;
+                Ok(exists)
+            })
+            .await
+            .unwrap_or(false)
     }
 
     pub async fn append_message(&self, peer_mac: String, msg: PersistentMessage) {
@@ -537,7 +568,9 @@ impl NetworkEngine {
             status: MessageStatus::Pending,
         };
 
-        self.storage.append_message(recipient_mac.clone(), msg).await;
+        self.storage
+            .append_message(recipient_mac.clone(), msg)
+            .await;
 
         let engine = self.clone();
         tokio::spawn(async move {
@@ -647,15 +680,25 @@ impl NetworkEngine {
             return Ok(Arc::clone(conn));
         }
 
-        let peer_record = self.storage.get_peer(peer_mac).await.ok_or_else(|| {
-            format!("Peer MAC {} not found in local storage", peer_mac)
-        })?;
+        let peer_record = self
+            .storage
+            .get_peer(peer_mac)
+            .await
+            .ok_or_else(|| format!("Peer MAC {} not found in local storage", peer_mac))?;
 
         let addr = format!("{}:{}", peer_record.last_known_ip, peer_record.port);
         info!(peer_mac = %peer_mac, address = %addr, "Connecting to peer");
 
-        let stream = TcpStream::connect(&addr).await.map_err(|e| format!("Connect failed: {e}"))?;
-        let (tx, conn) = self.setup_connection(stream, peer_record.last_known_ip.clone(), peer_mac.to_string()).await;
+        let stream = TcpStream::connect(&addr)
+            .await
+            .map_err(|e| format!("Connect failed: {e}"))?;
+        let (tx, conn) = self
+            .setup_connection(
+                stream,
+                peer_record.last_known_ip.clone(),
+                peer_mac.to_string(),
+            )
+            .await;
 
         let handshake = MessageEnvelope {
             version: 1,
@@ -667,7 +710,10 @@ impl NetworkEngine {
         };
 
         conn.send_envelope(&handshake).await?;
-        self.connections.write().await.insert(peer_mac.to_string(), Arc::clone(&conn));
+        self.connections
+            .write()
+            .await
+            .insert(peer_mac.to_string(), Arc::clone(&conn));
         self.storage.set_peer_online_status(peer_mac, true).await;
         self.emit_event("PEER_LIST_UPDATED".to_string()).await;
 
@@ -683,7 +729,9 @@ impl NetworkEngine {
 
         let engine = self.clone();
         let addr = format!("0.0.0.0:{}", port);
-        let listener = TcpListener::bind(&addr).await.map_err(|e| format!("Bind error: {e}"))?;
+        let listener = TcpListener::bind(&addr)
+            .await
+            .map_err(|e| format!("Bind error: {e}"))?;
 
         info!(address = %addr, "TCP listener bound successfully");
 
@@ -753,7 +801,9 @@ impl NetworkEngine {
         let engine = self.clone();
         let conn_clone = Arc::clone(&conn);
         tokio::spawn(async move {
-            engine.handle_read_loop(read_half, conn_clone, peer_mac, remote_ip).await;
+            engine
+                .handle_read_loop(read_half, conn_clone, peer_mac, remote_ip)
+                .await;
         });
 
         (tx, conn)
@@ -790,7 +840,10 @@ impl NetworkEngine {
                 MessagePayload::Handshake { sender_mac } => {
                     current_peer_mac = sender_mac.clone();
                     *conn.remote_mac.write().await = sender_mac.clone();
-                    self.connections.write().await.insert(sender_mac.clone(), Arc::clone(&conn));
+                    self.connections
+                        .write()
+                        .await
+                        .insert(sender_mac.clone(), Arc::clone(&conn));
                     self.storage.set_peer_online_status(&sender_mac, true).await;
                     self.emit_event("PEER_LIST_UPDATED".to_string()).await;
                 }
@@ -798,22 +851,41 @@ impl NetworkEngine {
                     if current_peer_mac.is_empty() {
                         current_peer_mac = env.sender_mac.clone();
                         *conn.remote_mac.write().await = env.sender_mac.clone();
-                        self.connections.write().await.insert(env.sender_mac.clone(), Arc::clone(&conn));
-                        self.storage.set_peer_online_status(&env.sender_mac, true).await;
+                        self.connections
+                            .write()
+                            .await
+                            .insert(env.sender_mac.clone(), Arc::clone(&conn));
+                        self.storage
+                            .set_peer_online_status(&env.sender_mac, true)
+                            .await;
                         self.emit_event("PEER_LIST_UPDATED".to_string()).await;
                     }
 
-                    let msg = PersistentMessage {
-                        msg_id: env.msg_id.clone(),
-                        peer_mac: env.sender_mac.clone(),
-                        is_outgoing: false,
-                        content,
-                        timestamp: chrono_now_timestamp(),
-                        status: MessageStatus::Acked,
-                    };
+                    // 1. Check if the message has already been received previously
+                    if self.storage.has_message(&env.msg_id).await {
+                        // 2. Fresh message: Save to SQLite & alert UI layer
+                        let msg = PersistentMessage {
+                            msg_id: env.msg_id.clone(),
+                            peer_mac: env.sender_mac.clone(),
+                            is_outgoing: false,
+                            content,
+                            timestamp: chrono_now_timestamp(),
+                            status: MessageStatus::Acked,
+                        };
 
-                    self.storage.append_message(env.sender_mac.clone(), msg).await;
+                        self.storage
+                            .append_message(env.sender_mac.clone(), msg)
+                            .await;
+                        self.emit_event(format!("NEW_MSG:{}", env.sender_mac)).await;
+                    } else {
+                        debug!(
+                            msg_id = %env.msg_id,
+                            peer_mac = %env.sender_mac,
+                            "Duplicate message detected; re-transmitting Ack without writing to database"
+                        );
+                    }
 
+                    // 3. Always transmit Ack (whether duplicate or fresh)
                     let ack = MessageEnvelope {
                         version: 1,
                         msg_id: Uuid::new_v4().to_string(),
@@ -824,7 +896,6 @@ impl NetworkEngine {
                     };
 
                     let _ = conn.send_envelope(&ack).await;
-                    self.emit_event(format!("NEW_MSG:{}", env.sender_mac)).await;
                 }
                 MessagePayload::Ack { target_msg_id } => {
                     let target = if !current_peer_mac.is_empty() {
@@ -837,12 +908,17 @@ impl NetworkEngine {
                         self.emit_event(format!("ACK:{}", target)).await;
                     }
                 }
+                MessagePayload::ImageTransferInit { .. } | MessagePayload::ImageChunk { .. } => {
+                    todo!()
+                }
             }
         }
 
         if !current_peer_mac.is_empty() {
             self.connections.write().await.remove(&current_peer_mac);
-            self.storage.set_peer_online_status(&current_peer_mac, false).await;
+            self.storage
+                .set_peer_online_status(&current_peer_mac, false)
+                .await;
             self.emit_event("PEER_LIST_UPDATED".to_string()).await;
             info!(peer_mac = %current_peer_mac, ip = %current_peer_ip, "Closed peer connection removed and marked offline");
         }
@@ -858,4 +934,18 @@ pub fn chrono_now_timestamp() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64
+}
+
+// =============================================================================
+// 6. Streaming Transmit
+// =============================================================================
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChunkHeader {
+    pub transfer_id: String, // UUID for the entire image file transaction
+    pub chunk_uuid: String,  // Unique UUID for this specific chunk
+    pub chunk_index: u32,    // Sequence position (0, 1, 2...)
+    pub total_chunks: u32,   // Total number of chunks in file
+    pub offset: u64,         // Byte offset in the final destination file
+    pub chunk_hash: String,  // SHA-256 hash of ONLY this chunk's payload
+    pub file_hash: String,   // SHA-256 hash of the complete target file
 }

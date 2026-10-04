@@ -11,6 +11,9 @@ void logStep(String step) {
 }
 
 void main() {
+  const serverDbPath = './db1.db';
+  const clientDbPath = './db2.db';
+
   setUpAll(() async {
     logStep('Initializing RustLib for bridge testing...');
     final dylibPath = Platform.isMacOS
@@ -23,18 +26,41 @@ void main() {
       ),
     );
     logStep('RustLib initialized successfully.');
+
+
+    final filesToClean = [
+      serverDbPath,
+      '$serverDbPath-shm',
+      '$serverDbPath-wal',
+      clientDbPath,
+      '$clientDbPath-shm',
+      '$clientDbPath-wal',
+    ];
+
+    // 2. 循环检查并强行删除
+    for (final path in filesToClean) {
+      final file = File(path);
+      if (await file.exists()) {
+        try {
+          await file.delete();
+          print('🧹 成功清理旧测试文件: $path');
+        } catch (e) {
+          print('⚠️ 删除文件失败 $path: $e (可能是由于之前的测试进程未完全释放锁)');
+        }
+      }
+    }
   });
 
   test('Full P2P Storage, Notification Stream, and Outbox Flow Test', () async {
     const serverMac = 'd858e9a7-0ae6-4c58-9a8b-bb032b14a137';
     const clientMac = 'a140a591-149a-459e-b2e0-d0e435f92df9';
 
-    const serverPort = 14981;
-    const clientPort = 14982;
+    const serverPort = 14982;
+    const clientPort = 14983;
 
     logStep('1. Instantiating NetworkEngine instances...');
-    final serverEngine = await NetworkEngine.newInstance(selfMac: serverMac);
-    final clientEngine = await NetworkEngine.newInstance(selfMac: clientMac);
+    final serverEngine = await NetworkEngine.newInstance(selfMac: serverMac, dbPathStr: clientDbPath);
+    final clientEngine = await NetworkEngine.newInstance(selfMac: clientMac, dbPathStr: serverDbPath);
 
     logStep('2. Starting TCP listeners...');
     final Stream<String> serverNotifyStream = await serverEngine.startListener(port: serverPort);
@@ -68,7 +94,7 @@ void main() {
         lastKnownIp: '127.0.0.1',
         port: serverPort,
         deviceName: 'Server_Node',
-        lastSeen: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        lastSeen: DateTime.now().millisecondsSinceEpoch ~/ 1000, isOnline: true,
       ),
     );
 
@@ -78,7 +104,7 @@ void main() {
         lastKnownIp: '127.0.0.1',
         port: clientPort,
         deviceName: 'Client_Node',
-        lastSeen: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        lastSeen: DateTime.now().millisecondsSinceEpoch ~/ 1000, isOnline: true,
       ),
     );
 

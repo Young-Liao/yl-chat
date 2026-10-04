@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:yl_chat/main.dart';
 import 'package:yl_chat/src/features/chat_screen/chat_box/title_bar.dart';
 import 'package:yl_chat/src/rust/api/protocol.dart';
@@ -22,6 +23,8 @@ class _ChatBoxState extends State<ChatBox> {
   List<PersistentMessage> _messages = [];
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
@@ -79,7 +82,6 @@ class _ChatBoxState extends State<ChatBox> {
     final currentPeer = chosenPeer.value;
     if (currentPeer == null) return;
 
-    debugPrint("kajflafjaldsfja;ld;f;kn");
     try {
       final history = await networkEngine.getMessages(peerMac: currentPeer.macAddress);
       if (mounted) {
@@ -95,7 +97,8 @@ class _ChatBoxState extends State<ChatBox> {
 
   /// 发送消息逻辑
   Future<void> _handleSendMessage() async {
-    final text = _messageController.text.trim();
+    final text = _messageController.text;
+    _focusNode.requestFocus();
     final currentPeer = chosenPeer.value;
 
     if (text.isEmpty || currentPeer == null) return;
@@ -173,16 +176,36 @@ class _ChatBoxState extends State<ChatBox> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: TextField(
-                controller: controller,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                onSubmitted: (_) => onSend(),
-                decoration: const InputDecoration(
-                  hintText: 'Type a message...',
-                  hintStyle: TextStyle(color: Color(0xFF64748B), fontSize: 14),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
+              child: Focus(
+                onKeyEvent: (FocusNode node, KeyEvent event) {
+                  // 1. 监听 Enter 键按下（排除 Shift + Enter 换行）
+                  if (event is KeyDownEvent &&
+                      (event.logicalKey == LogicalKeyboardKey.enter ||
+                       event.logicalKey == LogicalKeyboardKey.numpadEnter) &&
+                      !HardwareKeyboard.instance.isShiftPressed) {
+
+                    // 2. 执行你的发送逻辑
+                    _handleSendMessage();
+
+                    // 3. 核心：返回 handled，告诉系统“这个 Enter 已经被我处理了，不要再传给 TextField 了”
+                    return KeyEventResult.handled;
+                  }
+
+                  // 其他按键（如 Shift + Enter 或普通字符）正常放行
+                  return KeyEventResult.ignored;
+                },
+                child: TextField(
+                  focusNode: _focusNode,
+                  controller: controller,
+                  style: TextStyle(color: theme.textMain, fontSize: 14),
+                  maxLines: null,
+                  decoration: InputDecoration(
+                    hintText: 'Type a message...',
+                    hintStyle: TextStyle(color: theme.textMuted, fontSize: 14),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
               ),
             ),

@@ -70,6 +70,25 @@
             padding: 20px;
         }
 
+        /* Window Shake Keyframes */
+        @keyframes shake {
+            0% { transform: translate(0, 0); }
+            10% { transform: translate(-12px, -6px); }
+            20% { transform: translate(12px, 6px); }
+            30% { transform: translate(-12px, 6px); }
+            40% { transform: translate(12px, -6px); }
+            50% { transform: translate(-10px, 0px); }
+            60% { transform: translate(10px, 0px); }
+            70% { transform: translate(-6px, -3px); }
+            80% { transform: translate(6px, 3px); }
+            90% { transform: translate(-2px, 0px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .shake {
+            animation: shake 0.45s ease-in-out;
+        }
+
         /* Main Container - Fixed Dimensions */
         .app-container {
             width: 1200px;
@@ -276,6 +295,37 @@
             font-family: monospace;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Window Shaking Button */
+        .shake-btn {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .shake-btn:hover {
+            background-color: rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+        }
+
+        .shake-btn:active {
+            transform: scale(0.96);
+        }
+
         /* Messages History */
         .messages-container {
             flex: 1;
@@ -356,7 +406,59 @@
             padding: 0 2px;
         }
 
-        /* Media & File Previews inside Messages */
+        /* Standalone Image Message (No Speech Bubble Background) */
+        .image-message {
+            position: relative;
+            max-width: 320px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .image-message:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .image-message img {
+            width: 100%;
+            height: auto;
+            max-height: 280px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Overlay details on image hover */
+        .image-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px 12px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .image-message:hover .image-overlay {
+            opacity: 1;
+        }
+
+        .image-info {
+            font-size: 11px;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Video & File Attachments */
         .media-attachment {
             border-radius: 8px;
             overflow: hidden;
@@ -364,7 +466,7 @@
             max-width: 100%;
         }
 
-        .media-attachment img, .media-attachment video {
+        .media-attachment video {
             width: 100%;
             max-height: 250px;
             object-fit: cover;
@@ -428,25 +530,119 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
 
-        /* Chat Input Bar */
+        /* Chat Input Area Container */
         .chat-input-container {
             padding: 16px 24px;
             background-color: var(--bg-panel);
             border-top: 1px solid var(--border-color);
         }
 
-        .input-form {
+        /* Unified Composite Input Wrapper */
+        .input-composite-box {
+            display: flex;
+            flex-direction: column;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-dark);
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .input-composite-box:focus-within {
+            border-color: var(--accent);
+        }
+
+        /* Attached Image Attachment Header Bar */
+        .image-preview-bar {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-color);
+            animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .image-preview-bar.active {
+            display: flex;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .preview-thumbnail-container {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .preview-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-details {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .image-filename {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .image-meta-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remove-attachment-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s, background-color 0.2s;
+        }
+
+        .remove-attachment-btn:hover {
+            color: var(--status-busy);
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Input Controls Row */
+        .input-controls-row {
             display: flex;
             align-items: center;
             gap: 12px;
-            background-color: var(--bg-dark);
             padding: 8px 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-        }
-
-        .input-form:focus-within {
-            border-color: var(--accent);
         }
 
         .attachment-btn {
@@ -462,9 +658,9 @@
             transition: color 0.2s, background 0.2s;
         }
 
-        .attachment-btn:hover {
-            color: var(--text-main);
-            background-color: rgba(255, 255, 255, 0.05);
+        .attachment-btn:hover, .attachment-btn.has-attachment {
+            color: var(--accent);
+            background-color: rgba(59, 130, 246, 0.1);
         }
 
         .chat-input {
@@ -502,7 +698,7 @@
 </head>
 <body>
 
-<div class="app-container">
+<div class="app-container" id="appContainer">
     <!-- Contacts Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
@@ -535,7 +731,7 @@
                         <span class="contact-name">John (Workstation-01)</span>
                     </div>
                     <span class="contact-ip">192.168.1.104</span>
-                    <div class="contact-preview">Here are the complete source files...</div>
+                    <div class="contact-preview">Shared schematic_v2.png</div>
                 </div>
             </div>
 
@@ -571,7 +767,7 @@
         </div>
     </div>
 
-    <!-- Main Chat Box -->
+    <!-- Main Chat Area -->
     <div class="chat-area">
         <!-- Active Chat Header -->
         <div class="chat-header">
@@ -585,10 +781,21 @@
                     <span>192.168.1.104 • Online</span>
                 </div>
             </div>
+
+            <!-- Header Action Controls -->
+            <div class="header-actions">
+                <button class="shake-btn" id="shakeBtn" title="Send window nudge/shake">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    window shaking
+                </button>
+            </div>
         </div>
 
         <!-- Messages Stream -->
-        <div class="messages-container">
+        <div class="messages-container" id="messagesContainer">
 
             <!-- Text Message Incoming -->
             <div class="message-row incoming">
@@ -612,15 +819,15 @@
                 </div>
             </div>
 
-            <!-- Image Message Outgoing -->
+            <!-- Separate Standalone Image Message Outgoing (No Bubble Background) -->
             <div class="message-row outgoing">
                 <div class="chat-avatar me">ME</div>
                 <div class="message-content">
-                    <div class="message-bubble">
-                        <div class="media-attachment">
-                            <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80" alt="Shared Network Graphic">
+                    <div class="image-message">
+                        <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80" alt="Shared Graphic">
+                        <div class="image-overlay">
+                            <span class="image-info">schematic_v2.png</span>
                         </div>
-                        Network Layout Diagram
                     </div>
                     <span class="message-meta">10:44 AM</span>
                 </div>
@@ -643,20 +850,15 @@
                 </div>
             </div>
 
-            <!-- File Attachment Message Incoming -->
+            <!-- Separate Standalone Image Message Incoming (No Bubble Background) -->
             <div class="message-row incoming">
                 <div class="chat-avatar">JD</div>
                 <div class="message-content">
-                    <div class="message-bubble">
-                        <div class="file-attachment">
-                            <div class="file-icon">ZIP</div>
-                            <div class="file-details">
-                                <div class="file-name">project_build_v2.4.zip</div>
-                                <div class="file-size">142.8 MB</div>
-                            </div>
-                            <a href="#" class="download-btn">Download</a>
+                    <div class="image-message">
+                        <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80" alt="Incoming Graphic">
+                        <div class="image-overlay">
+                            <span class="image-info">network_topology.png</span>
                         </div>
-                        Here are the complete source files for local testing.
                     </div>
                     <span class="message-meta">10:46 AM</span>
                 </div>
@@ -666,51 +868,181 @@
 
         <!-- Chat Input Area -->
         <div class="chat-input-container">
-            <form class="input-form" onsubmit="event.preventDefault();">
+            <div class="input-composite-box">
+                <!-- Attached Image Attachment Header Bar -->
+                <div class="image-preview-bar" id="imagePreviewBar">
+                    <div class="preview-thumbnail-container">
+                        <img id="imagePreviewThumb" class="preview-thumbnail" src="" alt="Preview">
+                    </div>
+                    <div class="image-details">
+                        <span id="imagePreviewName" class="image-filename">image.png</span>
+                        <span class="image-meta-text">
+                            <span id="imagePreviewSize">0 KB</span> • Ready to send
+                        </span>
+                    </div>
+                    <button type="button" class="remove-attachment-btn" id="removeImgBtn" title="Remove attachment">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
 
-                <!-- Image Attachment -->
-                <label class="attachment-btn" title="Attach Image">
-                    <input type="file" accept="image/*">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
-                </label>
+                <!-- Input Controls Row -->
+                <form class="input-controls-row" id="chatForm">
 
-                <!-- Video Attachment -->
-                <label class="attachment-btn" title="Attach Video">
-                    <input type="file" accept="video/*">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                    </svg>
-                </label>
+                    <!-- Image Attachment Button -->
+                    <label class="attachment-btn" id="attachBtnLabel" title="Attach Image">
+                        <input type="file" id="imageInput" accept="image/*">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </label>
 
-                <!-- General File Attachment -->
-                <label class="attachment-btn" title="Attach Document/File">
-                    <input type="file">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                    </svg>
-                </label>
+                    <!-- Video Attachment -->
+                    <label class="attachment-btn" title="Attach Video">
+                        <input type="file" accept="video/*">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                        </svg>
+                    </label>
 
-                <!-- Text Input -->
-                <input type="text" class="chat-input" placeholder="Type a message or drop files here...">
+                    <!-- General File Attachment -->
+                    <label class="attachment-btn" title="Attach Document/File">
+                        <input type="file">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                        </svg>
+                    </label>
 
-                <!-- Send Button -->
-                <button type="submit" class="send-btn">
-                    Send
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                </button>
-            </form>
+                    <!-- Text Input -->
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Type a message or drop files here...">
+
+                    <!-- Send Button -->
+                    <button type="submit" class="send-btn">
+                        Send
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
 
     </div>
 </div>
+
+<script>
+    // Elements
+    const appContainer = document.getElementById('appContainer');
+    const shakeBtn = document.getElementById('shakeBtn');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreviewBar = document.getElementById('imagePreviewBar');
+    const imagePreviewThumb = document.getElementById('imagePreviewThumb');
+    const imagePreviewName = document.getElementById('imagePreviewName');
+    const imagePreviewSize = document.getElementById('imagePreviewSize');
+    const removeImgBtn = document.getElementById('removeImgBtn');
+    const attachBtnLabel = document.getElementById('attachBtnLabel');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const messagesContainer = document.getElementById('messagesContainer');
+
+    let pendingImageSrc = null;
+
+    // Helper: Formats Byte sizes cleanly
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // 1. Window Shaking Handler
+    shakeBtn.addEventListener('click', () => {
+        appContainer.classList.add('shake');
+        setTimeout(() => {
+            appContainer.classList.remove('shake');
+        }, 450);
+    });
+
+    // 2. Image File Selection & Preview
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                pendingImageSrc = event.target.result;
+                imagePreviewThumb.src = pendingImageSrc;
+                imagePreviewName.textContent = file.name;
+                imagePreviewSize.textContent = formatBytes(file.size);
+
+                imagePreviewBar.classList.add('active');
+                attachBtnLabel.classList.add('has-attachment');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Clear Attachment
+    removeImgBtn.addEventListener('click', () => {
+        pendingImageSrc = null;
+        imageInput.value = '';
+        imagePreviewBar.classList.remove('active');
+        attachBtnLabel.classList.remove('has-attachment');
+    });
+
+    // 3. Send Message Logic
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+
+        if (!text && !pendingImageSrc) return;
+
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Render separate standalone image message if attached
+        if (pendingImageSrc) {
+            const imgRow = document.createElement('div');
+            imgRow.className = 'message-row outgoing';
+            imgRow.innerHTML = `
+                <div class="chat-avatar me">ME</div>
+                <div class="message-content">
+                    <div class="image-message">
+                        <img src="${pendingImageSrc}" alt="Sent Image">
+                        <div class="image-overlay">
+                            <span class="image-info">${imagePreviewName.textContent}</span>
+                        </div>
+                    </div>
+                    <span class="message-meta">${now}</span>
+                </div>
+            `;
+            messagesContainer.appendChild(imgRow);
+            removeImgBtn.click();
+        }
+
+        // Render standard text message if text was typed
+        if (text) {
+            const textRow = document.createElement('div');
+            textRow.className = 'message-row outgoing';
+            textRow.innerHTML = `
+                <div class="chat-avatar me">ME</div>
+                <div class="message-content">
+                    <div class="message-bubble">${text}</div>
+                    <span class="message-meta">${now}</span>
+                </div>
+            `;
+            messagesContainer.appendChild(textRow);
+            chatInput.value = '';
+        }
+
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    });
+</script>
 
 </body>
 </html>
