@@ -8,9 +8,7 @@ import 'api/connection/manager.dart';
 import 'api/connection/traits.dart';
 import 'api/discovery.dart';
 import 'api/engine.dart';
-import 'api/file_transfer/service.dart';
 import 'api/file_transfer/traits.dart';
-import 'api/messaging/service.dart';
 import 'api/messaging/traits.dart';
 import 'api/models.dart';
 import 'api/simple.dart';
@@ -79,7 +77,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -768142253;
+  int get rustContentHash => 590727047;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -110,63 +108,6 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiConnectionTraitsConnectionManagerHandleRemoveConnection({
     required ConnectionManagerHandle that,
     required String peerMac,
-  });
-
-  Future<FileTransferServiceHandle>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferService({
-    required DefaultFileTransferServiceHandle that,
-  });
-
-  Future<void>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunks({
-    required DefaultFileTransferServiceHandle that,
-    required String recipientMac,
-    required String transferId,
-  });
-
-  Future<DefaultFileTransferServiceHandle>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleNew({
-    required String selfMac,
-    required StorageRepositoryHandle storageHandle,
-    required ConnectionManagerHandle connManagerHandle,
-  });
-
-  Future<void>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfers({
-    required DefaultFileTransferServiceHandle that,
-    required String peerMac,
-  });
-
-  Future<String>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleSendFile({
-    required DefaultFileTransferServiceHandle that,
-    required String recipientMac,
-    required String filePathStr,
-  });
-
-  Future<MessagingServiceHandle>
-  crateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingService({
-    required DefaultMessagingServiceHandle that,
-  });
-
-  Future<void>
-  crateApiMessagingServiceDefaultMessagingServiceHandleFlushOutbox({
-    required DefaultMessagingServiceHandle that,
-    required String peerMac,
-  });
-
-  Future<DefaultMessagingServiceHandle>
-  crateApiMessagingServiceDefaultMessagingServiceHandleNew({
-    required String selfMac,
-    required StorageRepositoryHandle storageHandle,
-    required ConnectionManagerHandle connManagerHandle,
-  });
-
-  Future<void>
-  crateApiMessagingServiceDefaultMessagingServiceHandleSendMessage({
-    required DefaultMessagingServiceHandle that,
-    required String recipientMac,
-    required String content,
   });
 
   Future<void>
@@ -519,24 +460,6 @@ abstract class RustLibApi extends BaseApi {
   get rust_arc_decrement_strong_count_ConnectionManagerHandlePtr;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_DefaultFileTransferServiceHandle;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_DefaultFileTransferServiceHandle;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_DefaultFileTransferServiceHandlePtr;
-
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_DefaultMessagingServiceHandle;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_DefaultMessagingServiceHandle;
-
-  CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_DefaultMessagingServiceHandlePtr;
-
-  RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_FileTransferServiceHandle;
 
   RustArcDecrementStrongCountFnType
@@ -770,392 +693,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<FileTransferServiceHandle>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferService({
-    required DefaultFileTransferServiceHandle that,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-            that,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 5,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferServiceConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferServiceConstMeta =>
-      const TaskConstMeta(
-        debugName: "DefaultFileTransferServiceHandle_as_file_transfer_service",
-        argNames: ["that"],
-      );
-
-  @override
-  Future<void>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunks({
-    required DefaultFileTransferServiceHandle that,
-    required String recipientMac,
-    required String transferId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(recipientMac, serializer);
-          sse_encode_String(transferId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 6,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta:
-            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunksConstMeta,
-        argValues: [that, recipientMac, transferId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunksConstMeta =>
-      const TaskConstMeta(
-        debugName: "DefaultFileTransferServiceHandle_dispatch_file_chunks",
-        argNames: ["that", "recipientMac", "transferId"],
-      );
-
-  @override
-  Future<DefaultFileTransferServiceHandle>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleNew({
-    required String selfMac,
-    required StorageRepositoryHandle storageHandle,
-    required ConnectionManagerHandle connManagerHandle,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(selfMac, serializer);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
-            storageHandle,
-            serializer,
-          );
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
-            connManagerHandle,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 7,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleNewConstMeta,
-        argValues: [selfMac, storageHandle, connManagerHandle],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleNewConstMeta =>
-      const TaskConstMeta(
-        debugName: "DefaultFileTransferServiceHandle_new",
-        argNames: ["selfMac", "storageHandle", "connManagerHandle"],
-      );
-
-  @override
-  Future<void>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfers({
-    required DefaultFileTransferServiceHandle that,
-    required String peerMac,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerMac, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 8,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfersConstMeta,
-        argValues: [that, peerMac],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfersConstMeta =>
-      const TaskConstMeta(
-        debugName:
-            "DefaultFileTransferServiceHandle_resume_pending_file_transfers",
-        argNames: ["that", "peerMac"],
-      );
-
-  @override
-  Future<String>
-  crateApiFileTransferServiceDefaultFileTransferServiceHandleSendFile({
-    required DefaultFileTransferServiceHandle that,
-    required String recipientMac,
-    required String filePathStr,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(recipientMac, serializer);
-          sse_encode_String(filePathStr, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 9,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta:
-            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleSendFileConstMeta,
-        argValues: [that, recipientMac, filePathStr],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleSendFileConstMeta =>
-      const TaskConstMeta(
-        debugName: "DefaultFileTransferServiceHandle_send_file",
-        argNames: ["that", "recipientMac", "filePathStr"],
-      );
-
-  @override
-  Future<MessagingServiceHandle>
-  crateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingService({
-    required DefaultMessagingServiceHandle that,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-            that,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 10,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingServiceConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingServiceConstMeta =>
-      const TaskConstMeta(
-        debugName: "DefaultMessagingServiceHandle_as_messaging_service",
-        argNames: ["that"],
-      );
-
-  @override
-  Future<void>
-  crateApiMessagingServiceDefaultMessagingServiceHandleFlushOutbox({
-    required DefaultMessagingServiceHandle that,
-    required String peerMac,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(peerMac, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 11,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiMessagingServiceDefaultMessagingServiceHandleFlushOutboxConstMeta,
-        argValues: [that, peerMac],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiMessagingServiceDefaultMessagingServiceHandleFlushOutboxConstMeta =>
-      const TaskConstMeta(
-        debugName: "DefaultMessagingServiceHandle_flush_outbox",
-        argNames: ["that", "peerMac"],
-      );
-
-  @override
-  Future<DefaultMessagingServiceHandle>
-  crateApiMessagingServiceDefaultMessagingServiceHandleNew({
-    required String selfMac,
-    required StorageRepositoryHandle storageHandle,
-    required ConnectionManagerHandle connManagerHandle,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(selfMac, serializer);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
-            storageHandle,
-            serializer,
-          );
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
-            connManagerHandle,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 12,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle,
-          decodeErrorData: null,
-        ),
-        constMeta:
-            kCrateApiMessagingServiceDefaultMessagingServiceHandleNewConstMeta,
-        argValues: [selfMac, storageHandle, connManagerHandle],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiMessagingServiceDefaultMessagingServiceHandleNewConstMeta =>
-      const TaskConstMeta(
-        debugName: "DefaultMessagingServiceHandle_new",
-        argNames: ["selfMac", "storageHandle", "connManagerHandle"],
-      );
-
-  @override
-  Future<void>
-  crateApiMessagingServiceDefaultMessagingServiceHandleSendMessage({
-    required DefaultMessagingServiceHandle that,
-    required String recipientMac,
-    required String content,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-            that,
-            serializer,
-          );
-          sse_encode_String(recipientMac, serializer);
-          sse_encode_String(content, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 13,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta:
-            kCrateApiMessagingServiceDefaultMessagingServiceHandleSendMessageConstMeta,
-        argValues: [that, recipientMac, content],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta
-  get kCrateApiMessagingServiceDefaultMessagingServiceHandleSendMessageConstMeta =>
-      const TaskConstMeta(
-        debugName: "DefaultMessagingServiceHandle_send_message",
-        argNames: ["that", "recipientMac", "content"],
-      );
-
-  @override
   Future<void>
   crateApiFileTransferTraitsFileTransferServiceHandleDispatchFileChunks({
     required FileTransferServiceHandle that,
@@ -1175,7 +712,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 5,
             port: port_,
           );
         },
@@ -1214,7 +751,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 6,
             port: port_,
           );
         },
@@ -1256,7 +793,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 7,
             port: port_,
           );
         },
@@ -1298,7 +835,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 8,
             port: port_,
           );
         },
@@ -1338,7 +875,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 9,
             port: port_,
           );
         },
@@ -1377,7 +914,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 10,
             port: port_,
           );
         },
@@ -1419,7 +956,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 11,
             port: port_,
           );
         },
@@ -1459,7 +996,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 12,
             port: port_,
           );
         },
@@ -1497,7 +1034,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 13,
             port: port_,
           );
         },
@@ -1534,7 +1071,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 14,
             port: port_,
           );
         },
@@ -1575,7 +1112,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 15,
             port: port_,
           );
         },
@@ -1612,7 +1149,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 16,
             port: port_,
           );
         },
@@ -1651,7 +1188,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 17,
             port: port_,
           );
         },
@@ -1687,7 +1224,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 18,
             port: port_,
           );
         },
@@ -1723,7 +1260,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 19,
             port: port_,
           );
         },
@@ -1763,7 +1300,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 29,
+              funcId: 20,
               port: port_,
             );
           },
@@ -1803,7 +1340,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 21,
             port: port_,
           );
         },
@@ -1845,7 +1382,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 22,
             port: port_,
           );
         },
@@ -1885,7 +1422,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1926,7 +1463,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 33,
+              funcId: 24,
               port: port_,
             );
           },
@@ -1966,7 +1503,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 25,
             port: port_,
           );
         },
@@ -2002,7 +1539,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 26,
             port: port_,
           );
         },
@@ -2042,7 +1579,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 27,
             port: port_,
           );
         },
@@ -2077,7 +1614,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2112,7 +1649,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(remoteIp, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2150,7 +1687,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 30,
             port: port_,
           );
         },
@@ -2192,7 +1729,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 31,
             port: port_,
           );
         },
@@ -2233,7 +1770,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 32,
             port: port_,
           );
         },
@@ -2274,7 +1811,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 33,
             port: port_,
           );
         },
@@ -2313,7 +1850,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 34,
             port: port_,
           );
         },
@@ -2354,7 +1891,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 35,
             port: port_,
           );
         },
@@ -2395,7 +1932,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 36,
             port: port_,
           );
         },
@@ -2435,7 +1972,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 37,
             port: port_,
           );
         },
@@ -2476,7 +2013,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 38,
             port: port_,
           );
         },
@@ -2517,7 +2054,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 39,
             port: port_,
           );
         },
@@ -2557,7 +2094,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 40,
             port: port_,
           );
         },
@@ -2597,7 +2134,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 41,
             port: port_,
           );
         },
@@ -2639,7 +2176,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 42,
             port: port_,
           );
         },
@@ -2680,7 +2217,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 43,
             port: port_,
           );
         },
@@ -2719,7 +2256,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 44,
             port: port_,
           );
         },
@@ -2760,7 +2297,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 45,
             port: port_,
           );
         },
@@ -2803,7 +2340,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 46,
             port: port_,
           );
         },
@@ -2845,7 +2382,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 47,
             port: port_,
           );
         },
@@ -2885,7 +2422,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 48,
             port: port_,
           );
         },
@@ -2924,7 +2461,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2966,7 +2503,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 59,
+            funcId: 50,
             port: port_,
           );
         },
@@ -3008,7 +2545,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 60,
+            funcId: 51,
             port: port_,
           );
         },
@@ -3049,7 +2586,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 52,
             port: port_,
           );
         },
@@ -3091,7 +2628,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 62,
+            funcId: 53,
             port: port_,
           );
         },
@@ -3128,7 +2665,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 54,
             port: port_,
           );
         },
@@ -3158,7 +2695,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 55,
             port: port_,
           );
         },
@@ -3188,7 +2725,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 65,
+            funcId: 56,
             port: port_,
           );
         },
@@ -3222,7 +2759,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 66,
+            funcId: 57,
             port: port_,
           );
         },
@@ -3253,7 +2790,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 67,
+            funcId: 58,
             port: port_,
           );
         },
@@ -3281,7 +2818,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 68,
+            funcId: 59,
             port: port_,
           );
         },
@@ -3308,7 +2845,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 69,
+            funcId: 60,
             port: port_,
           );
         },
@@ -3333,7 +2870,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 61)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -3358,7 +2895,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 62,
             port: port_,
           );
         },
@@ -3386,7 +2923,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 63,
             port: port_,
           );
         },
@@ -3419,7 +2956,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 64,
             port: port_,
           );
         },
@@ -3452,7 +2989,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 65,
             port: port_,
           );
         },
@@ -3488,7 +3025,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 75,
+            funcId: 66,
             port: port_,
           );
         },
@@ -3518,7 +3055,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 67,
             port: port_,
           );
         },
@@ -3575,22 +3112,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_ConnectionManagerHandle => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle;
-
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_DefaultFileTransferServiceHandle => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_DefaultFileTransferServiceHandle => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle;
-
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_DefaultMessagingServiceHandle => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_DefaultMessagingServiceHandle => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_FileTransferServiceHandle => wire
@@ -3704,28 +3225,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  DefaultFileTransferServiceHandle
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return DefaultFileTransferServiceHandleImpl.frbInternalDcoDecode(
-      raw as List<dynamic>,
-    );
-  }
-
-  @protected
-  DefaultMessagingServiceHandle
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return DefaultMessagingServiceHandleImpl.frbInternalDcoDecode(
-      raw as List<dynamic>,
-    );
-  }
-
-  @protected
   FileTransferServiceHandle
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
     dynamic raw,
@@ -3812,28 +3311,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return ConnectionManagerHandleImpl.frbInternalDcoDecode(
-      raw as List<dynamic>,
-    );
-  }
-
-  @protected
-  DefaultFileTransferServiceHandle
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return DefaultFileTransferServiceHandleImpl.frbInternalDcoDecode(
-      raw as List<dynamic>,
-    );
-  }
-
-  @protected
-  DefaultMessagingServiceHandle
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return DefaultMessagingServiceHandleImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
@@ -3954,28 +3431,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return ConnectionManagerHandleImpl.frbInternalDcoDecode(
-      raw as List<dynamic>,
-    );
-  }
-
-  @protected
-  DefaultFileTransferServiceHandle
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return DefaultFileTransferServiceHandleImpl.frbInternalDcoDecode(
-      raw as List<dynamic>,
-    );
-  }
-
-  @protected
-  DefaultMessagingServiceHandle
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return DefaultMessagingServiceHandleImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
@@ -4322,8 +3777,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PersistentMessage dco_decode_persistent_message(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return PersistentMessage(
       msgId: dco_decode_String(arr[0]),
       peerMac: dco_decode_String(arr[1]),
@@ -4336,6 +3791,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fileSize: dco_decode_opt_box_autoadd_u_64(arr[8]),
       fileHash: dco_decode_opt_String(arr[9]),
       filePath: dco_decode_opt_String(arr[10]),
+      sentChunks: dco_decode_u_32(arr[11]),
+      totalChunks: dco_decode_u_32(arr[12]),
     );
   }
 
@@ -4437,30 +3894,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return ConnectionManagerHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  DefaultFileTransferServiceHandle
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return DefaultFileTransferServiceHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  DefaultMessagingServiceHandle
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return DefaultMessagingServiceHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -4569,30 +4002,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return ConnectionManagerHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  DefaultFileTransferServiceHandle
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return DefaultFileTransferServiceHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  DefaultMessagingServiceHandle
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return DefaultMessagingServiceHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -4737,30 +4146,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return ConnectionManagerHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  DefaultFileTransferServiceHandle
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return DefaultFileTransferServiceHandleImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  DefaultMessagingServiceHandle
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return DefaultMessagingServiceHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -5225,6 +4610,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_fileSize = sse_decode_opt_box_autoadd_u_64(deserializer);
     var var_fileHash = sse_decode_opt_String(deserializer);
     var var_filePath = sse_decode_opt_String(deserializer);
+    var var_sentChunks = sse_decode_u_32(deserializer);
+    var var_totalChunks = sse_decode_u_32(deserializer);
     return PersistentMessage(
       msgId: var_msgId,
       peerMac: var_peerMac,
@@ -5237,6 +4624,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fileSize: var_fileSize,
       fileHash: var_fileHash,
       filePath: var_filePath,
+      sentChunks: var_sentChunks,
+      totalChunks: var_totalChunks,
     );
   }
 
@@ -5345,36 +4734,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as ConnectionManagerHandleImpl).frbInternalSseEncode(move: true),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    DefaultFileTransferServiceHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as DefaultFileTransferServiceHandleImpl).frbInternalSseEncode(
-        move: true,
-      ),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    DefaultMessagingServiceHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as DefaultMessagingServiceHandleImpl).frbInternalSseEncode(
-        move: true,
-      ),
       serializer,
     );
   }
@@ -5492,36 +4851,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as ConnectionManagerHandleImpl).frbInternalSseEncode(move: false),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    DefaultFileTransferServiceHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as DefaultFileTransferServiceHandleImpl).frbInternalSseEncode(
-        move: false,
-      ),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    DefaultMessagingServiceHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as DefaultMessagingServiceHandleImpl).frbInternalSseEncode(
-        move: false,
-      ),
       serializer,
     );
   }
@@ -5680,36 +5009,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as ConnectionManagerHandleImpl).frbInternalSseEncode(move: null),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
-    DefaultFileTransferServiceHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as DefaultFileTransferServiceHandleImpl).frbInternalSseEncode(
-        move: null,
-      ),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
-    DefaultMessagingServiceHandle self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as DefaultMessagingServiceHandleImpl).frbInternalSseEncode(
-        move: null,
-      ),
       serializer,
     );
   }
@@ -6156,6 +5455,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_u_64(self.fileSize, serializer);
     sse_encode_opt_String(self.fileHash, serializer);
     sse_encode_opt_String(self.filePath, serializer);
+    sse_encode_u_32(self.sentChunks, serializer);
+    sse_encode_u_32(self.totalChunks, serializer);
   }
 
   @protected
@@ -6357,120 +5658,6 @@ class ConnectionManagerHandleImpl extends RustOpaque
       .crateApiConnectionTraitsConnectionManagerHandleRemoveConnection(
         that: this,
         peerMac: peerMac,
-      );
-}
-
-@sealed
-class DefaultFileTransferServiceHandleImpl extends RustOpaque
-    implements DefaultFileTransferServiceHandle {
-  // Not to be used by end users
-  DefaultFileTransferServiceHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
-    : super.frbInternalDcoDecode(wire, _kStaticData);
-
-  // Not to be used by end users
-  DefaultFileTransferServiceHandleImpl.frbInternalSseDecode(
-    BigInt ptr,
-    int externalSizeOnNative,
-  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
-
-  static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount: RustLib
-        .instance
-        .api
-        .rust_arc_increment_strong_count_DefaultFileTransferServiceHandle,
-    rustArcDecrementStrongCount: RustLib
-        .instance
-        .api
-        .rust_arc_decrement_strong_count_DefaultFileTransferServiceHandle,
-    rustArcDecrementStrongCountPtr: RustLib
-        .instance
-        .api
-        .rust_arc_decrement_strong_count_DefaultFileTransferServiceHandlePtr,
-  );
-
-  Future<FileTransferServiceHandle> asFileTransferService() => RustLib
-      .instance
-      .api
-      .crateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferService(
-        that: this,
-      );
-
-  Future<void> dispatchFileChunks({
-    required String recipientMac,
-    required String transferId,
-  }) => RustLib.instance.api
-      .crateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunks(
-        that: this,
-        recipientMac: recipientMac,
-        transferId: transferId,
-      );
-
-  Future<void> resumePendingFileTransfers({required String peerMac}) => RustLib
-      .instance
-      .api
-      .crateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfers(
-        that: this,
-        peerMac: peerMac,
-      );
-
-  Future<String> sendFile({
-    required String recipientMac,
-    required String filePathStr,
-  }) => RustLib.instance.api
-      .crateApiFileTransferServiceDefaultFileTransferServiceHandleSendFile(
-        that: this,
-        recipientMac: recipientMac,
-        filePathStr: filePathStr,
-      );
-}
-
-@sealed
-class DefaultMessagingServiceHandleImpl extends RustOpaque
-    implements DefaultMessagingServiceHandle {
-  // Not to be used by end users
-  DefaultMessagingServiceHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
-    : super.frbInternalDcoDecode(wire, _kStaticData);
-
-  // Not to be used by end users
-  DefaultMessagingServiceHandleImpl.frbInternalSseDecode(
-    BigInt ptr,
-    int externalSizeOnNative,
-  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
-
-  static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount: RustLib
-        .instance
-        .api
-        .rust_arc_increment_strong_count_DefaultMessagingServiceHandle,
-    rustArcDecrementStrongCount: RustLib
-        .instance
-        .api
-        .rust_arc_decrement_strong_count_DefaultMessagingServiceHandle,
-    rustArcDecrementStrongCountPtr: RustLib
-        .instance
-        .api
-        .rust_arc_decrement_strong_count_DefaultMessagingServiceHandlePtr,
-  );
-
-  Future<MessagingServiceHandle> asMessagingService() => RustLib.instance.api
-      .crateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingService(
-        that: this,
-      );
-
-  Future<void> flushOutbox({required String peerMac}) => RustLib.instance.api
-      .crateApiMessagingServiceDefaultMessagingServiceHandleFlushOutbox(
-        that: this,
-        peerMac: peerMac,
-      );
-
-  Future<void> sendMessage({
-    required String recipientMac,
-    required String content,
-  }) => RustLib.instance.api
-      .crateApiMessagingServiceDefaultMessagingServiceHandleSendMessage(
-        that: this,
-        recipientMac: recipientMac,
-        content: content,
       );
 }
 

@@ -261,6 +261,8 @@ class PersistentMessage {
   final BigInt? fileSize;
   final String? fileHash;
   final String? filePath;
+  final int sentChunks;
+  final int totalChunks;
 
   const PersistentMessage({
     required this.msgId,
@@ -274,6 +276,8 @@ class PersistentMessage {
     this.fileSize,
     this.fileHash,
     this.filePath,
+    required this.sentChunks,
+    required this.totalChunks,
   });
 
   @override
@@ -288,7 +292,9 @@ class PersistentMessage {
       fileName.hashCode ^
       fileSize.hashCode ^
       fileHash.hashCode ^
-      filePath.hashCode;
+      filePath.hashCode ^
+      sentChunks.hashCode ^
+      totalChunks.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -305,5 +311,7 @@ class PersistentMessage {
           fileName == other.fileName &&
           fileSize == other.fileSize &&
           fileHash == other.fileHash &&
-          filePath == other.filePath;
+          filePath == other.filePath &&
+          sentChunks == other.sentChunks &&
+          totalChunks == other.totalChunks;
 }

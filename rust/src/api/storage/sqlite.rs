@@ -4,16 +4,15 @@ use async_trait::async_trait;
 use rusqlite::params;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::Arc;
 use flutter_rust_bridge::frb;
 use tokio_rusqlite::Connection as AsyncConnection;
 use tracing::{error, info, warn};
 
+#[frb(ignore)]
 pub struct LocalStorage {
     db: AsyncConnection,
 }
 
-#[frb(ignore)]
 impl LocalStorage {
     pub async fn open(db_path: PathBuf) -> Result<Self, String> {
         info!(path = ?db_path, "Opening SQLite database");
@@ -29,24 +28,25 @@ impl LocalStorage {
             .await
             .map_err(|e| format!("Failed to open SQLite database: {e}"))?;
 
+        // 检查是否存在 sent_chunks 字段，若不存在则直接触发 rebuild_schema 删除并重建表结构
         let check_schema = db
             .call(|conn| {
                 let mut stmt = conn.prepare("PRAGMA table_info(messages)")?;
-                let mut has_file_type = false;
+                let mut has_sent_chunks = false;
                 let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
 
                 for col in rows {
                     if let Ok(name) = col {
-                        if name == "file_type" {
-                            has_file_type = true;
+                        if name == "sent_chunks" {
+                            has_sent_chunks = true;
                             break;
                         }
                     }
                 }
 
-                if !has_file_type {
+                if !has_sent_chunks {
                     return Err(rusqlite::Error::ModuleError(
-                        "Schema mismatch: missing file fields in messages".to_string(),
+                        "Schema mismatch: missing chunk fields in messages".to_string(),
                     ).into());
                 }
                 Ok(())
@@ -93,7 +93,9 @@ impl LocalStorage {
                     file_name TEXT,
                     file_size INTEGER,
                     file_hash TEXT,
-                    file_path TEXT
+                    file_path TEXT,
+                    sent_chunks INTEGER NOT NULL DEFAULT 0,
+                    total_chunks INTEGER NOT NULL DEFAULT 0
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_messages_peer_mac ON messages(peer_mac);
@@ -131,6 +133,7 @@ impl LocalStorage {
             .map_err(|e| format!("Failed to create DB tables: {e}"))
     }
 
+    /// DROP 掉旧表并创建包含 chunk 进度的新表结构
     async fn rebuild_schema(db: &AsyncConnection) -> Result<(), String> {
         db.call(|conn| {
             conn.execute_batch(
@@ -161,7 +164,9 @@ impl LocalStorage {
                     file_name TEXT,
                     file_size INTEGER,
                     file_hash TEXT,
-                    file_path TEXT
+                    file_path TEXT,
+                    sent_chunks INTEGER NOT NULL DEFAULT 0,
+                    total_chunks INTEGER NOT NULL DEFAULT 0
                 );
 
                 CREATE INDEX idx_messages_peer_mac ON messages(peer_mac);
@@ -322,8 +327,11 @@ impl StorageRepository for LocalStorage {
             .db
             .call(move |conn| {
                 conn.execute(
-                    "INSERT OR REPLACE INTO messages (msg_id, peer_mac, is_outgoing, content, timestamp, status, file_type, file_name, file_size, file_hash, file_path)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                    "INSERT OR REPLACE INTO messages (
+                        msg_id, peer_mac, is_outgoing, content, timestamp, status,
+                        file_type, file_name, file_size, file_hash, file_path,
+                        sent_chunks, total_chunks
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
                     params![
                         msg.msg_id,
                         peer_mac,
@@ -336,6 +344,8 @@ impl StorageRepository for LocalStorage {
                         msg.file_size,
                         msg.file_hash,
                         msg.file_path,
+                        msg.sent_chunks,
+                        msg.total_chunks,
                     ],
                 )?;
                 Ok(())
@@ -376,7 +386,7 @@ impl StorageRepository for LocalStorage {
         self.db
             .call(move |conn| {
                 let mut stmt = conn.prepare(
-                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status, file_type, file_name, file_size, file_hash, file_path
+                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status, file_type, file_name, file_size, file_hash, file_path, sent_chunks, total_chunks
                      FROM messages WHERE peer_mac = ?1 ORDER BY timestamp ASC",
                 )?;
                 let rows = stmt.query_map(params![mac_owned], |row| {
@@ -395,6 +405,8 @@ impl StorageRepository for LocalStorage {
                         file_size: row.get(8)?,
                         file_hash: row.get(9)?,
                         file_path: row.get(10)?,
+                        sent_chunks: row.get(11)?,
+                        total_chunks: row.get(12)?,
                     })
                 })?;
 
@@ -415,7 +427,7 @@ impl StorageRepository for LocalStorage {
         self.db
             .call(move |conn| {
                 let mut stmt = conn.prepare(
-                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status, file_type, file_name, file_size, file_hash, file_path
+                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status, file_type, file_name, file_size, file_hash, file_path, sent_chunks, total_chunks
                      FROM messages WHERE peer_mac = ?1 AND is_outgoing = 1 AND status = ?2 ORDER BY timestamp ASC",
                 )?;
                 let rows = stmt.query_map(params![mac_owned, pending_status], |row| {
@@ -433,6 +445,8 @@ impl StorageRepository for LocalStorage {
                         file_size: row.get(8)?,
                         file_hash: row.get(9)?,
                         file_path: row.get(10)?,
+                        sent_chunks: row.get(11)?,
+                        total_chunks: row.get(12)?,
                     })
                 })?;
 
@@ -444,6 +458,26 @@ impl StorageRepository for LocalStorage {
             })
             .await
             .unwrap_or_default()
+    }
+
+
+    /// 更新数据库中指定消息的发送进度 sent_chunks
+    async fn update_message_progress(&self, msg_id: &str, sent_chunks: u32) {
+        let msg_id_owned = msg_id.to_string();
+        let res = self
+            .db
+            .call(move |conn| {
+                conn.execute(
+                    "UPDATE messages SET sent_chunks = ?1 WHERE msg_id = ?2",
+                    params![sent_chunks, msg_id_owned],
+                )?;
+                Ok(())
+            })
+            .await;
+
+        if let Err(e) = res {
+            error!(error = %e, msg_id = %msg_id, "Failed to update message progress");
+        }
     }
 
     async fn insert_file_transfer(&self, record: FileTransferRecord) {
@@ -647,7 +681,6 @@ impl StorageRepository for LocalStorage {
             .await
             .unwrap_or(None)
     }
-
 
     async fn update_transfer_progress(&self, transfer_id: &str, received_chunks: u32) -> Result<(), String> {
         let tid = transfer_id.to_string();

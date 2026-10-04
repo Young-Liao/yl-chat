@@ -8,7 +8,7 @@ import '../../lib.dart';
 import '../models.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they have generic arguments: `append_message`, `clear_file_transfer_trackers`, `get_acked_outbound_chunks`, `get_all_peers`, `get_file_transfer`, `get_messages_for_peer`, `get_peer`, `get_pending_messages`, `get_pending_outbound_transfers`, `get_transfer_progress`, `has_message`, `insert_file_transfer`, `mark_acked`, `mark_transfer_completed`, `record_chunk_received`, `record_outbound_chunk_ack`, `set_peer_online_status`, `update_transfer_progress`, `upsert_peer`
+// These functions are ignored because they have generic arguments: `append_message`, `clear_file_transfer_trackers`, `get_acked_outbound_chunks`, `get_all_peers`, `get_file_transfer`, `get_messages_for_peer`, `get_peer`, `get_pending_messages`, `get_pending_outbound_transfers`, `get_transfer_progress`, `has_message`, `insert_file_transfer`, `mark_acked`, `mark_transfer_completed`, `record_chunk_received`, `record_outbound_chunk_ack`, `set_peer_online_status`, `update_message_progress`, `update_transfer_progress`, `upsert_peer`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<StorageRepositoryHandle>>
 abstract class StorageRepositoryHandle implements RustOpaqueInterface {

@@ -1,4 +1,4 @@
-use crate::api::models::{FileTransferRecord, PeerRecord, PersistentMessage};
+use crate::api::models::{FileTransferRecord, MessageStatus, PeerRecord, PersistentMessage};
 use async_trait::async_trait;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -19,6 +19,7 @@ pub trait StorageRepository: Send + Sync {
     async fn mark_acked(&self, peer_mac: &str, target_msg_id: &str) -> bool;
     async fn get_messages_for_peer(&self, peer_mac: &str) -> Vec<PersistentMessage>;
     async fn get_pending_messages(&self, peer_mac: &str) -> Vec<PersistentMessage>;
+    async fn update_message_progress(&self, msg_id: &str, sent_chunks: u32);
 
     // FileTransfer 操作
     async fn insert_file_transfer(&self, record: FileTransferRecord);

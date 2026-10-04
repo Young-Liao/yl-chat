@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
@@ -52,12 +53,14 @@ class _ChatBoxState extends State<ChatBox> {
         if (currentPeer == null) return;
         final currentPeerMac = currentPeer.macAddress;
 
-        // 捕获新消息、对端ACK回复、或本地发送完成事件，强行刷新UI
+        // 捕获新消息、对端ACK回复或本地发送完成事件，刷新UI
         if (event == 'NEW_MSG:$currentPeerMac' ||
             event == 'ACK:$currentPeerMac' ||
-            event == 'MSG_SENT:$currentPeerMac' ||
-            event == 'PEER_LIST_UPDATED') {
-          _refreshMessages();
+            event == 'MSG_SENT:$currentPeerMac') {
+          _refreshMessages(autoScroll: true);
+        } else if (event.startsWith('FILE_PROGRESS')) {
+          // 文件传输进度更新时刷新列表，保持滚动条稳定
+          _refreshMessages(autoScroll: false);
         }
       },
       onError: (error) {
@@ -76,12 +79,12 @@ class _ChatBoxState extends State<ChatBox> {
     });
 
     if (chosenPeer.value != null) {
-      _refreshMessages();
+      _refreshMessages(autoScroll: true);
     }
   }
 
   /// 从 Rust LocalStorage 中主动刷新消息历史记录
-  Future<void> _refreshMessages() async {
+  Future<void> _refreshMessages({bool autoScroll = false}) async {
     final currentPeer = chosenPeer.value;
     if (currentPeer == null) return;
 
@@ -91,7 +94,9 @@ class _ChatBoxState extends State<ChatBox> {
         setState(() {
           _messages = history;
         });
-        _scrollToBottom();
+        if (autoScroll) {
+          _scrollToBottom();
+        }
       }
     } catch (e) {
       debugPrint('Failed to fetch messages: $e');
@@ -109,18 +114,21 @@ class _ChatBoxState extends State<ChatBox> {
 
     _messageController.clear();
     _pickedFiles.clear();
+    if (mounted) {
+      setState(() {});
+    }
+
     final recipientMac = currentPeer.macAddress;
 
     if (files.isNotEmpty) {
-
       for (final attachment in files) {
         try {
           await networkEngine.sendFile(
-              recipientMac: recipientMac,
-              filePathStr: attachment.file.path
+            recipientMac: recipientMac,
+            filePathStr: attachment.file.path,
           );
 
-          await _refreshMessages();
+          await _refreshMessages(autoScroll: true);
         } catch (e) {
           debugPrint('Failed to send file: $e');
         }
@@ -138,19 +146,19 @@ class _ChatBoxState extends State<ChatBox> {
         );
 
         // 2. 发送完成后立刻重新拉取 Storage，保证 UI 第一时间渲染该消息
-        await _refreshMessages();
+        await _refreshMessages(autoScroll: true);
       } catch (e) {
         debugPrint('Failed to send message: $e');
       }
     }
   }
 
-  /// 自动滚动到底部
+  /// 自动滚动到底部（因为 ListView 设置了 reverse: true，0.0 偏移量即为底部最新消息）
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0.0,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
@@ -164,19 +172,20 @@ class _ChatBoxState extends State<ChatBox> {
     _notifySubscription?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  void _onAttachFiles() {
-    // final files = FilePickerUtil.pickMultipleFiles();
+  void _onAttachFiles() async {
+    // 选文件接口调用（可按需要解锁）
   }
-
 
   void _onAttachImages() async {
     final images = await FilePickerUtil.pickMultipleImages();
-    _pickedFiles.addAll(images);
-    if (mounted) {
-      setState(() { });
+    if (images.isNotEmpty && mounted) {
+      setState(() {
+        _pickedFiles.addAll(images);
+      });
     }
   }
 
@@ -201,17 +210,17 @@ class _ChatBoxState extends State<ChatBox> {
           border: Border.all(color: theme.border),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // 适应内容高度
+          mainAxisSize: MainAxisSize.min,
           children: [
             // 1. 附件列表区域（仅在有文件时渲染）
             if (_pickedFiles.isNotEmpty)
               ConstrainedBox(
                 constraints: const BoxConstraints(
-                  maxHeight: 180, // 限制最大高度，约可容纳 2-3 项，多出部分自动可滚动
+                  maxHeight: 180,
                 ),
-                child: Scrollbar( // 加上滚动条支持
+                child: Scrollbar(
                   child: ListView.builder(
-                    shrinkWrap: true, // 内容少时不占用多余高度
+                    shrinkWrap: true,
                     itemCount: _pickedFiles.length,
                     itemBuilder: (context, index) {
                       final item = _pickedFiles[index];
@@ -328,12 +337,10 @@ class _ChatBoxState extends State<ChatBox> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
 
-    // 使用 ValueListenableBuilder 实时响应 chosenPeer 的变更
     return ValueListenableBuilder(
       valueListenable: chosenPeer,
       builder: (context, currentPeer, child) {
@@ -363,13 +370,17 @@ class _ChatBoxState extends State<ChatBox> {
                   ),
                 )
                     : ListView.builder(
+                  reverse: true,
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16.0),
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
-                    return _messages[index].toBubble(
-                        myInitials: "ME",
-                        peerInitials: "PC"
+                    final reversedIndex = _messages.length - 1 - index;
+                    final message = _messages[reversedIndex];
+
+                    return message.toBubble(
+                      myInitials: "ME",
+                      peerInitials: "PC",
                     );
                   },
                 ),
@@ -387,6 +398,108 @@ class _ChatBoxState extends State<ChatBox> {
   }
 }
 
+class AttachmentItem extends StatelessWidget {
+  final String fileName;
+  final String fileSize;
+  final File? file;
+  final VoidCallback? onDelete;
+
+  const AttachmentItem({
+    super.key,
+    required this.fileName,
+    required this.fileSize,
+    this.file,
+    this.onDelete,
+  });
+
+  bool get _isImage {
+    final ext = fileName.split('.').last.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic'].contains(ext);
+  }
+
+  Widget _buildThumbnail() {
+    final typeConfig = FilePickerUtil.getFileTypeConfig(fileName);
+
+    if (_isImage && file != null && file!.existsSync()) {
+      return Image.file(
+        file!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return FilePickerUtil.buildFileIcon(typeConfig);
+        },
+      );
+    }
+
+    return FilePickerUtil.buildFileIcon(typeConfig);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: theme.border,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: _buildThumbnail(),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  fileName,
+                  style: TextStyle(
+                    color: theme.textMain,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  fileSize,
+                  style: TextStyle(
+                    color: theme.textMuted,
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.grey, size: 18),
+            onPressed: onDelete,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            splashRadius: 18,
+          ),
+          const SizedBox(width: 10),
+        ],
+      ),
+    );
+  }
+}
+
 class ChatMessageBubble extends StatelessWidget {
   final String senderInitials;
   final String? text;
@@ -395,12 +508,13 @@ class ChatMessageBubble extends StatelessWidget {
   final bool isMe;
   final bool isAcked;
 
-  // 新增文件传输进度相关参数
   final bool isTransferring;
   final String? fileName;
-  final double progress; // 0.0 ~ 1.0 (例如 0.45 代表 45%)
-  final String? currentSizeText; // 例如 "2.1 MB"
-  final String? totalSizeText; // 例如 "4.8 MB"
+  final double progress;
+  final String? currentSizeText;
+  final String? totalSizeText;
+  final String? speedText;
+  final VoidCallback? onCancelTransfer;
 
   const ChatMessageBubble({
     super.key,
@@ -410,92 +524,113 @@ class ChatMessageBubble extends StatelessWidget {
     required this.timestamp,
     this.isMe = false,
     this.isAcked = false,
-    // 新增参数默认值
     this.isTransferring = false,
     this.fileName,
     this.progress = 0.0,
     this.currentSizeText,
     this.totalSizeText,
+    this.speedText,
+    this.onCancelTransfer,
   });
 
-  /// 构建传输进度卡片 Widget (根据图片完美还原 UI)
-  Widget _buildTransferProgressCard(AbstractTheme theme) {
+  Widget _buildImageTransferCard(AbstractTheme theme) {
     final percentageInt = (progress.clamp(0.0, 1.0) * 100).toInt();
 
+    String sizeInfo = '$percentageInt%';
+    if (currentSizeText != null && totalSizeText != null) {
+      sizeInfo += ' • $currentSizeText / $totalSizeText';
+    }
+
+    final progressOverlay = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: 54,
+              height: 54,
+              child: CircularProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                strokeWidth: 4,
+                backgroundColor: const Color(0xFF334155),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 20),
+              onPressed: onCancelTransfer,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          fileName ?? 'image.png',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          sizeInfo,
+          style: const TextStyle(
+            color: Color(0xFF94A3B8),
+            fontSize: 12,
+          ),
+        ),
+        if (speedText != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            speedText!,
+            style: const TextStyle(
+              color: Color(0xFF3B82F6),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ],
+    );
+
     return Container(
-      width: 280,
-      padding: const EdgeInsets.all(12.0),
+      width: 260,
+      height: 200,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: theme.bgDark, // 深色卡片背景
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.border, // 边框颜色
+          color: theme.border,
           width: 1,
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              // 左侧蓝底图标
-              FilePickerUtil.buildFileIcon(FilePickerUtil.getFileTypeConfig(fileName ?? "")),
-              const SizedBox(width: 10),
-              // 右侧文件名与大小信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 文件名
-                    Text(
-                      fileName ?? 'File',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // 45% 与 2.1 MB / 4.8 MB 左右分布
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '$percentageInt%',
-                          style: const TextStyle(
-                            color: Color(0xFF94A3B8),
-                            fontSize: 12,
-                          ),
-                        ),
-                        if (currentSizeText != null && totalSizeText != null)
-                          Text(
-                            '$currentSizeText / $totalSizeText',
-                            style: const TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontSize: 12,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+          if (isMe && imageUrl != null && imageUrl!.isNotEmpty) ...[
+            Positioned.fill(
+              child: imageUrl!.startsWith('http')
+                  ? Image.network(imageUrl!, fit: BoxFit.cover)
+                  : Image.file(File(imageUrl!), fit: BoxFit.cover),
+            ),
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.55),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // 蓝色进度条
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor: const Color(0xFF0F172A), // 进度条未完成背景
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF3B82F6), // 蓝色进度
-              ),
+            ),
+          ],
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: progressOverlay,
             ),
           ),
         ],
@@ -561,20 +696,15 @@ class ChatMessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
 
-    // 假设 context.appTheme 的逻辑
     final bubbleColor = isMe ? const Color(0xFF2563EB) : const Color(0xFF263354);
     final textColor = Colors.white;
 
-    // 内容逻辑控制
     Widget contentWidget;
     if (isTransferring) {
-      // 显示传输进度卡片
-      contentWidget = _buildTransferProgressCard(theme);
+      contentWidget = _buildImageTransferCard(theme);
     } else if (imageUrl != null && imageUrl!.isNotEmpty) {
-      // 显示完工图片
       contentWidget = _buildImageWidget(imageUrl!);
     } else {
-      // 显示普通文本
       contentWidget = _buildTextBubble(bubbleColor, textColor);
     }
 
@@ -641,138 +771,35 @@ class ChatMessageBubble extends StatelessWidget {
   }
 }
 
-class AttachmentItem extends StatelessWidget {
-  final String fileName;
-  final String fileSize;
-  final File? file;
-  final VoidCallback? onDelete;
-
-  const AttachmentItem({
-    super.key,
-    required this.fileName,
-    required this.fileSize,
-    this.file,
-    this.onDelete,
-  });
-
-  // 判断是否为图片类型
-  bool get _isImage {
-    final ext = fileName.split('.').last.toLowerCase();
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic'].contains(ext);
-  }
-
-  // 根据文件后缀获取对应的图标与背景色
-
-  // 渲染左侧预览图或文件图标
-  Widget _buildThumbnail() {
-    final typeConfig = FilePickerUtil.getFileTypeConfig(fileName);
-
-    // 如果是图片，且本地文件可用，尝试加载图片
-    if (_isImage && file != null && file!.existsSync()) {
-      return Image.file(
-        file!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return FilePickerUtil.buildFileIcon(typeConfig);
-        },
-      );
-    }
-
-    // 非图片或文件不存在时，渲染对应文件类型的图标
-    return FilePickerUtil.buildFileIcon(typeConfig);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.appTheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: theme.border,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 10),
-          // Rounded Thumbnail Container
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: _buildThumbnail(),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // File Information
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  fileName,
-                  style: TextStyle(
-                    color: theme.textMain,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  fileSize,
-                  style: TextStyle(
-                    color: theme.textMuted,
-                    fontSize: 11,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-
-          // Remove Button
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.grey, size: 18),
-            onPressed: onDelete,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            splashRadius: 18,
-          ),
-          const SizedBox(width: 10),
-        ],
-      ),
-    );
-  }
-}
-
 extension PersistentMessageX on PersistentMessage {
   bool get isImageMessage => fileType == FileType.image;
 
-  /// 判断当前消息是否处于传输/发送中
-  bool get isTransferring => status == MessageStatus.pending;
+  /// 计算传输进度 (0.0 ~ 1.0)
+  double get transferProgress {
+    if (totalChunks == 0) return 0.0;
+    return (sentChunks / totalChunks).clamp(0.0, 1.0);
+  }
+
+  /// 判断当前消息是否处于传输/未完成状态
+  bool get isTransferring {
+    if (totalChunks == 0) return status == MessageStatus.pending;
+    return status == MessageStatus.pending || sentChunks < totalChunks;
+  }
 
   ChatMessageBubble toBubble({
     required String myInitials,
     required String peerInitials,
-    double transferProgress = 0.0, // 支持外部传入实时传输进度 (0.0 ~ 1.0)
-    BigInt? transferredBytes,       // 支持外部传入已传输字节数
+    BigInt? transferredBytes,
+    String? speedText,
   }) {
     final DateTime dt = DateTime.fromMillisecondsSinceEpoch(timestamp.toInt());
     final String timeStr =
         "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
 
-    // 计算字节文本 (例如: "2.1 MB / 4.8 MB")
     String? currentSizeStr;
     String? totalSizeStr;
+
+    final progressValue = transferProgress;
 
     if (fileSize != null && fileSize! > BigInt.zero) {
       final int totalInt = fileSize!.toInt();
@@ -781,8 +808,7 @@ extension PersistentMessageX on PersistentMessage {
       if (transferredBytes != null) {
         currentSizeStr = FilePickerUtil.formatBytes(transferredBytes.toInt());
       } else {
-        // 若未传入已传输字节，则根据 progress 比例换算
-        final currentInt = (totalInt * transferProgress.clamp(0.0, 1.0)).toInt();
+        final currentInt = (totalInt * progressValue).toInt();
         currentSizeStr = FilePickerUtil.formatBytes(currentInt);
       }
     }
@@ -791,17 +817,16 @@ extension PersistentMessageX on PersistentMessage {
       key: ValueKey(msgId),
       senderInitials: isOutgoing ? myInitials : peerInitials,
       text: isImageMessage ? null : content,
-      // 未传输完成时不用直接显示图片，由进度卡片展示
-      imageUrl: (isImageMessage && !isTransferring) ? filePath : null,
+      imageUrl: filePath,
       timestamp: timeStr,
       isMe: isOutgoing,
       isAcked: status == MessageStatus.acked,
-      // 传输卡片所需参数
-      isTransferring: isTransferring && isImageMessage,
+      isTransferring: isImageMessage && isTransferring,
       fileName: fileName ?? (filePath != null ? p.basename(filePath!) : 'image.png'),
-      progress: transferProgress,
+      progress: progressValue,
       currentSizeText: currentSizeStr,
       totalSizeText: totalSizeStr,
+      speedText: speedText,
     );
   }
 }

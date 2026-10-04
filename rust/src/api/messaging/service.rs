@@ -52,6 +52,8 @@ impl MessagingService for DefaultMessagingService {
             file_size: None,
             file_hash: None,
             file_path: None,
+            sent_chunks: 0,
+            total_chunks: 0,
         };
 
         self.storage
@@ -114,45 +116,5 @@ impl DefaultMessagingService {
             connection_manager: Arc::clone(&self.connection_manager),
             event_emitter: Arc::clone(&self.event_emitter),
         }
-    }
-}
-
-// =========================================================================
-// FRB Opaque 包装层（供 Dart 端安全的生成和调用）
-// =========================================================================
-
-pub struct DefaultMessagingServiceHandle {
-    pub(crate) inner: Arc<DefaultMessagingService>,
-}
-
-impl DefaultMessagingServiceHandle {
-    pub fn new(
-        self_mac: String,
-        storage_handle: &StorageRepositoryHandle,
-        conn_manager_handle: &ConnectionManagerHandle,
-    ) -> Self {
-        let service = Arc::new(DefaultMessagingService::new(
-            self_mac,
-            Arc::clone(&storage_handle.inner),
-            Arc::clone(&conn_manager_handle.inner),
-            Arc::new(|_event| {
-                // 默认空事件发射器，如需向 Dart 推送事件建议使用 FRB 的 StreamSink
-            }),
-        ));
-        Self { inner: service }
-    }
-
-    pub fn as_messaging_service(&self) -> MessagingServiceHandle {
-        MessagingServiceHandle {
-            inner: Arc::clone(&self.inner) as Arc<dyn MessagingService>,
-        }
-    }
-
-    pub async fn send_message(&self, recipient_mac: String, content: String) -> Result<(), String> {
-        self.inner.send_message(recipient_mac, content).await
-    }
-
-    pub async fn flush_outbox(&self, peer_mac: String) {
-        self.inner.flush_outbox(&peer_mac).await;
     }
 }

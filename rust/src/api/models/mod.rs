@@ -80,6 +80,8 @@ pub struct PersistentMessage {
     pub file_size: Option<u64>,
     pub file_hash: Option<String>,
     pub file_path: Option<String>,
+    pub sent_chunks: u32,
+    pub total_chunks: u32,
 }
 
 /// 文件分块头信息 (Chunk Header)

@@ -1,8 +1,8 @@
 use crate::api::connection::manager::{PeerConnection, TcpConnectionManager};
 use crate::api::connection::traits::ConnectionManager;
-use crate::api::file_transfer::service::{DefaultFileTransferService, DefaultFileTransferServiceHandle};
+use crate::api::file_transfer::service::{DefaultFileTransferService};
 use crate::api::file_transfer::traits::{FileTransferService, FileTransferServiceHandle};
-use crate::api::messaging::service::{DefaultMessagingService, DefaultMessagingServiceHandle};
+use crate::api::messaging::service::{DefaultMessagingService};
 use crate::api::messaging::traits::{MessagingService, MessagingServiceHandle};
 use crate::api::models::{
     FileType, FileTransferRecord, MessageEnvelope, MessagePayload, MessageStatus, PeerRecord,
@@ -345,6 +345,8 @@ impl NetworkEngine {
                             file_size: None,
                             file_hash: None,
                             file_path: None,
+                            sent_chunks: 0,
+                            total_chunks: 0,
                         };
 
                         self.storage.append_message(env.sender_mac.clone(), msg).await;
@@ -459,6 +461,8 @@ impl NetworkEngine {
                                         file_size: Some(record.file_size),
                                         file_hash: Some(record.file_hash),
                                         file_path: Some(record.save_path),
+                                        sent_chunks: record.total_chunks,
+                                        total_chunks: record.total_chunks,
                                     };
                                     self.storage.append_message(record.peer_mac.clone(), msg).await;
 
@@ -475,6 +479,7 @@ impl NetworkEngine {
                                     self.emit_event(format!("FILE_COMPLETE:{}", header.transfer_id)).await;
                                     self.emit_event(format!("NEW_MSG:{}", record.peer_mac)).await;
                                 } else {
+                                    self.storage.update_message_progress(&header.transfer_id, recv_count).await;
                                     self.emit_event(format!(
                                         "FILE_PROGRESS:{}:{}",
                                         header.transfer_id,
@@ -486,15 +491,29 @@ impl NetworkEngine {
                         }
                     }
                 }
+                // 1. 收到分片 Ack：记录已 Ack 的 Chunk，并通知 UI 进度变化
                 MessagePayload::ChunkAck { transfer_id, chunk_index } => {
+                    // 1. 记录 outbound chunk ack 到数据库/Set
                     self.storage.record_outbound_chunk_ack(transfer_id.clone(), chunk_index).await;
-                    match self.storage.update_transfer_progress(&transfer_id, chunk_index).await {
-                        Ok(_) => {},
-                        Err(e) => {
-                            error!("Error when updating transfer progress: {e}");
+
+                    // 2. 获取当前实际已确认 Ack 的分片总数（精确计算）
+                    let acked_set = self.storage.get_acked_outbound_chunks(&transfer_id).await;
+                    let acked_count = acked_set.len() as u32;
+
+                    if let Some((_, total_chunks)) = self.storage.get_transfer_progress(&transfer_id).await {
+                        if total_chunks > 0 {
+                            // 3. 用真实的 acked_count 更新数据库中的进度
+                            let _ = self.storage.update_transfer_progress(&transfer_id, acked_count).await;
+                            self.storage.update_message_progress(&transfer_id, acked_count).await;
+
+                            // 4. 计算真实百分比并发送事件给 Flutter
+                            let progress_pct = ((acked_count as f32 / total_chunks as f32) * 100.0) as u32;
+                            self.emit_event(format!("FILE_PROGRESS:{}:{}", transfer_id, progress_pct)).await;
                         }
                     }
                 }
+
+                // 2. 收到整文件完成 Ack：标记文件与 Message 为 Acked（完成）
                 MessagePayload::FileCompleteAck { transfer_id } => {
                     let target = if !current_peer_mac.is_empty() {
                         &current_peer_mac
@@ -502,12 +521,15 @@ impl NetworkEngine {
                         &env.sender_mac
                     };
 
+                    // 标记 FileTransfer 完成并清理 Tracker
                     self.storage.mark_transfer_completed(&transfer_id).await;
                     self.storage.clear_file_transfer_trackers(&transfer_id).await;
 
+                    // 将 PersistentMessage 状态从 Pending 改为 Acked
                     if self.storage.mark_acked(target, &transfer_id).await {
                         self.emit_event(format!("ACK:{}", target)).await;
                     }
+
                     self.emit_event(format!("FILE_SENT:{}", transfer_id)).await;
                 }
                 MessagePayload::Ack { target_msg_id } => {
