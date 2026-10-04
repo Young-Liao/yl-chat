@@ -3,3 +3,7 @@ rust_root: rust/
 dart_output: lib/src/rust
 rust_preamble: |
   use std::path::PathBuf;
+  use crate::api::file_transfer::traits::FileTransferService;
+  use crate::api::storage::traits::StorageRepository;
+  use crate::api::connection::traits::ConnectionManager;
+  use crate::api::messaging::traits::MessagingService;

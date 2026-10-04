@@ -1,0 +1,1801 @@
+   Compiling rust_lib_yl_chat v0.1.0 (/Users/young/Projects/flutter_programs/yl_chat/rust)
+error[E0405]: cannot find trait `StorageRepository` in this scope
+  --> src/frb_generated.rs:81:40
+   |
+81 |             let api_storage = <Arc<dyn StorageRepository>>::sse_decode(&mut deserializer);
+   |                                        ^^^^^^^^^^^^^^^^^ not found in this scope
+   |
+help: consider importing this trait
+   |
+30 + use crate::api::storage::traits::StorageRepository;
+   |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+  --> src/frb_generated.rs:83:26
+   |
+83 |                 <Arc<dyn ConnectionManager>>::sse_decode(&mut deserializer);
+   |                          ^^^^^^^^^^^^^^^^^ not found in this scope
+   |
+help: consider importing this trait
+   |
+30 + use crate::api::connection::traits::ConnectionManager;
+   |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+   --> src/frb_generated.rs:126:40
+    |
+126 |             let api_storage = <Arc<dyn StorageRepository>>::sse_decode(&mut deserializer);
+    |                                        ^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this trait
+    |
+ 30 + use crate::api::storage::traits::StorageRepository;
+    |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+   --> src/frb_generated.rs:128:26
+    |
+128 |                 <Arc<dyn ConnectionManager>>::sse_decode(&mut deserializer);
+    |                          ^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this trait
+    |
+ 30 + use crate::api::connection::traits::ConnectionManager;
+    |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+   --> src/frb_generated.rs:491:26
+    |
+491 |                 <Arc<dyn FileTransferService>>::sse_decode(&mut deserializer);
+    |                          ^^^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this trait
+    |
+ 30 + use crate::api::file_transfer::traits::FileTransferService;
+    |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+   --> src/frb_generated.rs:542:50
+    |
+542 |             let api_messaging_service = <Arc<dyn MessagingService>>::sse_decode(&mut deserializer);
+    |                                                  ^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this trait
+    |
+ 30 + use crate::api::messaging::traits::MessagingService;
+    |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+   --> src/frb_generated.rs:644:40
+    |
+644 |             let api_storage = <Arc<dyn StorageRepository>>::sse_decode(&mut deserializer);
+    |                                        ^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this trait
+    |
+ 30 + use crate::api::storage::traits::StorageRepository;
+    |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:1434:35
+     |
+1434 |             let api_remote_mac = <RwLock<String>>::sse_decode(&mut deserializer);
+     |                                   ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:1598:40
+     |
+1598 |             let api_storage = <Arc<dyn StorageRepository>>::sse_decode(&mut deserializer);
+     |                                        ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:1623:19
+     |
+1623 | let api_stream = <TcpStream>::sse_decode(&mut deserializer);
+     |                   ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:2058:13
+     |
+2058 |         Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>,
+     |             ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:2065:69
+     |
+2065 |     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn ConnectionManager>>
+     |                                                                     ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:2068:69
+     |
+2068 |     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn FileTransferService>>
+     |                                                                     ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:2074:69
+     |
+2074 |     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn MessagingService>>
+     |                                                                     ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:2077:69
+     |
+2077 |     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn StorageRepository>>
+     |                                                                     ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:2098:61
+     |
+2098 |     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<RwLock<String>>
+     |                                                             ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:2101:61
+     |
+2101 |     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>
+     |                                                             ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+2101 -     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>
+2101 +     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Send<MessageEnvelope>>
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:2101:68
+     |
+2101 |     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>
+     |                                                                    ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:2107:61
+     |
+2107 |     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TcpStream>
+     |                                                             ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:2130:24
+     |
+2130 | impl SseDecode for Arc<RwLock<HashMap<String, Arc<PeerConnection>>>> {
+     |                        ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:2135:21
+     |
+2135 |                 Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>,
+     |                     ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:2152:28
+     |
+2152 | impl SseDecode for Arc<dyn ConnectionManager> {
+     |                            ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:2156:77
+     |
+2156 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn ConnectionManager>>,
+     |                                                                             ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:2162:28
+     |
+2162 | impl SseDecode for Arc<dyn FileTransferService> {
+     |                            ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:2166:77
+     |
+2166 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn FileTransferService>>,
+     |                                                                             ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:2184:28
+     |
+2184 | impl SseDecode for Arc<dyn MessagingService> {
+     |                            ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:2188:77
+     |
+2188 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn MessagingService>>,
+     |                                                                             ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:2194:28
+     |
+2194 | impl SseDecode for Arc<dyn StorageRepository> {
+     |                            ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:2198:77
+     |
+2198 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn StorageRepository>>,
+     |                                                                             ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:2264:20
+     |
+2264 | impl SseDecode for RwLock<String> {
+     |                    ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:2268:69
+     |
+2268 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<RwLock<String>>,
+     |                                                                     ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:2274:20
+     |
+2274 | impl SseDecode for Sender<MessageEnvelope> {
+     |                    ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+2274 - impl SseDecode for Sender<MessageEnvelope> {
+2274 + impl SseDecode for Send<MessageEnvelope> {
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:2274:27
+     |
+2274 | impl SseDecode for Sender<MessageEnvelope> {
+     |                           ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:2278:69
+     |
+2278 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+     |                                                                     ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+2278 -             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+2278 +             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Send<MessageEnvelope>>,
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:2278:76
+     |
+2278 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+     |                                                                            ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:2294:20
+     |
+2294 | impl SseDecode for TcpStream {
+     |                    ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:2298:69
+     |
+2298 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TcpStream>,
+     |                                                                     ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:2317:17
+     |
+2317 |             Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>,
+     |                 ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:2342:73
+     |
+2342 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn ConnectionManager>>,
+     |                                                                         ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:2354:73
+     |
+2354 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn FileTransferService>>,
+     |                                                                         ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:2378:73
+     |
+2378 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn MessagingService>>,
+     |                                                                         ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:2390:73
+     |
+2390 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn StorageRepository>>,
+     |                                                                         ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:2463:79
+     |
+2463 |     for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<RwLock<String>>>
+     |                                                                               ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:2474:65
+     |
+2474 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+     |                                                                 ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+2474 -         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+2474 +         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Send<MessageEnvelope>>,
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:2474:72
+     |
+2474 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+     |                                                                        ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:2495:79
+     |
+2495 |     for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TcpStream>>
+     |                                                                               ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:2804:21
+     |
+2804 | impl SseDecode for (Sender<MessageEnvelope>, Arc<PeerConnection>) {
+     |                     ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+2804 - impl SseDecode for (Sender<MessageEnvelope>, Arc<PeerConnection>) {
+2804 + impl SseDecode for (Send<MessageEnvelope>, Arc<PeerConnection>) {
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:2804:28
+     |
+2804 | impl SseDecode for (Sender<MessageEnvelope>, Arc<PeerConnection>) {
+     |                            ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:2807:31
+     |
+2807 |         let mut var_field0 = <Sender<MessageEnvelope>>::sse_decode(deserializer);
+     |                               ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+2807 -         let mut var_field0 = <Sender<MessageEnvelope>>::sse_decode(deserializer);
+2807 +         let mut var_field0 = <Send<MessageEnvelope>>::sse_decode(deserializer);
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:2807:38
+     |
+2807 |         let mut var_field0 = <Sender<MessageEnvelope>>::sse_decode(deserializer);
+     |                                      ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3106:24
+     |
+3106 |     for FrbWrapper<Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>>
+     |                        ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3114:24
+     |
+3114 |     for FrbWrapper<Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>>
+     |                        ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3119:54
+     |
+3119 |     flutter_rust_bridge::IntoIntoDart<FrbWrapper<Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>>>
+     |                                                      ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3120:13
+     |
+3120 |     for Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>
+     |             ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3122:47
+     |
+3122 |     fn into_into_dart(self) -> FrbWrapper<Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>> {
+     |                                               ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:3148:59
+     |
+3148 | impl flutter_rust_bridge::IntoDart for FrbWrapper<Arc<dyn ConnectionManager>> {
+     |                                                           ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:3155:28
+     |
+3155 |     for FrbWrapper<Arc<dyn ConnectionManager>>
+     |                            ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:3159:59
+     |
+3159 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<Arc<dyn ConnectionManager>>>
+     |                                                           ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:3160:17
+     |
+3160 |     for Arc<dyn ConnectionManager>
+     |                 ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:3162:51
+     |
+3162 |     fn into_into_dart(self) -> FrbWrapper<Arc<dyn ConnectionManager>> {
+     |                                                   ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:3168:59
+     |
+3168 | impl flutter_rust_bridge::IntoDart for FrbWrapper<Arc<dyn FileTransferService>> {
+     |                                                           ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:3175:28
+     |
+3175 |     for FrbWrapper<Arc<dyn FileTransferService>>
+     |                            ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:3179:59
+     |
+3179 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<Arc<dyn FileTransferService>>>
+     |                                                           ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:3180:17
+     |
+3180 |     for Arc<dyn FileTransferService>
+     |                 ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:3182:51
+     |
+3182 |     fn into_into_dart(self) -> FrbWrapper<Arc<dyn FileTransferService>> {
+     |                                                   ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:3208:59
+     |
+3208 | impl flutter_rust_bridge::IntoDart for FrbWrapper<Arc<dyn MessagingService>> {
+     |                                                           ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:3215:28
+     |
+3215 |     for FrbWrapper<Arc<dyn MessagingService>>
+     |                            ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:3219:59
+     |
+3219 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<Arc<dyn MessagingService>>>
+     |                                                           ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:3220:17
+     |
+3220 |     for Arc<dyn MessagingService>
+     |                 ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:3222:51
+     |
+3222 |     fn into_into_dart(self) -> FrbWrapper<Arc<dyn MessagingService>> {
+     |                                                   ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:3228:59
+     |
+3228 | impl flutter_rust_bridge::IntoDart for FrbWrapper<Arc<dyn StorageRepository>> {
+     |                                                           ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:3235:28
+     |
+3235 |     for FrbWrapper<Arc<dyn StorageRepository>>
+     |                            ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:3239:59
+     |
+3239 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<Arc<dyn StorageRepository>>>
+     |                                                           ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:3240:17
+     |
+3240 |     for Arc<dyn StorageRepository>
+     |                 ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:3242:51
+     |
+3242 |     fn into_into_dart(self) -> FrbWrapper<Arc<dyn StorageRepository>> {
+     |                                                   ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3348:51
+     |
+3348 | impl flutter_rust_bridge::IntoDart for FrbWrapper<RwLock<String>> {
+     |                                                   ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3354:81
+     |
+3354 | impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<RwLock<String>> {}
+     |                                                                                 ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3356:51
+     |
+3356 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<RwLock<String>>> for RwLock<String> {
+     |                                                   ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3356:72
+     |
+3356 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<RwLock<String>>> for RwLock<String> {
+     |                                                                        ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3357:43
+     |
+3357 |     fn into_into_dart(self) -> FrbWrapper<RwLock<String>> {
+     |                                           ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:3363:51
+     |
+3363 | impl flutter_rust_bridge::IntoDart for FrbWrapper<Sender<MessageEnvelope>> {
+     |                                                   ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+3363 - impl flutter_rust_bridge::IntoDart for FrbWrapper<Sender<MessageEnvelope>> {
+3363 + impl flutter_rust_bridge::IntoDart for FrbWrapper<Send<MessageEnvelope>> {
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:3363:58
+     |
+3363 | impl flutter_rust_bridge::IntoDart for FrbWrapper<Sender<MessageEnvelope>> {
+     |                                                          ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:3370:20
+     |
+3370 |     for FrbWrapper<Sender<MessageEnvelope>>
+     |                    ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+3370 -     for FrbWrapper<Sender<MessageEnvelope>>
+3370 +     for FrbWrapper<Send<MessageEnvelope>>
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:3370:27
+     |
+3370 |     for FrbWrapper<Sender<MessageEnvelope>>
+     |                           ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:3374:51
+     |
+3374 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<Sender<MessageEnvelope>>>
+     |                                                   ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+3374 - impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<Sender<MessageEnvelope>>>
+3374 + impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<Send<MessageEnvelope>>>
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:3374:58
+     |
+3374 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<Sender<MessageEnvelope>>>
+     |                                                          ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:3375:9
+     |
+3375 |     for Sender<MessageEnvelope>
+     |         ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+3375 -     for Sender<MessageEnvelope>
+3375 +     for Send<MessageEnvelope>
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:3375:16
+     |
+3375 |     for Sender<MessageEnvelope>
+     |                ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:3377:43
+     |
+3377 |     fn into_into_dart(self) -> FrbWrapper<Sender<MessageEnvelope>> {
+     |                                           ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+3377 -     fn into_into_dart(self) -> FrbWrapper<Sender<MessageEnvelope>> {
+3377 +     fn into_into_dart(self) -> FrbWrapper<Send<MessageEnvelope>> {
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:3377:50
+     |
+3377 |     fn into_into_dart(self) -> FrbWrapper<Sender<MessageEnvelope>> {
+     |                                                  ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:3401:51
+     |
+3401 | impl flutter_rust_bridge::IntoDart for FrbWrapper<TcpStream> {
+     |                                                   ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:3407:81
+     |
+3407 | impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<TcpStream> {}
+     |                                                                                 ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:3409:51
+     |
+3409 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<TcpStream>> for TcpStream {
+     |                                                   ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:3409:67
+     |
+3409 | impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<TcpStream>> for TcpStream {
+     |                                                                   ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:3410:43
+     |
+3410 |     fn into_into_dart(self) -> FrbWrapper<TcpStream> {
+     |                                           ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3660:24
+     |
+3660 | impl SseEncode for Arc<RwLock<HashMap<String, Arc<PeerConnection>>>> {
+     |                        ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3665:21
+     |
+3665 |                 Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>,
+     |                     ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:3686:28
+     |
+3686 | impl SseEncode for Arc<dyn ConnectionManager> {
+     |                            ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:3690:77
+     |
+3690 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn ConnectionManager>>,
+     |                                                                             ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:3698:28
+     |
+3698 | impl SseEncode for Arc<dyn FileTransferService> {
+     |                            ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:3702:77
+     |
+3702 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn FileTransferService>>,
+     |                                                                             ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:3724:28
+     |
+3724 | impl SseEncode for Arc<dyn MessagingService> {
+     |                            ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:3728:77
+     |
+3728 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn MessagingService>>,
+     |                                                                             ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:3736:28
+     |
+3736 | impl SseEncode for Arc<dyn StorageRepository> {
+     |                            ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:3740:77
+     |
+3740 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn StorageRepository>>,
+     |                                                                             ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3800:20
+     |
+3800 | impl SseEncode for RwLock<String> {
+     |                    ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3803:80
+     |
+3803 |         <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<RwLock < String >>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self), serializer);
+     |                                                                                ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:3807:20
+     |
+3807 | impl SseEncode for Sender<MessageEnvelope> {
+     |                    ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+3807 - impl SseEncode for Sender<MessageEnvelope> {
+3807 + impl SseEncode for Send<MessageEnvelope> {
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:3807:27
+     |
+3807 | impl SseEncode for Sender<MessageEnvelope> {
+     |                           ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:3811:69
+     |
+3811 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+     |                                                                     ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+3811 -             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+3811 +             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Send<MessageEnvelope>>,
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:3811:76
+     |
+3811 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+     |                                                                            ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:3831:20
+     |
+3831 | impl SseEncode for TcpStream {
+     |                    ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:3834:80
+     |
+3834 |         <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TcpStream>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self), serializer);
+     |                                                                                ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:3852:17
+     |
+3852 |             Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>,
+     |                 ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:3879:73
+     |
+3879 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn ConnectionManager>>,
+     |                                                                         ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:3892:73
+     |
+3892 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn FileTransferService>>,
+     |                                                                         ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:3918:73
+     |
+3918 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn MessagingService>>,
+     |                                                                         ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:3931:73
+     |
+3931 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn StorageRepository>>,
+     |                                                                         ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+  30 + use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:4011:79
+     |
+4011 |     for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<RwLock<String>>>
+     |                                                                               ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:4023:65
+     |
+4023 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+     |                                                                 ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+4023 -         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+4023 +         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Send<MessageEnvelope>>,
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:4023:72
+     |
+4023 |         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Sender<MessageEnvelope>>,
+     |                                                                        ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:4046:79
+     |
+4046 |     for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TcpStream>>
+     |                                                                               ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:4299:21
+     |
+4299 | impl SseEncode for (Sender<MessageEnvelope>, Arc<PeerConnection>) {
+     |                     ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+4299 - impl SseEncode for (Sender<MessageEnvelope>, Arc<PeerConnection>) {
+4299 + impl SseEncode for (Send<MessageEnvelope>, Arc<PeerConnection>) {
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:4299:28
+     |
+4299 | impl SseEncode for (Sender<MessageEnvelope>, Arc<PeerConnection>) {
+     |                            ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:4302:10
+     |
+4302 |         <Sender<MessageEnvelope>>::sse_encode(self.0, serializer);
+     |          ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+4302 -         <Sender<MessageEnvelope>>::sse_encode(self.0, serializer);
+4302 +         <Send<MessageEnvelope>>::sse_encode(self.0, serializer);
+     |
+help: consider importing this struct
+     |
+  30 + use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:4302:17
+     |
+4302 |         <Sender<MessageEnvelope>>::sse_encode(self.0, serializer);
+     |                 ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+  30 + use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:4396:21
+     |
+4396 |                 Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>,
+     |                     ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+4357 +     use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:4407:21
+     |
+4407 |                 Arc<RwLock<HashMap<String, Arc<PeerConnection>>>>,
+     |                     ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+4357 +     use std::sync::RwLock;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:4430:84
+     |
+4430 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn ConnectionManager >>>::increment_strong_count(ptr as _);
+     |                                                                                    ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+4357 +     use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `ConnectionManager` in this scope
+    --> src/frb_generated.rs:4437:84
+     |
+4437 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn ConnectionManager >>>::decrement_strong_count(ptr as _);
+     |                                                                                    ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+4357 +     use crate::api::connection::traits::ConnectionManager;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:4445:77
+     |
+4445 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn FileTransferService>>,
+     |                                                                             ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+4357 +     use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `FileTransferService` in this scope
+    --> src/frb_generated.rs:4454:77
+     |
+4454 |             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc<dyn FileTransferService>>,
+     |                                                                             ^^^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+4357 +     use crate::api::file_transfer::traits::FileTransferService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:4484:84
+     |
+4484 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn MessagingService >>>::increment_strong_count(ptr as _);
+     |                                                                                    ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+4357 +     use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `MessagingService` in this scope
+    --> src/frb_generated.rs:4491:84
+     |
+4491 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn MessagingService >>>::decrement_strong_count(ptr as _);
+     |                                                                                    ^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+4357 +     use crate::api::messaging::traits::MessagingService;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:4498:84
+     |
+4498 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn StorageRepository >>>::increment_strong_count(ptr as _);
+     |                                                                                    ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+4357 +     use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0405]: cannot find trait `StorageRepository` in this scope
+    --> src/frb_generated.rs:4505:84
+     |
+4505 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn StorageRepository >>>::decrement_strong_count(ptr as _);
+     |                                                                                    ^^^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this trait
+     |
+4357 +     use crate::api::storage::traits::StorageRepository;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:4596:74
+     |
+4596 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<RwLock < String >>>::increment_strong_count(ptr as _);
+     |                                                                          ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+4357 +     use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `RwLock` in this scope
+    --> src/frb_generated.rs:4603:74
+     |
+4603 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<RwLock < String >>>::decrement_strong_count(ptr as _);
+     |                                                                          ^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+4357 +     use std::sync::RwLock;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:4610:75
+     |
+4610 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner< Sender < MessageEnvelope >>>::increment_strong_count(ptr as _);
+     |                                                                           ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+4610 -         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner< Sender < MessageEnvelope >>>::increment_strong_count(ptr as _);
+4610 +         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner< Send < MessageEnvelope >>>::increment_strong_count(ptr as _);
+     |
+help: consider importing this struct
+     |
+4357 +     use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:4610:84
+     |
+4610 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner< Sender < MessageEnvelope >>>::increment_strong_count(ptr as _);
+     |                                                                                    ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+4357 +     use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `Sender` in this scope
+    --> src/frb_generated.rs:4617:75
+     |
+4617 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner< Sender < MessageEnvelope >>>::decrement_strong_count(ptr as _);
+     |                                                                           ^^^^^^
+     |
+    ::: /Users/young/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/marker.rs:92:1
+     |
+  92 | pub unsafe auto trait Send {
+     | -------------------------- similarly named trait `Send` defined here
+     |
+help: a trait with a similar name exists
+     |
+4617 -         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner< Sender < MessageEnvelope >>>::decrement_strong_count(ptr as _);
+4617 +         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner< Send < MessageEnvelope >>>::decrement_strong_count(ptr as _);
+     |
+help: consider importing this struct
+     |
+4357 +     use std::sync::mpsc::Sender;
+     |
+
+error[E0425]: cannot find type `MessageEnvelope` in this scope
+    --> src/frb_generated.rs:4617:84
+     |
+4617 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner< Sender < MessageEnvelope >>>::decrement_strong_count(ptr as _);
+     |                                                                                    ^^^^^^^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+4357 +     use crate::api::models::MessageEnvelope;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:4638:74
+     |
+4638 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TcpStream>>::increment_strong_count(ptr as _);
+     |                                                                          ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+4357 +     use std::net::TcpStream;
+     |
+
+error[E0425]: cannot find type `TcpStream` in this scope
+    --> src/frb_generated.rs:4645:74
+     |
+4645 |         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TcpStream>>::decrement_strong_count(ptr as _);
+     |                                                                          ^^^^^^^^^ not found in this scope
+     |
+help: consider importing this struct
+     |
+4357 +     use std::net::TcpStream;
+     |
+
+warning: unused import: `error`
+ --> src/api/discovery.rs:6:22
+  |
+6 | use tracing::{debug, error, info, warn};
+  |                      ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `PeerConnection`
+ --> src/api/engine.rs:1:39
+  |
+1 | use crate::api::connection::manager::{PeerConnection, TcpConnectionManager};
+  |                                       ^^^^^^^^^^^^^^
+
+warning: unused imports: `FileTransferRecord`, `FileType`, `MessageEnvelope`, `MessagePayload`, and `MessageStatus`
+ --> src/api/engine.rs:8:5
+  |
+8 |     FileType, MessageEnvelope, MessagePayload, MessageStatus, PeerRecord, PersistentMessage, FileTransferRecord,
+  |     ^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^                                 ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `warn`
+  --> src/api/engine.rs:22:35
+   |
+22 | use tracing::{debug, error, info, warn};
+   |                                   ^^^^
+
+warning: unused import: `uuid::Uuid`
+  --> src/api/engine.rs:23:5
+   |
+23 | use uuid::Uuid;
+   |     ^^^^^^^^^^
+
+Some errors have detailed explanations: E0405, E0425.
+For more information about an error, try `rustc --explain E0405`.
+warning: `rust_lib_yl_chat` (lib) generated 5 warnings
+error: could not compile `rust_lib_yl_chat` (lib) due to 144 previous errors; 5 warnings emitted

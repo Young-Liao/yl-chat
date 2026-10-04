@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yl_chat/src/rust/api/engine.dart';
+import 'package:yl_chat/src/rust/api/models.dart';
 
 import 'package:yl_chat/src/rust/frb_generated.dart';
-import 'package:yl_chat/src/rust/api/protocol.dart';
 
 void logStep(String step) {
   print('[TEST-INFO] ${DateTime.now().toIso8601String()} -> $step');
@@ -52,6 +53,7 @@ void main() {
     ];
 
     for (final path in filesToClean) {
+
       final file = File(path);
       if (await file.exists()) {
         try {
@@ -72,8 +74,8 @@ void main() {
     const clientPort = 14983;
 
     logStep('1. Instantiating NetworkEngine instances...');
-    final serverEngine = await NetworkEngine.newInstance(selfMac: serverMac, dbPathStr: clientDbPath);
-    final clientEngine = await NetworkEngine.newInstance(selfMac: clientMac, dbPathStr: serverDbPath);
+    final serverEngine = await NetworkEngineHandle.newInstance(selfMac: serverMac, dbPathStr: clientDbPath);
+    final clientEngine = await NetworkEngineHandle.newInstance(selfMac: clientMac, dbPathStr: serverDbPath);
 
     logStep('2. Starting TCP listeners...');
     final Stream<String> serverNotifyStream = await serverEngine.startListener(port: serverPort);
@@ -207,8 +209,8 @@ void main() {
     expect(await imageFile.exists(), isTrue, reason: 'Test image does not exist at $testImagePath');
 
     logStep('1. Instantiating NetworkEngine instances for image transfer...');
-    final serverEngine = await NetworkEngine.newInstance(selfMac: serverMac, dbPathStr: './img_db1.db');
-    final clientEngine = await NetworkEngine.newInstance(selfMac: clientMac, dbPathStr: './img_db2.db');
+    final serverEngine = await NetworkEngineHandle.newInstance(selfMac: serverMac, dbPathStr: './img_db1.db');
+    final clientEngine = await NetworkEngineHandle.newInstance(selfMac: clientMac, dbPathStr: './img_db2.db');
 
     logStep('2. Starting TCP listeners...');
     final Stream<String> serverNotifyStream = await serverEngine.startListener(port: serverPort);
@@ -301,11 +303,11 @@ void main() {
     const clientDbPath = './offline_resume_client.db';
 
     logStep('1. Instantiating NetworkEngine instances without active network listeners...');
-    final serverEngine = await NetworkEngine.newInstance(
+    final serverEngine = await NetworkEngineHandle.newInstance(
       selfMac: serverMac,
       dbPathStr: serverDbPath,
     );
-    final clientEngine = await NetworkEngine.newInstance(
+    final clientEngine = await NetworkEngineHandle.newInstance(
       selfMac: clientMac,
       dbPathStr: clientDbPath,
     );

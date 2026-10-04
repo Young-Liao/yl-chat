@@ -7,12 +7,23 @@
 // ignore_for_file: argument_type_not_assignable
 
 import 'api/bridge.dart';
+import 'api/connection/manager.dart';
+import 'api/connection/traits.dart';
 import 'api/discovery.dart';
-import 'api/protocol.dart';
+import 'api/engine.dart';
+import 'api/file_transfer/service.dart';
+import 'api/file_transfer/traits.dart';
+import 'api/messaging/service.dart';
+import 'api/messaging/traits.dart';
+import 'api/models.dart';
 import 'api/simple.dart';
+import 'api/storage/sqlite.dart';
+import 'api/storage/traits.dart';
+import 'api/utils.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
+import 'lib.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
@@ -24,76 +35,319 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_LocalStoragePtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage;
+  get rust_arc_decrement_strong_count_ArcConnectionManagerPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_NetworkEnginePtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine;
+  get rust_arc_decrement_strong_count_ArcFileTransferServicePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_PathBufPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf;
+  get rust_arc_decrement_strong_count_ArcMessagingServicePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ArcStorageRepositoryPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ConnectionManagerHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_DefaultFileTransferServiceHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_DefaultMessagingServiceHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_FileTransferServiceHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_LocalStorageHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_MessagingServiceHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_NetworkEngineHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_PeerConnectionPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_PeerConnectionHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_StorageRepositoryHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_TcpConnectionManagerHandlePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle;
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
-  LocalStorage
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  ArcConnectionManager
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
     dynamic raw,
   );
 
   @protected
-  NetworkEngine
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  ArcFileTransferService
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
     dynamic raw,
   );
 
   @protected
-  PathBuf
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  ArcMessagingService
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
     dynamic raw,
   );
 
   @protected
-  NetworkEngine
-  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  ArcStorageRepository
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
     dynamic raw,
   );
 
   @protected
-  LocalStorage
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  ConnectionManagerHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
     dynamic raw,
   );
 
   @protected
-  NetworkEngine
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  DefaultFileTransferServiceHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
     dynamic raw,
   );
 
   @protected
-  LocalStorage
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  DefaultMessagingServiceHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
     dynamic raw,
   );
 
   @protected
-  NetworkEngine
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  FileTransferServiceHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
     dynamic raw,
   );
 
   @protected
-  PathBuf
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  LocalStorageHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
     dynamic raw,
   );
 
   @protected
-  Set<int> dco_decode_Set_u_32_None(dynamic raw);
+  MessagingServiceHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  NetworkEngineHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    dynamic raw,
+  );
+
+  @protected
+  PeerConnection
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    dynamic raw,
+  );
+
+  @protected
+  PeerConnectionHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    dynamic raw,
+  );
+
+  @protected
+  StorageRepositoryHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    dynamic raw,
+  );
+
+  @protected
+  TcpConnectionManagerHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    dynamic raw,
+  );
+
+  @protected
+  PeerConnection
+  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    dynamic raw,
+  );
+
+  @protected
+  ConnectionManagerHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    dynamic raw,
+  );
+
+  @protected
+  DefaultFileTransferServiceHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  DefaultMessagingServiceHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  FileTransferServiceHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  LocalStorageHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    dynamic raw,
+  );
+
+  @protected
+  MessagingServiceHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  NetworkEngineHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    dynamic raw,
+  );
+
+  @protected
+  PeerConnection
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    dynamic raw,
+  );
+
+  @protected
+  PeerConnectionHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    dynamic raw,
+  );
+
+  @protected
+  StorageRepositoryHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    dynamic raw,
+  );
+
+  @protected
+  TcpConnectionManagerHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    dynamic raw,
+  );
+
+  @protected
+  ArcConnectionManager
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+    dynamic raw,
+  );
+
+  @protected
+  ArcFileTransferService
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+    dynamic raw,
+  );
+
+  @protected
+  ArcMessagingService
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    dynamic raw,
+  );
+
+  @protected
+  ArcStorageRepository
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    dynamic raw,
+  );
+
+  @protected
+  ConnectionManagerHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    dynamic raw,
+  );
+
+  @protected
+  DefaultFileTransferServiceHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  DefaultMessagingServiceHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  FileTransferServiceHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  LocalStorageHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    dynamic raw,
+  );
+
+  @protected
+  MessagingServiceHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    dynamic raw,
+  );
+
+  @protected
+  NetworkEngineHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    dynamic raw,
+  );
+
+  @protected
+  PeerConnection
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    dynamic raw,
+  );
+
+  @protected
+  PeerConnectionHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    dynamic raw,
+  );
+
+  @protected
+  StorageRepositoryHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    dynamic raw,
+  );
+
+  @protected
+  TcpConnectionManagerHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    dynamic raw,
+  );
 
   @protected
   RustStreamSink<String> dco_decode_StreamSink_String_Sse(dynamic raw);
@@ -105,7 +359,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  ChunkHeader dco_decode_box_autoadd_chunk_header(dynamic raw);
+
+  @protected
   FileTransferRecord dco_decode_box_autoadd_file_transfer_record(dynamic raw);
+
+  @protected
+  MessageEnvelope dco_decode_box_autoadd_message_envelope(dynamic raw);
 
   @protected
   PeerRecord dco_decode_box_autoadd_peer_record(dynamic raw);
@@ -115,6 +375,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  ChunkHeader dco_decode_chunk_header(dynamic raw);
 
   @protected
   FileTransferRecord dco_decode_file_transfer_record(dynamic raw);
@@ -145,6 +408,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  MessageEnvelope dco_decode_message_envelope(dynamic raw);
+
+  @protected
+  MessagePayload dco_decode_message_payload(dynamic raw);
 
   @protected
   MessageStatus dco_decode_message_status(dynamic raw);
@@ -194,61 +463,256 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
-  LocalStorage
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  ArcConnectionManager
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
     SseDeserializer deserializer,
   );
 
   @protected
-  NetworkEngine
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  ArcFileTransferService
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
     SseDeserializer deserializer,
   );
 
   @protected
-  PathBuf
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  ArcMessagingService
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
     SseDeserializer deserializer,
   );
 
   @protected
-  NetworkEngine
-  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  ArcStorageRepository
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
     SseDeserializer deserializer,
   );
 
   @protected
-  LocalStorage
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  ConnectionManagerHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
     SseDeserializer deserializer,
   );
 
   @protected
-  NetworkEngine
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  DefaultFileTransferServiceHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
     SseDeserializer deserializer,
   );
 
   @protected
-  LocalStorage
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  DefaultMessagingServiceHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
     SseDeserializer deserializer,
   );
 
   @protected
-  NetworkEngine
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  FileTransferServiceHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
     SseDeserializer deserializer,
   );
 
   @protected
-  PathBuf
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  LocalStorageHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
     SseDeserializer deserializer,
   );
 
   @protected
-  Set<int> sse_decode_Set_u_32_None(SseDeserializer deserializer);
+  MessagingServiceHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NetworkEngineHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PeerConnection
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PeerConnectionHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  StorageRepositoryHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TcpConnectionManagerHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PeerConnection
+  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ConnectionManagerHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DefaultFileTransferServiceHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DefaultMessagingServiceHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileTransferServiceHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalStorageHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MessagingServiceHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NetworkEngineHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PeerConnection
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PeerConnectionHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  StorageRepositoryHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TcpConnectionManagerHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ArcConnectionManager
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ArcFileTransferService
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ArcMessagingService
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ArcStorageRepository
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ConnectionManagerHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DefaultFileTransferServiceHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DefaultMessagingServiceHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileTransferServiceHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LocalStorageHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MessagingServiceHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NetworkEngineHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PeerConnection
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PeerConnectionHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  StorageRepositoryHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TcpConnectionManagerHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RustStreamSink<String> sse_decode_StreamSink_String_Sse(
@@ -262,7 +726,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  ChunkHeader sse_decode_box_autoadd_chunk_header(SseDeserializer deserializer);
+
+  @protected
   FileTransferRecord sse_decode_box_autoadd_file_transfer_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MessageEnvelope sse_decode_box_autoadd_message_envelope(
     SseDeserializer deserializer,
   );
 
@@ -276,6 +748,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  ChunkHeader sse_decode_chunk_header(SseDeserializer deserializer);
 
   @protected
   FileTransferRecord sse_decode_file_transfer_record(
@@ -312,6 +787,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  MessageEnvelope sse_decode_message_envelope(SseDeserializer deserializer);
+
+  @protected
+  MessagePayload sse_decode_message_payload(SseDeserializer deserializer);
 
   @protected
   MessageStatus sse_decode_message_status(SseDeserializer deserializer);
@@ -367,69 +848,297 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-    LocalStorage self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+    ArcConnectionManager self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-    NetworkEngine self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+    ArcFileTransferService self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
-    PathBuf self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    ArcMessagingService self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-    NetworkEngine self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    ArcStorageRepository self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-    LocalStorage self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    ConnectionManagerHandle self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-    NetworkEngine self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    DefaultFileTransferServiceHandle self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-    LocalStorage self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    DefaultMessagingServiceHandle self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-    NetworkEngine self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    FileTransferServiceHandle self,
     SseSerializer serializer,
   );
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
-    PathBuf self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    LocalStorageHandle self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_Set_u_32_None(Set<int> self, SseSerializer serializer);
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    MessagingServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    NetworkEngineHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    PeerConnection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    PeerConnectionHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    StorageRepositoryHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    TcpConnectionManagerHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    PeerConnection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    ConnectionManagerHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    DefaultFileTransferServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    DefaultMessagingServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    FileTransferServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    LocalStorageHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    MessagingServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    NetworkEngineHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    PeerConnection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    PeerConnectionHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    StorageRepositoryHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    TcpConnectionManagerHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+    ArcConnectionManager self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+    ArcFileTransferService self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    ArcMessagingService self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    ArcStorageRepository self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    ConnectionManagerHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    DefaultFileTransferServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    DefaultMessagingServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    FileTransferServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    LocalStorageHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    MessagingServiceHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    NetworkEngineHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    PeerConnection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    PeerConnectionHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    StorageRepositoryHandle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    TcpConnectionManagerHandle self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_StreamSink_String_Sse(
@@ -444,8 +1153,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_chunk_header(
+    ChunkHeader self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_file_transfer_record(
     FileTransferRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_message_envelope(
+    MessageEnvelope self,
     SseSerializer serializer,
   );
 
@@ -463,6 +1184,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_chunk_header(ChunkHeader self, SseSerializer serializer);
 
   @protected
   void sse_encode_file_transfer_record(
@@ -509,6 +1233,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_message_envelope(
+    MessageEnvelope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_message_payload(
+    MessagePayload self,
     SseSerializer serializer,
   );
 
@@ -570,50 +1306,242 @@ class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
     int ptr,
   ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
         ptr,
       );
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
     int ptr,
   ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
         ptr,
       );
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
     int ptr,
   ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
         ptr,
       );
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
     int ptr,
   ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
         ptr,
       );
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
     int ptr,
   ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
         ptr,
       );
 
   void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
     int ptr,
   ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
         ptr,
       );
 }
@@ -625,32 +1553,152 @@ external RustLibWasmModule get wasmModule;
 @anonymous
 extension type RustLibWasmModule._(JSObject _) implements JSObject {
   external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
     int ptr,
   );
 
   external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
     int ptr,
   );
 
   external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
     int ptr,
   );
 
   external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
     int ptr,
   );
 
   external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
     int ptr,
   );
 
   external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
     int ptr,
   );
 }

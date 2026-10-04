@@ -4,14 +4,25 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/bridge.dart';
+import 'api/connection/manager.dart';
+import 'api/connection/traits.dart';
 import 'api/discovery.dart';
-import 'api/protocol.dart';
+import 'api/engine.dart';
+import 'api/file_transfer/service.dart';
+import 'api/file_transfer/traits.dart';
+import 'api/messaging/service.dart';
+import 'api/messaging/traits.dart';
+import 'api/models.dart';
 import 'api/simple.dart';
+import 'api/storage/sqlite.dart';
+import 'api/storage/traits.dart';
+import 'api/utils.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
+import 'lib.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// Main entrypoint of the Rust API
@@ -69,7 +80,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -1983635487;
+  int get rustContentHash => -1989191928;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -81,170 +92,461 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<void> crateApiProtocolLocalStorageAppendMessage({
-    required LocalStorage that,
-    required String peerMac,
-    required PersistentMessage msg,
-  });
-
-  Future<void> crateApiProtocolLocalStorageClearFileTransferTrackers({
-    required LocalStorage that,
-    required String transferId,
-  });
-
-  Future<Set<int>> crateApiProtocolLocalStorageGetAckedOutboundChunks({
-    required LocalStorage that,
-    required String transferId,
-  });
-
-  Future<List<PeerRecord>> crateApiProtocolLocalStorageGetAllPeers({
-    required LocalStorage that,
-  });
-
-  Future<FileTransferRecord?> crateApiProtocolLocalStorageGetFileTransfer({
-    required LocalStorage that,
-    required String transferId,
-  });
-
-  Future<List<PersistentMessage>>
-  crateApiProtocolLocalStorageGetMessagesForPeer({
-    required LocalStorage that,
+  Future<PeerConnectionHandle>
+  crateApiConnectionTraitsConnectionManagerHandleGetOrConnect({
+    required ConnectionManagerHandle that,
     required String peerMac,
   });
 
-  Future<PeerRecord?> crateApiProtocolLocalStorageGetPeer({
-    required LocalStorage that,
-    required String mac,
-  });
-
-  Future<List<PersistentMessage>>
-  crateApiProtocolLocalStorageGetPendingMessages({
-    required LocalStorage that,
+  Future<bool> crateApiConnectionTraitsConnectionManagerHandleHasConnection({
+    required ConnectionManagerHandle that,
     required String peerMac,
   });
 
-  Future<List<FileTransferRecord>>
-  crateApiProtocolLocalStorageGetPendingOutboundTransfers({
-    required LocalStorage that,
+  Future<ConnectionManagerHandle>
+  crateApiConnectionTraitsConnectionManagerHandleNew({
+    required ArcConnectionManager inner,
+  });
+
+  Future<void> crateApiConnectionTraitsConnectionManagerHandleRemoveConnection({
+    required ConnectionManagerHandle that,
     required String peerMac,
   });
 
-  Future<bool> crateApiProtocolLocalStorageHasMessage({
-    required LocalStorage that,
-    required String msgId,
+  Future<FileTransferServiceHandle>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferService({
+    required DefaultFileTransferServiceHandle that,
   });
 
-  Future<void> crateApiProtocolLocalStorageInsertFileTransfer({
-    required LocalStorage that,
-    required FileTransferRecord record,
-  });
-
-  Future<bool> crateApiProtocolLocalStorageMarkAcked({
-    required LocalStorage that,
-    required String peerMac,
-    required String targetMsgId,
-  });
-
-  Future<void> crateApiProtocolLocalStorageMarkTransferCompleted({
-    required LocalStorage that,
+  Future<void>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunks({
+    required DefaultFileTransferServiceHandle that,
+    required String recipientMac,
     required String transferId,
   });
 
-  Future<LocalStorage> crateApiProtocolLocalStorageOpen({
-    required PathBuf dbPath,
-  });
-
-  Future<int> crateApiProtocolLocalStorageRecordChunkReceived({
-    required LocalStorage that,
-    required String transferId,
-    required int chunkIndex,
-  });
-
-  Future<void> crateApiProtocolLocalStorageRecordOutboundChunkAck({
-    required LocalStorage that,
-    required String transferId,
-    required int chunkIndex,
-  });
-
-  Future<void> crateApiProtocolLocalStorageSetPeerOnlineStatus({
-    required LocalStorage that,
-    required String mac,
-    required bool isOnline,
-  });
-
-  Future<void> crateApiProtocolLocalStorageUpsertPeer({
-    required LocalStorage that,
-    required PeerRecord record,
-  });
-
-  String crateApiProtocolNetworkEngineAutoAccessorGetSelfMac({
-    required NetworkEngine that,
-  });
-
-  void crateApiProtocolNetworkEngineAutoAccessorSetSelfMac({
-    required NetworkEngine that,
+  Future<DefaultFileTransferServiceHandle>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleNew({
     required String selfMac,
+    required StorageRepositoryHandle storageHandle,
+    required ConnectionManagerHandle connManagerHandle,
   });
 
-  Future<void> crateApiProtocolNetworkEngineFlushOutbox({
-    required NetworkEngine that,
+  Future<void>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfers({
+    required DefaultFileTransferServiceHandle that,
     required String peerMac,
   });
 
-  Future<List<PersistentMessage>> crateApiProtocolNetworkEngineGetMessages({
-    required NetworkEngine that,
-    required String peerMac,
-  });
-
-  Future<List<PeerRecord>> crateApiProtocolNetworkEngineGetPeers({
-    required NetworkEngine that,
-  });
-
-  Future<NetworkEngine> crateApiProtocolNetworkEngineNew({
-    required String selfMac,
-    required String dbPathStr,
-  });
-
-  Stream<String> crateApiProtocolNetworkEngineRegisterNotifySink({
-    required NetworkEngine that,
-  });
-
-  Future<void> crateApiProtocolNetworkEngineResumePendingFileTransfers({
-    required NetworkEngine that,
-    required String peerMac,
-  });
-
-  Future<void> crateApiProtocolNetworkEngineRunScanAndFlushCycle({
-    required NetworkEngine that,
-  });
-
-  Future<String> crateApiProtocolNetworkEngineSendFile({
-    required NetworkEngine that,
+  Future<String>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleSendFile({
+    required DefaultFileTransferServiceHandle that,
     required String recipientMac,
     required String filePathStr,
   });
 
-  Future<void> crateApiProtocolNetworkEngineSendMessage({
-    required NetworkEngine that,
+  Future<MessagingServiceHandle>
+  crateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingService({
+    required DefaultMessagingServiceHandle that,
+  });
+
+  Future<void>
+  crateApiMessagingServiceDefaultMessagingServiceHandleFlushOutbox({
+    required DefaultMessagingServiceHandle that,
+    required String peerMac,
+  });
+
+  Future<DefaultMessagingServiceHandle>
+  crateApiMessagingServiceDefaultMessagingServiceHandleNew({
+    required String selfMac,
+    required StorageRepositoryHandle storageHandle,
+    required ConnectionManagerHandle connManagerHandle,
+  });
+
+  Future<void>
+  crateApiMessagingServiceDefaultMessagingServiceHandleSendMessage({
+    required DefaultMessagingServiceHandle that,
     required String recipientMac,
     required String content,
   });
 
-  Stream<String> crateApiProtocolNetworkEngineStartListener({
-    required NetworkEngine that,
-    required int port,
+  Future<void>
+  crateApiFileTransferTraitsFileTransferServiceHandleDispatchFileChunks({
+    required FileTransferServiceHandle that,
+    required String recipientMac,
+    required String transferId,
   });
 
-  Future<void> crateApiProtocolNetworkEngineUpsertPeer({
-    required NetworkEngine that,
+  Future<FileTransferServiceHandle>
+  crateApiFileTransferTraitsFileTransferServiceHandleNew({
+    required ArcFileTransferService inner,
+  });
+
+  Future<void>
+  crateApiFileTransferTraitsFileTransferServiceHandleResumePendingFileTransfers({
+    required FileTransferServiceHandle that,
+    required String peerMac,
+  });
+
+  Future<String> crateApiFileTransferTraitsFileTransferServiceHandleSendFile({
+    required FileTransferServiceHandle that,
+    required String recipientMac,
+    required String filePathStr,
+  });
+
+  Future<void> crateApiStorageSqliteLocalStorageHandleAppendMessage({
+    required LocalStorageHandle that,
+    required String peerMac,
+    required PersistentMessage msg,
+  });
+
+  Future<StorageRepositoryHandle>
+  crateApiStorageSqliteLocalStorageHandleAsStorageRepository({
+    required LocalStorageHandle that,
+  });
+
+  Future<void>
+  crateApiStorageSqliteLocalStorageHandleClearFileTransferTrackers({
+    required LocalStorageHandle that,
+    required String transferId,
+  });
+
+  Future<Uint32List>
+  crateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunks({
+    required LocalStorageHandle that,
+    required String transferId,
+  });
+
+  Future<List<PeerRecord>> crateApiStorageSqliteLocalStorageHandleGetAllPeers({
+    required LocalStorageHandle that,
+  });
+
+  Future<FileTransferRecord?>
+  crateApiStorageSqliteLocalStorageHandleGetFileTransfer({
+    required LocalStorageHandle that,
+    required String transferId,
+  });
+
+  Future<List<PersistentMessage>>
+  crateApiStorageSqliteLocalStorageHandleGetMessagesForPeer({
+    required LocalStorageHandle that,
+    required String peerMac,
+  });
+
+  Future<PeerRecord?> crateApiStorageSqliteLocalStorageHandleGetPeer({
+    required LocalStorageHandle that,
+    required String mac,
+  });
+
+  Future<List<PersistentMessage>>
+  crateApiStorageSqliteLocalStorageHandleGetPendingMessages({
+    required LocalStorageHandle that,
+    required String peerMac,
+  });
+
+  Future<List<FileTransferRecord>>
+  crateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfers({
+    required LocalStorageHandle that,
+    required String peerMac,
+  });
+
+  Future<bool> crateApiStorageSqliteLocalStorageHandleHasMessage({
+    required LocalStorageHandle that,
+    required String msgId,
+  });
+
+  Future<void> crateApiStorageSqliteLocalStorageHandleInsertFileTransfer({
+    required LocalStorageHandle that,
+    required FileTransferRecord record,
+  });
+
+  Future<bool> crateApiStorageSqliteLocalStorageHandleMarkAcked({
+    required LocalStorageHandle that,
+    required String peerMac,
+    required String targetMsgId,
+  });
+
+  Future<void> crateApiStorageSqliteLocalStorageHandleMarkTransferCompleted({
+    required LocalStorageHandle that,
+    required String transferId,
+  });
+
+  Future<LocalStorageHandle> crateApiStorageSqliteLocalStorageHandleOpen({
+    required String dbPath,
+  });
+
+  Future<int> crateApiStorageSqliteLocalStorageHandleRecordChunkReceived({
+    required LocalStorageHandle that,
+    required String transferId,
+    required int chunkIndex,
+  });
+
+  Future<void> crateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAck({
+    required LocalStorageHandle that,
+    required String transferId,
+    required int chunkIndex,
+  });
+
+  Future<void> crateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatus({
+    required LocalStorageHandle that,
+    required String mac,
+    required bool isOnline,
+  });
+
+  Future<void> crateApiStorageSqliteLocalStorageHandleUpsertPeer({
+    required LocalStorageHandle that,
     required PeerRecord record,
   });
 
-  Future<PlatformInt64> crateApiProtocolChronoNowTimestamp();
+  Future<void> crateApiMessagingTraitsMessagingServiceHandleFlushOutbox({
+    required MessagingServiceHandle that,
+    required String peerMac,
+  });
 
-  Future<void> crateApiProtocolFileTypeAsStr({required FileType that});
+  Future<MessagingServiceHandle>
+  crateApiMessagingTraitsMessagingServiceHandleNew({
+    required ArcMessagingService inner,
+  });
 
-  Future<FileType> crateApiProtocolFileTypeFromStr({required String s});
+  Future<void> crateApiMessagingTraitsMessagingServiceHandleSendMessage({
+    required MessagingServiceHandle that,
+    required String recipientMac,
+    required String content,
+  });
+
+  Future<void> crateApiEngineNetworkEngineHandleEmitEvent({
+    required NetworkEngineHandle that,
+    required String event,
+  });
+
+  Future<void> crateApiEngineNetworkEngineHandleFlushOutbox({
+    required NetworkEngineHandle that,
+    required String peerMac,
+  });
+
+  Future<FileTransferServiceHandle>
+  crateApiEngineNetworkEngineHandleGetFileTransferService({
+    required NetworkEngineHandle that,
+  });
+
+  Future<List<PersistentMessage>> crateApiEngineNetworkEngineHandleGetMessages({
+    required NetworkEngineHandle that,
+    required String peerMac,
+  });
+
+  Future<MessagingServiceHandle>
+  crateApiEngineNetworkEngineHandleGetMessagingService({
+    required NetworkEngineHandle that,
+  });
+
+  Future<List<PeerRecord>> crateApiEngineNetworkEngineHandleGetPeers({
+    required NetworkEngineHandle that,
+  });
+
+  Future<StorageRepositoryHandle> crateApiEngineNetworkEngineHandleGetStorage({
+    required NetworkEngineHandle that,
+  });
+
+  Future<NetworkEngineHandle> crateApiEngineNetworkEngineHandleNew({
+    required String selfMac,
+    required String dbPathStr,
+  });
+
+  Stream<String> crateApiEngineNetworkEngineHandleRegisterNotifySink({
+    required NetworkEngineHandle that,
+  });
+
+  Future<void> crateApiEngineNetworkEngineHandleRunScanAndFlushCycle({
+    required NetworkEngineHandle that,
+  });
+
+  Future<String> crateApiEngineNetworkEngineHandleSendFile({
+    required NetworkEngineHandle that,
+    required String recipientMac,
+    required String filePathStr,
+  });
+
+  Future<void> crateApiEngineNetworkEngineHandleSendMessage({
+    required NetworkEngineHandle that,
+    required String recipientMac,
+    required String content,
+  });
+
+  Stream<String> crateApiEngineNetworkEngineHandleStartListener({
+    required NetworkEngineHandle that,
+    required int port,
+  });
+
+  Future<void> crateApiEngineNetworkEngineHandleUpsertPeer({
+    required NetworkEngineHandle that,
+    required PeerRecord record,
+  });
+
+  Future<String> crateApiConnectionTraitsPeerConnectionHandleRemoteIp({
+    required PeerConnectionHandle that,
+  });
+
+  Future<void> crateApiConnectionTraitsPeerConnectionHandleSendEnvelope({
+    required PeerConnectionHandle that,
+    required MessageEnvelope envelope,
+  });
+
+  String crateApiConnectionManagerPeerConnectionAutoAccessorGetRemoteIp({
+    required PeerConnection that,
+  });
+
+  void crateApiConnectionManagerPeerConnectionAutoAccessorSetRemoteIp({
+    required PeerConnection that,
+    required String remoteIp,
+  });
+
+  Future<void> crateApiConnectionManagerPeerConnectionSendEnvelope({
+    required PeerConnection that,
+    required MessageEnvelope envelope,
+  });
+
+  Future<void> crateApiStorageTraitsStorageRepositoryHandleAppendMessage({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+    required PersistentMessage msg,
+  });
+
+  Future<void>
+  crateApiStorageTraitsStorageRepositoryHandleClearFileTransferTrackers({
+    required StorageRepositoryHandle that,
+    required String transferId,
+  });
+
+  Future<Uint32List>
+  crateApiStorageTraitsStorageRepositoryHandleGetAckedOutboundChunks({
+    required StorageRepositoryHandle that,
+    required String transferId,
+  });
+
+  Future<List<PeerRecord>>
+  crateApiStorageTraitsStorageRepositoryHandleGetAllPeers({
+    required StorageRepositoryHandle that,
+  });
+
+  Future<FileTransferRecord?>
+  crateApiStorageTraitsStorageRepositoryHandleGetFileTransfer({
+    required StorageRepositoryHandle that,
+    required String transferId,
+  });
+
+  Future<List<PersistentMessage>>
+  crateApiStorageTraitsStorageRepositoryHandleGetMessagesForPeer({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+  });
+
+  Future<PeerRecord?> crateApiStorageTraitsStorageRepositoryHandleGetPeer({
+    required StorageRepositoryHandle that,
+    required String mac,
+  });
+
+  Future<List<PersistentMessage>>
+  crateApiStorageTraitsStorageRepositoryHandleGetPendingMessages({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+  });
+
+  Future<List<FileTransferRecord>>
+  crateApiStorageTraitsStorageRepositoryHandleGetPendingOutboundTransfers({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+  });
+
+  Future<bool> crateApiStorageTraitsStorageRepositoryHandleHasMessage({
+    required StorageRepositoryHandle that,
+    required String msgId,
+  });
+
+  Future<void> crateApiStorageTraitsStorageRepositoryHandleInsertFileTransfer({
+    required StorageRepositoryHandle that,
+    required FileTransferRecord record,
+  });
+
+  Future<bool> crateApiStorageTraitsStorageRepositoryHandleMarkAcked({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+    required String targetMsgId,
+  });
+
+  Future<void>
+  crateApiStorageTraitsStorageRepositoryHandleMarkTransferCompleted({
+    required StorageRepositoryHandle that,
+    required String transferId,
+  });
+
+  Future<StorageRepositoryHandle>
+  crateApiStorageTraitsStorageRepositoryHandleNew({
+    required ArcStorageRepository inner,
+  });
+
+  Future<int> crateApiStorageTraitsStorageRepositoryHandleRecordChunkReceived({
+    required StorageRepositoryHandle that,
+    required String transferId,
+    required int chunkIndex,
+  });
+
+  Future<void>
+  crateApiStorageTraitsStorageRepositoryHandleRecordOutboundChunkAck({
+    required StorageRepositoryHandle that,
+    required String transferId,
+    required int chunkIndex,
+  });
+
+  Future<void> crateApiStorageTraitsStorageRepositoryHandleSetPeerOnlineStatus({
+    required StorageRepositoryHandle that,
+    required String mac,
+    required bool isOnline,
+  });
+
+  Future<void> crateApiStorageTraitsStorageRepositoryHandleUpsertPeer({
+    required StorageRepositoryHandle that,
+    required PeerRecord record,
+  });
+
+  Future<ConnectionManagerHandle>
+  crateApiConnectionManagerTcpConnectionManagerHandleAsConnectionManager({
+    required TcpConnectionManagerHandle that,
+  });
+
+  Future<PeerConnectionHandle>
+  crateApiConnectionManagerTcpConnectionManagerHandleGetOrConnect({
+    required TcpConnectionManagerHandle that,
+    required String peerMac,
+  });
+
+  Future<bool>
+  crateApiConnectionManagerTcpConnectionManagerHandleHasConnection({
+    required TcpConnectionManagerHandle that,
+    required String peerMac,
+  });
+
+  Future<TcpConnectionManagerHandle>
+  crateApiConnectionManagerTcpConnectionManagerHandleNew({
+    required String selfMac,
+    required StorageRepositoryHandle storageHandle,
+  });
+
+  Future<void>
+  crateApiConnectionManagerTcpConnectionManagerHandleRemoveConnection({
+    required TcpConnectionManagerHandle that,
+    required String peerMac,
+  });
+
+  Future<int> crateApiUtilsCalculateTotalChunks({
+    required BigInt fileSize,
+    required BigInt chunkSize,
+  });
+
+  Future<PlatformInt64> crateApiUtilsChronoNowTimestamp();
+
+  Future<void> crateApiModelsFileTypeAsStr({required FileType that});
+
+  Future<FileType> crateApiModelsFileTypeFromStr({required String s});
 
   Future<String> crateApiDiscoveryGetDeviceIdentifier();
 
@@ -252,46 +554,156 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiSimpleInitApp();
 
-  Future<void> crateApiProtocolMessageStatusAsStr({
-    required MessageStatus that,
-  });
+  Future<void> crateApiModelsMessageStatusAsStr({required MessageStatus that});
 
-  Future<MessageStatus> crateApiProtocolMessageStatusFromStr({
-    required String s,
-  });
+  Future<MessageStatus> crateApiModelsMessageStatusFromStr({required String s});
 
   Future<void> crateApiDiscoveryRegisterBonjourService({
     required String macAddress,
   });
 
-  Future<void> crateApiBridgeScanAndFlush({required NetworkEngine engine});
+  Future<void> crateApiBridgeScanAndFlush({
+    required NetworkEngineHandle engine,
+  });
 
   Future<List<PeerInfo>> crateApiDiscoveryScanLanPeers({
     required String selfMac,
   });
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_LocalStorage;
+  get rust_arc_increment_strong_count_ArcConnectionManager;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_LocalStorage;
-
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_LocalStoragePtr;
-
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_NetworkEngine;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_NetworkEngine;
+  get rust_arc_decrement_strong_count_ArcConnectionManager;
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_NetworkEnginePtr;
+  get rust_arc_decrement_strong_count_ArcConnectionManagerPtr;
 
-  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_PathBuf;
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ArcFileTransferService;
 
-  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_PathBuf;
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ArcFileTransferService;
 
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_PathBufPtr;
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ArcFileTransferServicePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ArcMessagingService;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ArcMessagingService;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ArcMessagingServicePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ArcStorageRepository;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ArcStorageRepository;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ArcStorageRepositoryPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ConnectionManagerHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ConnectionManagerHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ConnectionManagerHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_DefaultFileTransferServiceHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_DefaultFileTransferServiceHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_DefaultFileTransferServiceHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_DefaultMessagingServiceHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_DefaultMessagingServiceHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_DefaultMessagingServiceHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_FileTransferServiceHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_FileTransferServiceHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_FileTransferServiceHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_LocalStorageHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_LocalStorageHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_LocalStorageHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_MessagingServiceHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_MessagingServiceHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_MessagingServiceHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_NetworkEngineHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_NetworkEngineHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_NetworkEngineHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_PeerConnection;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_PeerConnection;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_PeerConnectionPtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_PeerConnectionHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_PeerConnectionHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_PeerConnectionHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_StorageRepositoryHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_StorageRepositoryHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_StorageRepositoryHandlePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_TcpConnectionManagerHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_TcpConnectionManagerHandle;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_TcpConnectionManagerHandlePtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -303,21 +715,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Future<void> crateApiProtocolLocalStorageAppendMessage({
-    required LocalStorage that,
+  Future<PeerConnectionHandle>
+  crateApiConnectionTraitsConnectionManagerHandleGetOrConnect({
+    required ConnectionManagerHandle that,
     required String peerMac,
-    required PersistentMessage msg,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
             that,
             serializer,
           );
           sse_encode_String(peerMac, serializer);
-          sse_encode_box_autoadd_persistent_message(msg, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -326,36 +737,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolLocalStorageAppendMessageConstMeta,
-        argValues: [that, peerMac, msg],
+        constMeta:
+            kCrateApiConnectionTraitsConnectionManagerHandleGetOrConnectConstMeta,
+        argValues: [that, peerMac],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageAppendMessageConstMeta =>
+  TaskConstMeta
+  get kCrateApiConnectionTraitsConnectionManagerHandleGetOrConnectConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_append_message",
-        argNames: ["that", "peerMac", "msg"],
+        debugName: "ConnectionManagerHandle_get_or_connect",
+        argNames: ["that", "peerMac"],
       );
 
   @override
-  Future<void> crateApiProtocolLocalStorageClearFileTransferTrackers({
-    required LocalStorage that,
-    required String transferId,
+  Future<bool> crateApiConnectionTraitsConnectionManagerHandleHasConnection({
+    required ConnectionManagerHandle that,
+    required String peerMac,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
             that,
             serializer,
           );
-          sse_encode_String(transferId, serializer);
+          sse_encode_String(peerMac, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -364,38 +778,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_bool,
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiProtocolLocalStorageClearFileTransferTrackersConstMeta,
-        argValues: [that, transferId],
+            kCrateApiConnectionTraitsConnectionManagerHandleHasConnectionConstMeta,
+        argValues: [that, peerMac],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta
-  get kCrateApiProtocolLocalStorageClearFileTransferTrackersConstMeta =>
+  get kCrateApiConnectionTraitsConnectionManagerHandleHasConnectionConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_clear_file_transfer_trackers",
-        argNames: ["that", "transferId"],
+        debugName: "ConnectionManagerHandle_has_connection",
+        argNames: ["that", "peerMac"],
       );
 
   @override
-  Future<Set<int>> crateApiProtocolLocalStorageGetAckedOutboundChunks({
-    required LocalStorage that,
-    required String transferId,
+  Future<ConnectionManagerHandle>
+  crateApiConnectionTraitsConnectionManagerHandleNew({
+    required ArcConnectionManager inner,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-            that,
+          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+            inner,
             serializer,
           );
-          sse_encode_String(transferId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -404,35 +817,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_Set_u_32_None,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageGetAckedOutboundChunksConstMeta,
-        argValues: [that, transferId],
+        constMeta: kCrateApiConnectionTraitsConnectionManagerHandleNewConstMeta,
+        argValues: [inner],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta
-  get kCrateApiProtocolLocalStorageGetAckedOutboundChunksConstMeta =>
+  get kCrateApiConnectionTraitsConnectionManagerHandleNewConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_get_acked_outbound_chunks",
-        argNames: ["that", "transferId"],
+        debugName: "ConnectionManagerHandle_new",
+        argNames: ["inner"],
       );
 
   @override
-  Future<List<PeerRecord>> crateApiProtocolLocalStorageGetAllPeers({
-    required LocalStorage that,
+  Future<void> crateApiConnectionTraitsConnectionManagerHandleRemoveConnection({
+    required ConnectionManagerHandle that,
+    required String peerMac,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
             that,
             serializer,
           );
+          sse_encode_String(peerMac, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -441,36 +857,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_peer_record,
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageGetAllPeersConstMeta,
-        argValues: [that],
+        constMeta:
+            kCrateApiConnectionTraitsConnectionManagerHandleRemoveConnectionConstMeta,
+        argValues: [that, peerMac],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageGetAllPeersConstMeta =>
+  TaskConstMeta
+  get kCrateApiConnectionTraitsConnectionManagerHandleRemoveConnectionConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_get_all_peers",
-        argNames: ["that"],
+        debugName: "ConnectionManagerHandle_remove_connection",
+        argNames: ["that", "peerMac"],
       );
 
   @override
-  Future<FileTransferRecord?> crateApiProtocolLocalStorageGetFileTransfer({
-    required LocalStorage that,
-    required String transferId,
+  Future<FileTransferServiceHandle>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferService({
+    required DefaultFileTransferServiceHandle that,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
             that,
             serializer,
           );
-          sse_encode_String(transferId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -479,37 +896,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_file_transfer_record,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageGetFileTransferConstMeta,
-        argValues: [that, transferId],
+        constMeta:
+            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferServiceConstMeta,
+        argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageGetFileTransferConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferServiceConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_get_file_transfer",
-        argNames: ["that", "transferId"],
+        debugName: "DefaultFileTransferServiceHandle_as_file_transfer_service",
+        argNames: ["that"],
       );
 
   @override
-  Future<List<PersistentMessage>>
-  crateApiProtocolLocalStorageGetMessagesForPeer({
-    required LocalStorage that,
-    required String peerMac,
+  Future<void>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunks({
+    required DefaultFileTransferServiceHandle that,
+    required String recipientMac,
+    required String transferId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
             that,
             serializer,
           );
-          sse_encode_String(peerMac, serializer);
+          sse_encode_String(recipientMac, serializer);
+          sse_encode_String(transferId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -518,36 +940,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_persistent_message,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolLocalStorageGetMessagesForPeerConstMeta,
-        argValues: [that, peerMac],
+        constMeta:
+            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunksConstMeta,
+        argValues: [that, recipientMac, transferId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageGetMessagesForPeerConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunksConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_get_messages_for_peer",
-        argNames: ["that", "peerMac"],
+        debugName: "DefaultFileTransferServiceHandle_dispatch_file_chunks",
+        argNames: ["that", "recipientMac", "transferId"],
       );
 
   @override
-  Future<PeerRecord?> crateApiProtocolLocalStorageGetPeer({
-    required LocalStorage that,
-    required String mac,
+  Future<DefaultFileTransferServiceHandle>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleNew({
+    required String selfMac,
+    required StorageRepositoryHandle storageHandle,
+    required ConnectionManagerHandle connManagerHandle,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-            that,
+          sse_encode_String(selfMac, serializer);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            storageHandle,
             serializer,
           );
-          sse_encode_String(mac, serializer);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+            connManagerHandle,
+            serializer,
+          );
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -556,33 +986,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_peer_record,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageGetPeerConstMeta,
-        argValues: [that, mac],
+        constMeta:
+            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleNewConstMeta,
+        argValues: [selfMac, storageHandle, connManagerHandle],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageGetPeerConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleNewConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_get_peer",
-        argNames: ["that", "mac"],
+        debugName: "DefaultFileTransferServiceHandle_new",
+        argNames: ["selfMac", "storageHandle", "connManagerHandle"],
       );
 
   @override
-  Future<List<PersistentMessage>>
-  crateApiProtocolLocalStorageGetPendingMessages({
-    required LocalStorage that,
+  Future<void>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfers({
+    required DefaultFileTransferServiceHandle that,
     required String peerMac,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
             that,
             serializer,
           );
@@ -595,37 +1028,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_persistent_message,
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageGetPendingMessagesConstMeta,
+        constMeta:
+            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfersConstMeta,
         argValues: [that, peerMac],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageGetPendingMessagesConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfersConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_get_pending_messages",
+        debugName:
+            "DefaultFileTransferServiceHandle_resume_pending_file_transfers",
         argNames: ["that", "peerMac"],
       );
 
   @override
-  Future<List<FileTransferRecord>>
-  crateApiProtocolLocalStorageGetPendingOutboundTransfers({
-    required LocalStorage that,
-    required String peerMac,
+  Future<String>
+  crateApiFileTransferServiceDefaultFileTransferServiceHandleSendFile({
+    required DefaultFileTransferServiceHandle that,
+    required String recipientMac,
+    required String filePathStr,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
             that,
             serializer,
           );
-          sse_encode_String(peerMac, serializer);
+          sse_encode_String(recipientMac, serializer);
+          sse_encode_String(filePathStr, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -634,38 +1072,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_file_transfer_record,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
         ),
         constMeta:
-            kCrateApiProtocolLocalStorageGetPendingOutboundTransfersConstMeta,
-        argValues: [that, peerMac],
+            kCrateApiFileTransferServiceDefaultFileTransferServiceHandleSendFileConstMeta,
+        argValues: [that, recipientMac, filePathStr],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta
-  get kCrateApiProtocolLocalStorageGetPendingOutboundTransfersConstMeta =>
+  get kCrateApiFileTransferServiceDefaultFileTransferServiceHandleSendFileConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_get_pending_outbound_transfers",
-        argNames: ["that", "peerMac"],
+        debugName: "DefaultFileTransferServiceHandle_send_file",
+        argNames: ["that", "recipientMac", "filePathStr"],
       );
 
   @override
-  Future<bool> crateApiProtocolLocalStorageHasMessage({
-    required LocalStorage that,
-    required String msgId,
+  Future<MessagingServiceHandle>
+  crateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingService({
+    required DefaultMessagingServiceHandle that,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
             that,
             serializer,
           );
-          sse_encode_String(msgId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -674,36 +1111,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageHasMessageConstMeta,
-        argValues: [that, msgId],
+        constMeta:
+            kCrateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingServiceConstMeta,
+        argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageHasMessageConstMeta =>
+  TaskConstMeta
+  get kCrateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingServiceConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_has_message",
-        argNames: ["that", "msgId"],
+        debugName: "DefaultMessagingServiceHandle_as_messaging_service",
+        argNames: ["that"],
       );
 
   @override
-  Future<void> crateApiProtocolLocalStorageInsertFileTransfer({
-    required LocalStorage that,
-    required FileTransferRecord record,
+  Future<void>
+  crateApiMessagingServiceDefaultMessagingServiceHandleFlushOutbox({
+    required DefaultMessagingServiceHandle that,
+    required String peerMac,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
             that,
             serializer,
           );
-          sse_encode_box_autoadd_file_transfer_record(record, serializer);
+          sse_encode_String(peerMac, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -715,35 +1156,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageInsertFileTransferConstMeta,
-        argValues: [that, record],
+        constMeta:
+            kCrateApiMessagingServiceDefaultMessagingServiceHandleFlushOutboxConstMeta,
+        argValues: [that, peerMac],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageInsertFileTransferConstMeta =>
+  TaskConstMeta
+  get kCrateApiMessagingServiceDefaultMessagingServiceHandleFlushOutboxConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_insert_file_transfer",
-        argNames: ["that", "record"],
+        debugName: "DefaultMessagingServiceHandle_flush_outbox",
+        argNames: ["that", "peerMac"],
       );
 
   @override
-  Future<bool> crateApiProtocolLocalStorageMarkAcked({
-    required LocalStorage that,
-    required String peerMac,
-    required String targetMsgId,
+  Future<DefaultMessagingServiceHandle>
+  crateApiMessagingServiceDefaultMessagingServiceHandleNew({
+    required String selfMac,
+    required StorageRepositoryHandle storageHandle,
+    required ConnectionManagerHandle connManagerHandle,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-            that,
+          sse_encode_String(selfMac, serializer);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            storageHandle,
             serializer,
           );
-          sse_encode_String(peerMac, serializer);
-          sse_encode_String(targetMsgId, serializer);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+            connManagerHandle,
+            serializer,
+          );
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -752,36 +1199,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageMarkAckedConstMeta,
-        argValues: [that, peerMac, targetMsgId],
+        constMeta:
+            kCrateApiMessagingServiceDefaultMessagingServiceHandleNewConstMeta,
+        argValues: [selfMac, storageHandle, connManagerHandle],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageMarkAckedConstMeta =>
+  TaskConstMeta
+  get kCrateApiMessagingServiceDefaultMessagingServiceHandleNewConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_mark_acked",
-        argNames: ["that", "peerMac", "targetMsgId"],
+        debugName: "DefaultMessagingServiceHandle_new",
+        argNames: ["selfMac", "storageHandle", "connManagerHandle"],
       );
 
   @override
-  Future<void> crateApiProtocolLocalStorageMarkTransferCompleted({
-    required LocalStorage that,
-    required String transferId,
+  Future<void>
+  crateApiMessagingServiceDefaultMessagingServiceHandleSendMessage({
+    required DefaultMessagingServiceHandle that,
+    required String recipientMac,
+    required String content,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
             that,
             serializer,
           );
-          sse_encode_String(transferId, serializer);
+          sse_encode_String(recipientMac, serializer);
+          sse_encode_String(content, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -791,34 +1244,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolLocalStorageMarkTransferCompletedConstMeta,
-        argValues: [that, transferId],
+        constMeta:
+            kCrateApiMessagingServiceDefaultMessagingServiceHandleSendMessageConstMeta,
+        argValues: [that, recipientMac, content],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta
-  get kCrateApiProtocolLocalStorageMarkTransferCompletedConstMeta =>
+  get kCrateApiMessagingServiceDefaultMessagingServiceHandleSendMessageConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_mark_transfer_completed",
-        argNames: ["that", "transferId"],
+        debugName: "DefaultMessagingServiceHandle_send_message",
+        argNames: ["that", "recipientMac", "content"],
       );
 
   @override
-  Future<LocalStorage> crateApiProtocolLocalStorageOpen({
-    required PathBuf dbPath,
+  Future<void>
+  crateApiFileTransferTraitsFileTransferServiceHandleDispatchFileChunks({
+    required FileTransferServiceHandle that,
+    required String recipientMac,
+    required String transferId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
-            dbPath,
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+            that,
             serializer,
           );
+          sse_encode_String(recipientMac, serializer);
+          sse_encode_String(transferId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -827,36 +1286,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage,
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolLocalStorageOpenConstMeta,
-        argValues: [dbPath],
+        constMeta:
+            kCrateApiFileTransferTraitsFileTransferServiceHandleDispatchFileChunksConstMeta,
+        argValues: [that, recipientMac, transferId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageOpenConstMeta =>
-      const TaskConstMeta(debugName: "LocalStorage_open", argNames: ["dbPath"]);
+  TaskConstMeta
+  get kCrateApiFileTransferTraitsFileTransferServiceHandleDispatchFileChunksConstMeta =>
+      const TaskConstMeta(
+        debugName: "FileTransferServiceHandle_dispatch_file_chunks",
+        argNames: ["that", "recipientMac", "transferId"],
+      );
 
   @override
-  Future<int> crateApiProtocolLocalStorageRecordChunkReceived({
-    required LocalStorage that,
-    required String transferId,
-    required int chunkIndex,
+  Future<FileTransferServiceHandle>
+  crateApiFileTransferTraitsFileTransferServiceHandleNew({
+    required ArcFileTransferService inner,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-            that,
+          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+            inner,
             serializer,
           );
-          sse_encode_String(transferId, serializer);
-          sse_encode_u_32(chunkIndex, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -865,38 +1325,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_u_32,
-          decodeErrorData: sse_decode_String,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageRecordChunkReceivedConstMeta,
-        argValues: [that, transferId, chunkIndex],
+        constMeta:
+            kCrateApiFileTransferTraitsFileTransferServiceHandleNewConstMeta,
+        argValues: [inner],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageRecordChunkReceivedConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileTransferTraitsFileTransferServiceHandleNewConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_record_chunk_received",
-        argNames: ["that", "transferId", "chunkIndex"],
+        debugName: "FileTransferServiceHandle_new",
+        argNames: ["inner"],
       );
 
   @override
-  Future<void> crateApiProtocolLocalStorageRecordOutboundChunkAck({
-    required LocalStorage that,
-    required String transferId,
-    required int chunkIndex,
+  Future<void>
+  crateApiFileTransferTraitsFileTransferServiceHandleResumePendingFileTransfers({
+    required FileTransferServiceHandle that,
+    required String peerMac,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
             that,
             serializer,
           );
-          sse_encode_String(transferId, serializer);
-          sse_encode_u_32(chunkIndex, serializer);
+          sse_encode_String(peerMac, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -908,36 +1370,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageRecordOutboundChunkAckConstMeta,
-        argValues: [that, transferId, chunkIndex],
+        constMeta:
+            kCrateApiFileTransferTraitsFileTransferServiceHandleResumePendingFileTransfersConstMeta,
+        argValues: [that, peerMac],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta
-  get kCrateApiProtocolLocalStorageRecordOutboundChunkAckConstMeta =>
+  get kCrateApiFileTransferTraitsFileTransferServiceHandleResumePendingFileTransfersConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_record_outbound_chunk_ack",
-        argNames: ["that", "transferId", "chunkIndex"],
+        debugName: "FileTransferServiceHandle_resume_pending_file_transfers",
+        argNames: ["that", "peerMac"],
       );
 
   @override
-  Future<void> crateApiProtocolLocalStorageSetPeerOnlineStatus({
-    required LocalStorage that,
-    required String mac,
-    required bool isOnline,
+  Future<String> crateApiFileTransferTraitsFileTransferServiceHandleSendFile({
+    required FileTransferServiceHandle that,
+    required String recipientMac,
+    required String filePathStr,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
             that,
             serializer,
           );
-          sse_encode_String(mac, serializer);
-          sse_encode_bool(isOnline, serializer);
+          sse_encode_String(recipientMac, serializer);
+          sse_encode_String(filePathStr, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -946,36 +1409,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolLocalStorageSetPeerOnlineStatusConstMeta,
-        argValues: [that, mac, isOnline],
+        constMeta:
+            kCrateApiFileTransferTraitsFileTransferServiceHandleSendFileConstMeta,
+        argValues: [that, recipientMac, filePathStr],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageSetPeerOnlineStatusConstMeta =>
+  TaskConstMeta
+  get kCrateApiFileTransferTraitsFileTransferServiceHandleSendFileConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_set_peer_online_status",
-        argNames: ["that", "mac", "isOnline"],
+        debugName: "FileTransferServiceHandle_send_file",
+        argNames: ["that", "recipientMac", "filePathStr"],
       );
 
   @override
-  Future<void> crateApiProtocolLocalStorageUpsertPeer({
-    required LocalStorage that,
-    required PeerRecord record,
+  Future<void> crateApiStorageSqliteLocalStorageHandleAppendMessage({
+    required LocalStorageHandle that,
+    required String peerMac,
+    required PersistentMessage msg,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
-          sse_encode_box_autoadd_peer_record(record, serializer);
+          sse_encode_String(peerMac, serializer);
+          sse_encode_box_autoadd_persistent_message(msg, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -987,39 +1454,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolLocalStorageUpsertPeerConstMeta,
-        argValues: [that, record],
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleAppendMessageConstMeta,
+        argValues: [that, peerMac, msg],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolLocalStorageUpsertPeerConstMeta =>
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleAppendMessageConstMeta =>
       const TaskConstMeta(
-        debugName: "LocalStorage_upsert_peer",
-        argNames: ["that", "record"],
+        debugName: "LocalStorageHandle_append_message",
+        argNames: ["that", "peerMac", "msg"],
       );
 
   @override
-  String crateApiProtocolNetworkEngineAutoAccessorGetSelfMac({
-    required NetworkEngine that,
+  Future<StorageRepositoryHandle>
+  crateApiStorageSqliteLocalStorageHandleAsStorageRepository({
+    required LocalStorageHandle that,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle,
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiProtocolNetworkEngineAutoAccessorGetSelfMacConstMeta,
+            kCrateApiStorageSqliteLocalStorageHandleAsStorageRepositoryConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
@@ -1027,61 +1503,68 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiProtocolNetworkEngineAutoAccessorGetSelfMacConstMeta =>
+  get kCrateApiStorageSqliteLocalStorageHandleAsStorageRepositoryConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_auto_accessor_get_self_mac",
+        debugName: "LocalStorageHandle_as_storage_repository",
         argNames: ["that"],
       );
 
   @override
-  void crateApiProtocolNetworkEngineAutoAccessorSetSelfMac({
-    required NetworkEngine that,
-    required String selfMac,
+  Future<void>
+  crateApiStorageSqliteLocalStorageHandleClearFileTransferTrackers({
+    required LocalStorageHandle that,
+    required String transferId,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
-          sse_encode_String(selfMac, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 20)!;
+          sse_encode_String(transferId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiProtocolNetworkEngineAutoAccessorSetSelfMacConstMeta,
-        argValues: [that, selfMac],
+            kCrateApiStorageSqliteLocalStorageHandleClearFileTransferTrackersConstMeta,
+        argValues: [that, transferId],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta
-  get kCrateApiProtocolNetworkEngineAutoAccessorSetSelfMacConstMeta =>
+  get kCrateApiStorageSqliteLocalStorageHandleClearFileTransferTrackersConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_auto_accessor_set_self_mac",
-        argNames: ["that", "selfMac"],
+        debugName: "LocalStorageHandle_clear_file_transfer_trackers",
+        argNames: ["that", "transferId"],
       );
 
   @override
-  Future<void> crateApiProtocolNetworkEngineFlushOutbox({
-    required NetworkEngine that,
-    required String peerMac,
+  Future<Uint32List>
+  crateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunks({
+    required LocalStorageHandle that,
+    required String transferId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
-          sse_encode_String(peerMac, serializer);
+          sse_encode_String(transferId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1090,36 +1573,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_list_prim_u_32_strict,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolNetworkEngineFlushOutboxConstMeta,
-        argValues: [that, peerMac],
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunksConstMeta,
+        argValues: [that, transferId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolNetworkEngineFlushOutboxConstMeta =>
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunksConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_flush_outbox",
-        argNames: ["that", "peerMac"],
+        debugName: "LocalStorageHandle_get_acked_outbound_chunks",
+        argNames: ["that", "transferId"],
       );
 
   @override
-  Future<List<PersistentMessage>> crateApiProtocolNetworkEngineGetMessages({
-    required NetworkEngine that,
-    required String peerMac,
+  Future<List<PeerRecord>> crateApiStorageSqliteLocalStorageHandleGetAllPeers({
+    required LocalStorageHandle that,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
-          sse_encode_String(peerMac, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1128,34 +1611,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_persistent_message,
+          decodeSuccessData: sse_decode_list_peer_record,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolNetworkEngineGetMessagesConstMeta,
-        argValues: [that, peerMac],
+        constMeta: kCrateApiStorageSqliteLocalStorageHandleGetAllPeersConstMeta,
+        argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolNetworkEngineGetMessagesConstMeta =>
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleGetAllPeersConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_get_messages",
-        argNames: ["that", "peerMac"],
+        debugName: "LocalStorageHandle_get_all_peers",
+        argNames: ["that"],
       );
 
   @override
-  Future<List<PeerRecord>> crateApiProtocolNetworkEngineGetPeers({
-    required NetworkEngine that,
+  Future<FileTransferRecord?>
+  crateApiStorageSqliteLocalStorageHandleGetFileTransfer({
+    required LocalStorageHandle that,
+    required String transferId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
+          sse_encode_String(transferId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1164,33 +1651,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_peer_record,
+          decodeSuccessData: sse_decode_opt_box_autoadd_file_transfer_record,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolNetworkEngineGetPeersConstMeta,
-        argValues: [that],
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleGetFileTransferConstMeta,
+        argValues: [that, transferId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolNetworkEngineGetPeersConstMeta =>
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleGetFileTransferConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_get_peers",
-        argNames: ["that"],
+        debugName: "LocalStorageHandle_get_file_transfer",
+        argNames: ["that", "transferId"],
       );
 
   @override
-  Future<NetworkEngine> crateApiProtocolNetworkEngineNew({
-    required String selfMac,
-    required String dbPathStr,
+  Future<List<PersistentMessage>>
+  crateApiStorageSqliteLocalStorageHandleGetMessagesForPeer({
+    required LocalStorageHandle that,
+    required String peerMac,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(selfMac, serializer);
-          sse_encode_String(dbPathStr, serializer);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1199,74 +1692,73 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine,
-          decodeErrorData: sse_decode_String,
+          decodeSuccessData: sse_decode_list_persistent_message,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolNetworkEngineNewConstMeta,
-        argValues: [selfMac, dbPathStr],
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleGetMessagesForPeerConstMeta,
+        argValues: [that, peerMac],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolNetworkEngineNewConstMeta =>
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleGetMessagesForPeerConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_new",
-        argNames: ["selfMac", "dbPathStr"],
+        debugName: "LocalStorageHandle_get_messages_for_peer",
+        argNames: ["that", "peerMac"],
       );
 
   @override
-  Stream<String> crateApiProtocolNetworkEngineRegisterNotifySink({
-    required NetworkEngine that,
+  Future<PeerRecord?> crateApiStorageSqliteLocalStorageHandleGetPeer({
+    required LocalStorageHandle that,
+    required String mac,
   }) {
-    final sink = RustStreamSink<String>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-              that,
-              serializer,
-            );
-            sse_encode_StreamSink_String_Sse(sink, serializer);
-            pdeCallFfi(
-              generalizedFrbRustBinding,
-              serializer,
-              funcId: 25,
-              port: port_,
-            );
-          },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
-            decodeErrorData: null,
-          ),
-          constMeta: kCrateApiProtocolNetworkEngineRegisterNotifySinkConstMeta,
-          argValues: [that, sink],
-          apiImpl: this,
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(mac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 25,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_peer_record,
+          decodeErrorData: null,
         ),
+        constMeta: kCrateApiStorageSqliteLocalStorageHandleGetPeerConstMeta,
+        argValues: [that, mac],
+        apiImpl: this,
       ),
     );
-    return sink.stream;
   }
 
-  TaskConstMeta get kCrateApiProtocolNetworkEngineRegisterNotifySinkConstMeta =>
+  TaskConstMeta get kCrateApiStorageSqliteLocalStorageHandleGetPeerConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_register_notify_sink",
-        argNames: ["that", "sink"],
+        debugName: "LocalStorageHandle_get_peer",
+        argNames: ["that", "mac"],
       );
 
   @override
-  Future<void> crateApiProtocolNetworkEngineResumePendingFileTransfers({
-    required NetworkEngine that,
+  Future<List<PersistentMessage>>
+  crateApiStorageSqliteLocalStorageHandleGetPendingMessages({
+    required LocalStorageHandle that,
     required String peerMac,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
@@ -1279,11 +1771,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_list_persistent_message,
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiProtocolNetworkEngineResumePendingFileTransfersConstMeta,
+            kCrateApiStorageSqliteLocalStorageHandleGetPendingMessagesConstMeta,
         argValues: [that, peerMac],
         apiImpl: this,
       ),
@@ -1291,24 +1783,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta
-  get kCrateApiProtocolNetworkEngineResumePendingFileTransfersConstMeta =>
+  get kCrateApiStorageSqliteLocalStorageHandleGetPendingMessagesConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_resume_pending_file_transfers",
+        debugName: "LocalStorageHandle_get_pending_messages",
         argNames: ["that", "peerMac"],
       );
 
   @override
-  Future<void> crateApiProtocolNetworkEngineRunScanAndFlushCycle({
-    required NetworkEngine that,
+  Future<List<FileTransferRecord>>
+  crateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfers({
+    required LocalStorageHandle that,
+    required String peerMac,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
+          sse_encode_String(peerMac, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1317,39 +1812,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_list_file_transfer_record,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolNetworkEngineRunScanAndFlushCycleConstMeta,
-        argValues: [that],
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfersConstMeta,
+        argValues: [that, peerMac],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta
-  get kCrateApiProtocolNetworkEngineRunScanAndFlushCycleConstMeta =>
+  get kCrateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfersConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_run_scan_and_flush_cycle",
-        argNames: ["that"],
+        debugName: "LocalStorageHandle_get_pending_outbound_transfers",
+        argNames: ["that", "peerMac"],
       );
 
   @override
-  Future<String> crateApiProtocolNetworkEngineSendFile({
-    required NetworkEngine that,
-    required String recipientMac,
-    required String filePathStr,
+  Future<bool> crateApiStorageSqliteLocalStorageHandleHasMessage({
+    required LocalStorageHandle that,
+    required String msgId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
-          sse_encode_String(recipientMac, serializer);
-          sse_encode_String(filePathStr, serializer);
+          sse_encode_String(msgId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1358,38 +1852,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_String,
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolNetworkEngineSendFileConstMeta,
-        argValues: [that, recipientMac, filePathStr],
+        constMeta: kCrateApiStorageSqliteLocalStorageHandleHasMessageConstMeta,
+        argValues: [that, msgId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolNetworkEngineSendFileConstMeta =>
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleHasMessageConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_send_file",
-        argNames: ["that", "recipientMac", "filePathStr"],
+        debugName: "LocalStorageHandle_has_message",
+        argNames: ["that", "msgId"],
       );
 
   @override
-  Future<void> crateApiProtocolNetworkEngineSendMessage({
-    required NetworkEngine that,
-    required String recipientMac,
-    required String content,
+  Future<void> crateApiStorageSqliteLocalStorageHandleInsertFileTransfer({
+    required LocalStorageHandle that,
+    required FileTransferRecord record,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
-          sse_encode_String(recipientMac, serializer);
-          sse_encode_String(content, serializer);
+          sse_encode_box_autoadd_file_transfer_record(record, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1399,78 +1892,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_String,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolNetworkEngineSendMessageConstMeta,
-        argValues: [that, recipientMac, content],
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleInsertFileTransferConstMeta,
+        argValues: [that, record],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolNetworkEngineSendMessageConstMeta =>
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleInsertFileTransferConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_send_message",
-        argNames: ["that", "recipientMac", "content"],
+        debugName: "LocalStorageHandle_insert_file_transfer",
+        argNames: ["that", "record"],
       );
 
   @override
-  Stream<String> crateApiProtocolNetworkEngineStartListener({
-    required NetworkEngine that,
-    required int port,
-  }) {
-    final notifySink = RustStreamSink<String>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-              that,
-              serializer,
-            );
-            sse_encode_u_16(port, serializer);
-            sse_encode_StreamSink_String_Sse(notifySink, serializer);
-            pdeCallFfi(
-              generalizedFrbRustBinding,
-              serializer,
-              funcId: 30,
-              port: port_,
-            );
-          },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
-            decodeErrorData: sse_decode_String,
-          ),
-          constMeta: kCrateApiProtocolNetworkEngineStartListenerConstMeta,
-          argValues: [that, port, notifySink],
-          apiImpl: this,
-        ),
-      ),
-    );
-    return notifySink.stream;
-  }
-
-  TaskConstMeta get kCrateApiProtocolNetworkEngineStartListenerConstMeta =>
-      const TaskConstMeta(
-        debugName: "NetworkEngine_start_listener",
-        argNames: ["that", "port", "notifySink"],
-      );
-
-  @override
-  Future<void> crateApiProtocolNetworkEngineUpsertPeer({
-    required NetworkEngine that,
-    required PeerRecord record,
+  Future<bool> crateApiStorageSqliteLocalStorageHandleMarkAcked({
+    required LocalStorageHandle that,
+    required String peerMac,
+    required String targetMsgId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
             that,
             serializer,
           );
-          sse_encode_box_autoadd_peer_record(record, serializer);
+          sse_encode_String(peerMac, serializer);
+          sse_encode_String(targetMsgId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 30,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSqliteLocalStorageHandleMarkAckedConstMeta,
+        argValues: [that, peerMac, targetMsgId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleMarkAckedConstMeta =>
+      const TaskConstMeta(
+        debugName: "LocalStorageHandle_mark_acked",
+        argNames: ["that", "peerMac", "targetMsgId"],
+      );
+
+  @override
+  Future<void> crateApiStorageSqliteLocalStorageHandleMarkTransferCompleted({
+    required LocalStorageHandle that,
+    required String transferId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1482,25 +1975,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolNetworkEngineUpsertPeerConstMeta,
-        argValues: [that, record],
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleMarkTransferCompletedConstMeta,
+        argValues: [that, transferId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolNetworkEngineUpsertPeerConstMeta =>
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleMarkTransferCompletedConstMeta =>
       const TaskConstMeta(
-        debugName: "NetworkEngine_upsert_peer",
-        argNames: ["that", "record"],
+        debugName: "LocalStorageHandle_mark_transfer_completed",
+        argNames: ["that", "transferId"],
       );
 
   @override
-  Future<PlatformInt64> crateApiProtocolChronoNowTimestamp() {
+  Future<LocalStorageHandle> crateApiStorageSqliteLocalStorageHandleOpen({
+    required String dbPath,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(dbPath, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1509,26 +2007,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_i_64,
-          decodeErrorData: null,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolChronoNowTimestampConstMeta,
-        argValues: [],
+        constMeta: kCrateApiStorageSqliteLocalStorageHandleOpenConstMeta,
+        argValues: [dbPath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolChronoNowTimestampConstMeta =>
-      const TaskConstMeta(debugName: "chrono_now_timestamp", argNames: []);
+  TaskConstMeta get kCrateApiStorageSqliteLocalStorageHandleOpenConstMeta =>
+      const TaskConstMeta(
+        debugName: "LocalStorageHandle_open",
+        argNames: ["dbPath"],
+      );
 
   @override
-  Future<void> crateApiProtocolFileTypeAsStr({required FileType that}) {
+  Future<int> crateApiStorageSqliteLocalStorageHandleRecordChunkReceived({
+    required LocalStorageHandle that,
+    required String transferId,
+    required int chunkIndex,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_file_type(that, serializer);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
+          sse_encode_u_32(chunkIndex, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1537,26 +2048,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiProtocolFileTypeAsStrConstMeta,
-        argValues: [that],
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleRecordChunkReceivedConstMeta,
+        argValues: [that, transferId, chunkIndex],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolFileTypeAsStrConstMeta =>
-      const TaskConstMeta(debugName: "file_type_as_str", argNames: ["that"]);
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleRecordChunkReceivedConstMeta =>
+      const TaskConstMeta(
+        debugName: "LocalStorageHandle_record_chunk_received",
+        argNames: ["that", "transferId", "chunkIndex"],
+      );
 
   @override
-  Future<FileType> crateApiProtocolFileTypeFromStr({required String s}) {
+  Future<void> crateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAck({
+    required LocalStorageHandle that,
+    required String transferId,
+    required int chunkIndex,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(s, serializer);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
+          sse_encode_u_32(chunkIndex, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1565,17 +2090,2014 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAckConstMeta,
+        argValues: [that, transferId, chunkIndex],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAckConstMeta =>
+      const TaskConstMeta(
+        debugName: "LocalStorageHandle_record_outbound_chunk_ack",
+        argNames: ["that", "transferId", "chunkIndex"],
+      );
+
+  @override
+  Future<void> crateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatus({
+    required LocalStorageHandle that,
+    required String mac,
+    required bool isOnline,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(mac, serializer);
+          sse_encode_bool(isOnline, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 35,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatusConstMeta,
+        argValues: [that, mac, isOnline],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: "LocalStorageHandle_set_peer_online_status",
+        argNames: ["that", "mac", "isOnline"],
+      );
+
+  @override
+  Future<void> crateApiStorageSqliteLocalStorageHandleUpsertPeer({
+    required LocalStorageHandle that,
+    required PeerRecord record,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_peer_record(record, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 36,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageSqliteLocalStorageHandleUpsertPeerConstMeta,
+        argValues: [that, record],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageSqliteLocalStorageHandleUpsertPeerConstMeta =>
+      const TaskConstMeta(
+        debugName: "LocalStorageHandle_upsert_peer",
+        argNames: ["that", "record"],
+      );
+
+  @override
+  Future<void> crateApiMessagingTraitsMessagingServiceHandleFlushOutbox({
+    required MessagingServiceHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 37,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiMessagingTraitsMessagingServiceHandleFlushOutboxConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiMessagingTraitsMessagingServiceHandleFlushOutboxConstMeta =>
+      const TaskConstMeta(
+        debugName: "MessagingServiceHandle_flush_outbox",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<MessagingServiceHandle>
+  crateApiMessagingTraitsMessagingServiceHandleNew({
+    required ArcMessagingService inner,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+            inner,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 38,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiMessagingTraitsMessagingServiceHandleNewConstMeta,
+        argValues: [inner],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiMessagingTraitsMessagingServiceHandleNewConstMeta =>
+      const TaskConstMeta(
+        debugName: "MessagingServiceHandle_new",
+        argNames: ["inner"],
+      );
+
+  @override
+  Future<void> crateApiMessagingTraitsMessagingServiceHandleSendMessage({
+    required MessagingServiceHandle that,
+    required String recipientMac,
+    required String content,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(recipientMac, serializer);
+          sse_encode_String(content, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 39,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta:
+            kCrateApiMessagingTraitsMessagingServiceHandleSendMessageConstMeta,
+        argValues: [that, recipientMac, content],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiMessagingTraitsMessagingServiceHandleSendMessageConstMeta =>
+      const TaskConstMeta(
+        debugName: "MessagingServiceHandle_send_message",
+        argNames: ["that", "recipientMac", "content"],
+      );
+
+  @override
+  Future<void> crateApiEngineNetworkEngineHandleEmitEvent({
+    required NetworkEngineHandle that,
+    required String event,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(event, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 40,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleEmitEventConstMeta,
+        argValues: [that, event],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleEmitEventConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_emit_event",
+        argNames: ["that", "event"],
+      );
+
+  @override
+  Future<void> crateApiEngineNetworkEngineHandleFlushOutbox({
+    required NetworkEngineHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 41,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleFlushOutboxConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleFlushOutboxConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_flush_outbox",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<FileTransferServiceHandle>
+  crateApiEngineNetworkEngineHandleGetFileTransferService({
+    required NetworkEngineHandle that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 42,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiEngineNetworkEngineHandleGetFileTransferServiceConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiEngineNetworkEngineHandleGetFileTransferServiceConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_get_file_transfer_service",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<List<PersistentMessage>> crateApiEngineNetworkEngineHandleGetMessages({
+    required NetworkEngineHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 43,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_persistent_message,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleGetMessagesConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleGetMessagesConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_get_messages",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<MessagingServiceHandle>
+  crateApiEngineNetworkEngineHandleGetMessagingService({
+    required NetworkEngineHandle that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 44,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiEngineNetworkEngineHandleGetMessagingServiceConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiEngineNetworkEngineHandleGetMessagingServiceConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_get_messaging_service",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<List<PeerRecord>> crateApiEngineNetworkEngineHandleGetPeers({
+    required NetworkEngineHandle that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 45,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_peer_record,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleGetPeersConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleGetPeersConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_get_peers",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<StorageRepositoryHandle> crateApiEngineNetworkEngineHandleGetStorage({
+    required NetworkEngineHandle that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 46,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleGetStorageConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleGetStorageConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_get_storage",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<NetworkEngineHandle> crateApiEngineNetworkEngineHandleNew({
+    required String selfMac,
+    required String dbPathStr,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(selfMac, serializer);
+          sse_encode_String(dbPathStr, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 47,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleNewConstMeta,
+        argValues: [selfMac, dbPathStr],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleNewConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_new",
+        argNames: ["selfMac", "dbPathStr"],
+      );
+
+  @override
+  Stream<String> crateApiEngineNetworkEngineHandleRegisterNotifySink({
+    required NetworkEngineHandle that,
+  }) {
+    final sink = RustStreamSink<String>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+              that,
+              serializer,
+            );
+            sse_encode_StreamSink_String_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 48,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: null,
+          ),
+          constMeta:
+              kCrateApiEngineNetworkEngineHandleRegisterNotifySinkConstMeta,
+          argValues: [that, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta
+  get kCrateApiEngineNetworkEngineHandleRegisterNotifySinkConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_register_notify_sink",
+        argNames: ["that", "sink"],
+      );
+
+  @override
+  Future<void> crateApiEngineNetworkEngineHandleRunScanAndFlushCycle({
+    required NetworkEngineHandle that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 49,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiEngineNetworkEngineHandleRunScanAndFlushCycleConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiEngineNetworkEngineHandleRunScanAndFlushCycleConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_run_scan_and_flush_cycle",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<String> crateApiEngineNetworkEngineHandleSendFile({
+    required NetworkEngineHandle that,
+    required String recipientMac,
+    required String filePathStr,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(recipientMac, serializer);
+          sse_encode_String(filePathStr, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 50,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleSendFileConstMeta,
+        argValues: [that, recipientMac, filePathStr],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleSendFileConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_send_file",
+        argNames: ["that", "recipientMac", "filePathStr"],
+      );
+
+  @override
+  Future<void> crateApiEngineNetworkEngineHandleSendMessage({
+    required NetworkEngineHandle that,
+    required String recipientMac,
+    required String content,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(recipientMac, serializer);
+          sse_encode_String(content, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 51,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleSendMessageConstMeta,
+        argValues: [that, recipientMac, content],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleSendMessageConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_send_message",
+        argNames: ["that", "recipientMac", "content"],
+      );
+
+  @override
+  Stream<String> crateApiEngineNetworkEngineHandleStartListener({
+    required NetworkEngineHandle that,
+    required int port,
+  }) {
+    final notifySink = RustStreamSink<String>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+              that,
+              serializer,
+            );
+            sse_encode_u_16(port, serializer);
+            sse_encode_StreamSink_String_Sse(notifySink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 52,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_String,
+          ),
+          constMeta: kCrateApiEngineNetworkEngineHandleStartListenerConstMeta,
+          argValues: [that, port, notifySink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return notifySink.stream;
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleStartListenerConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_start_listener",
+        argNames: ["that", "port", "notifySink"],
+      );
+
+  @override
+  Future<void> crateApiEngineNetworkEngineHandleUpsertPeer({
+    required NetworkEngineHandle that,
+    required PeerRecord record,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_peer_record(record, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 53,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEngineNetworkEngineHandleUpsertPeerConstMeta,
+        argValues: [that, record],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEngineNetworkEngineHandleUpsertPeerConstMeta =>
+      const TaskConstMeta(
+        debugName: "NetworkEngineHandle_upsert_peer",
+        argNames: ["that", "record"],
+      );
+
+  @override
+  Future<String> crateApiConnectionTraitsPeerConnectionHandleRemoteIp({
+    required PeerConnectionHandle that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 54,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiConnectionTraitsPeerConnectionHandleRemoteIpConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionTraitsPeerConnectionHandleRemoteIpConstMeta =>
+      const TaskConstMeta(
+        debugName: "PeerConnectionHandle_remote_ip",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiConnectionTraitsPeerConnectionHandleSendEnvelope({
+    required PeerConnectionHandle that,
+    required MessageEnvelope envelope,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_message_envelope(envelope, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 55,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta:
+            kCrateApiConnectionTraitsPeerConnectionHandleSendEnvelopeConstMeta,
+        argValues: [that, envelope],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionTraitsPeerConnectionHandleSendEnvelopeConstMeta =>
+      const TaskConstMeta(
+        debugName: "PeerConnectionHandle_send_envelope",
+        argNames: ["that", "envelope"],
+      );
+
+  @override
+  String crateApiConnectionManagerPeerConnectionAutoAccessorGetRemoteIp({
+    required PeerConnection that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiConnectionManagerPeerConnectionAutoAccessorGetRemoteIpConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionManagerPeerConnectionAutoAccessorGetRemoteIpConstMeta =>
+      const TaskConstMeta(
+        debugName: "PeerConnection_auto_accessor_get_remote_ip",
+        argNames: ["that"],
+      );
+
+  @override
+  void crateApiConnectionManagerPeerConnectionAutoAccessorSetRemoteIp({
+    required PeerConnection that,
+    required String remoteIp,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+            that,
+            serializer,
+          );
+          sse_encode_String(remoteIp, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiConnectionManagerPeerConnectionAutoAccessorSetRemoteIpConstMeta,
+        argValues: [that, remoteIp],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionManagerPeerConnectionAutoAccessorSetRemoteIpConstMeta =>
+      const TaskConstMeta(
+        debugName: "PeerConnection_auto_accessor_set_remote_ip",
+        argNames: ["that", "remoteIp"],
+      );
+
+  @override
+  Future<void> crateApiConnectionManagerPeerConnectionSendEnvelope({
+    required PeerConnection that,
+    required MessageEnvelope envelope,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_message_envelope(envelope, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 58,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta:
+            kCrateApiConnectionManagerPeerConnectionSendEnvelopeConstMeta,
+        argValues: [that, envelope],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionManagerPeerConnectionSendEnvelopeConstMeta =>
+      const TaskConstMeta(
+        debugName: "PeerConnection_send_envelope",
+        argNames: ["that", "envelope"],
+      );
+
+  @override
+  Future<void> crateApiStorageTraitsStorageRepositoryHandleAppendMessage({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+    required PersistentMessage msg,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          sse_encode_box_autoadd_persistent_message(msg, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 59,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleAppendMessageConstMeta,
+        argValues: [that, peerMac, msg],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleAppendMessageConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_append_message",
+        argNames: ["that", "peerMac", "msg"],
+      );
+
+  @override
+  Future<void>
+  crateApiStorageTraitsStorageRepositoryHandleClearFileTransferTrackers({
+    required StorageRepositoryHandle that,
+    required String transferId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 60,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleClearFileTransferTrackersConstMeta,
+        argValues: [that, transferId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleClearFileTransferTrackersConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_clear_file_transfer_trackers",
+        argNames: ["that", "transferId"],
+      );
+
+  @override
+  Future<Uint32List>
+  crateApiStorageTraitsStorageRepositoryHandleGetAckedOutboundChunks({
+    required StorageRepositoryHandle that,
+    required String transferId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 61,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_prim_u_32_strict,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleGetAckedOutboundChunksConstMeta,
+        argValues: [that, transferId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleGetAckedOutboundChunksConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_get_acked_outbound_chunks",
+        argNames: ["that", "transferId"],
+      );
+
+  @override
+  Future<List<PeerRecord>>
+  crateApiStorageTraitsStorageRepositoryHandleGetAllPeers({
+    required StorageRepositoryHandle that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 62,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_peer_record,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleGetAllPeersConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleGetAllPeersConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_get_all_peers",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<FileTransferRecord?>
+  crateApiStorageTraitsStorageRepositoryHandleGetFileTransfer({
+    required StorageRepositoryHandle that,
+    required String transferId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 63,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_file_transfer_record,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleGetFileTransferConstMeta,
+        argValues: [that, transferId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleGetFileTransferConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_get_file_transfer",
+        argNames: ["that", "transferId"],
+      );
+
+  @override
+  Future<List<PersistentMessage>>
+  crateApiStorageTraitsStorageRepositoryHandleGetMessagesForPeer({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 64,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_persistent_message,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleGetMessagesForPeerConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleGetMessagesForPeerConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_get_messages_for_peer",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<PeerRecord?> crateApiStorageTraitsStorageRepositoryHandleGetPeer({
+    required StorageRepositoryHandle that,
+    required String mac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(mac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 65,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_peer_record,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleGetPeerConstMeta,
+        argValues: [that, mac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleGetPeerConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_get_peer",
+        argNames: ["that", "mac"],
+      );
+
+  @override
+  Future<List<PersistentMessage>>
+  crateApiStorageTraitsStorageRepositoryHandleGetPendingMessages({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 66,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_persistent_message,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleGetPendingMessagesConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleGetPendingMessagesConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_get_pending_messages",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<List<FileTransferRecord>>
+  crateApiStorageTraitsStorageRepositoryHandleGetPendingOutboundTransfers({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 67,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_file_transfer_record,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleGetPendingOutboundTransfersConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleGetPendingOutboundTransfersConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_get_pending_outbound_transfers",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<bool> crateApiStorageTraitsStorageRepositoryHandleHasMessage({
+    required StorageRepositoryHandle that,
+    required String msgId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(msgId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 68,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleHasMessageConstMeta,
+        argValues: [that, msgId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleHasMessageConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_has_message",
+        argNames: ["that", "msgId"],
+      );
+
+  @override
+  Future<void> crateApiStorageTraitsStorageRepositoryHandleInsertFileTransfer({
+    required StorageRepositoryHandle that,
+    required FileTransferRecord record,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_file_transfer_record(record, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 69,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleInsertFileTransferConstMeta,
+        argValues: [that, record],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleInsertFileTransferConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_insert_file_transfer",
+        argNames: ["that", "record"],
+      );
+
+  @override
+  Future<bool> crateApiStorageTraitsStorageRepositoryHandleMarkAcked({
+    required StorageRepositoryHandle that,
+    required String peerMac,
+    required String targetMsgId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          sse_encode_String(targetMsgId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 70,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleMarkAckedConstMeta,
+        argValues: [that, peerMac, targetMsgId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleMarkAckedConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_mark_acked",
+        argNames: ["that", "peerMac", "targetMsgId"],
+      );
+
+  @override
+  Future<void>
+  crateApiStorageTraitsStorageRepositoryHandleMarkTransferCompleted({
+    required StorageRepositoryHandle that,
+    required String transferId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 71,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleMarkTransferCompletedConstMeta,
+        argValues: [that, transferId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleMarkTransferCompletedConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_mark_transfer_completed",
+        argNames: ["that", "transferId"],
+      );
+
+  @override
+  Future<StorageRepositoryHandle>
+  crateApiStorageTraitsStorageRepositoryHandleNew({
+    required ArcStorageRepository inner,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+            inner,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 72,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiStorageTraitsStorageRepositoryHandleNewConstMeta,
+        argValues: [inner],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStorageTraitsStorageRepositoryHandleNewConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_new",
+        argNames: ["inner"],
+      );
+
+  @override
+  Future<int> crateApiStorageTraitsStorageRepositoryHandleRecordChunkReceived({
+    required StorageRepositoryHandle that,
+    required String transferId,
+    required int chunkIndex,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
+          sse_encode_u_32(chunkIndex, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 73,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleRecordChunkReceivedConstMeta,
+        argValues: [that, transferId, chunkIndex],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleRecordChunkReceivedConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_record_chunk_received",
+        argNames: ["that", "transferId", "chunkIndex"],
+      );
+
+  @override
+  Future<void>
+  crateApiStorageTraitsStorageRepositoryHandleRecordOutboundChunkAck({
+    required StorageRepositoryHandle that,
+    required String transferId,
+    required int chunkIndex,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(transferId, serializer);
+          sse_encode_u_32(chunkIndex, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 74,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleRecordOutboundChunkAckConstMeta,
+        argValues: [that, transferId, chunkIndex],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleRecordOutboundChunkAckConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_record_outbound_chunk_ack",
+        argNames: ["that", "transferId", "chunkIndex"],
+      );
+
+  @override
+  Future<void> crateApiStorageTraitsStorageRepositoryHandleSetPeerOnlineStatus({
+    required StorageRepositoryHandle that,
+    required String mac,
+    required bool isOnline,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(mac, serializer);
+          sse_encode_bool(isOnline, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 75,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleSetPeerOnlineStatusConstMeta,
+        argValues: [that, mac, isOnline],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleSetPeerOnlineStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_set_peer_online_status",
+        argNames: ["that", "mac", "isOnline"],
+      );
+
+  @override
+  Future<void> crateApiStorageTraitsStorageRepositoryHandleUpsertPeer({
+    required StorageRepositoryHandle that,
+    required PeerRecord record,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_peer_record(record, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 76,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiStorageTraitsStorageRepositoryHandleUpsertPeerConstMeta,
+        argValues: [that, record],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiStorageTraitsStorageRepositoryHandleUpsertPeerConstMeta =>
+      const TaskConstMeta(
+        debugName: "StorageRepositoryHandle_upsert_peer",
+        argNames: ["that", "record"],
+      );
+
+  @override
+  Future<ConnectionManagerHandle>
+  crateApiConnectionManagerTcpConnectionManagerHandleAsConnectionManager({
+    required TcpConnectionManagerHandle that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 77,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiConnectionManagerTcpConnectionManagerHandleAsConnectionManagerConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionManagerTcpConnectionManagerHandleAsConnectionManagerConstMeta =>
+      const TaskConstMeta(
+        debugName: "TcpConnectionManagerHandle_as_connection_manager",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<PeerConnectionHandle>
+  crateApiConnectionManagerTcpConnectionManagerHandleGetOrConnect({
+    required TcpConnectionManagerHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 78,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta:
+            kCrateApiConnectionManagerTcpConnectionManagerHandleGetOrConnectConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionManagerTcpConnectionManagerHandleGetOrConnectConstMeta =>
+      const TaskConstMeta(
+        debugName: "TcpConnectionManagerHandle_get_or_connect",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<bool>
+  crateApiConnectionManagerTcpConnectionManagerHandleHasConnection({
+    required TcpConnectionManagerHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 79,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiConnectionManagerTcpConnectionManagerHandleHasConnectionConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionManagerTcpConnectionManagerHandleHasConnectionConstMeta =>
+      const TaskConstMeta(
+        debugName: "TcpConnectionManagerHandle_has_connection",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<TcpConnectionManagerHandle>
+  crateApiConnectionManagerTcpConnectionManagerHandleNew({
+    required String selfMac,
+    required StorageRepositoryHandle storageHandle,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(selfMac, serializer);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+            storageHandle,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 80,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiConnectionManagerTcpConnectionManagerHandleNewConstMeta,
+        argValues: [selfMac, storageHandle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionManagerTcpConnectionManagerHandleNewConstMeta =>
+      const TaskConstMeta(
+        debugName: "TcpConnectionManagerHandle_new",
+        argNames: ["selfMac", "storageHandle"],
+      );
+
+  @override
+  Future<void>
+  crateApiConnectionManagerTcpConnectionManagerHandleRemoveConnection({
+    required TcpConnectionManagerHandle that,
+    required String peerMac,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+            that,
+            serializer,
+          );
+          sse_encode_String(peerMac, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 81,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiConnectionManagerTcpConnectionManagerHandleRemoveConnectionConstMeta,
+        argValues: [that, peerMac],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiConnectionManagerTcpConnectionManagerHandleRemoveConnectionConstMeta =>
+      const TaskConstMeta(
+        debugName: "TcpConnectionManagerHandle_remove_connection",
+        argNames: ["that", "peerMac"],
+      );
+
+  @override
+  Future<int> crateApiUtilsCalculateTotalChunks({
+    required BigInt fileSize,
+    required BigInt chunkSize,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(fileSize, serializer);
+          sse_encode_usize(chunkSize, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 82,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUtilsCalculateTotalChunksConstMeta,
+        argValues: [fileSize, chunkSize],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsCalculateTotalChunksConstMeta =>
+      const TaskConstMeta(
+        debugName: "calculate_total_chunks",
+        argNames: ["fileSize", "chunkSize"],
+      );
+
+  @override
+  Future<PlatformInt64> crateApiUtilsChronoNowTimestamp() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 83,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_64,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUtilsChronoNowTimestampConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsChronoNowTimestampConstMeta =>
+      const TaskConstMeta(debugName: "chrono_now_timestamp", argNames: []);
+
+  @override
+  Future<void> crateApiModelsFileTypeAsStr({required FileType that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_file_type(that, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 84,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiModelsFileTypeAsStrConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiModelsFileTypeAsStrConstMeta =>
+      const TaskConstMeta(debugName: "file_type_as_str", argNames: ["that"]);
+
+  @override
+  Future<FileType> crateApiModelsFileTypeFromStr({required String s}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(s, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 85,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
           decodeSuccessData: sse_decode_file_type,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolFileTypeFromStrConstMeta,
+        constMeta: kCrateApiModelsFileTypeFromStrConstMeta,
         argValues: [s],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolFileTypeFromStrConstMeta =>
+  TaskConstMeta get kCrateApiModelsFileTypeFromStrConstMeta =>
       const TaskConstMeta(debugName: "file_type_from_str", argNames: ["s"]);
 
   @override
@@ -1587,7 +4109,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 86,
             port: port_,
           );
         },
@@ -1612,7 +4134,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 87)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -1637,7 +4159,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 88,
             port: port_,
           );
         },
@@ -1656,9 +4178,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
   @override
-  Future<void> crateApiProtocolMessageStatusAsStr({
-    required MessageStatus that,
-  }) {
+  Future<void> crateApiModelsMessageStatusAsStr({required MessageStatus that}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1667,7 +4187,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 89,
             port: port_,
           );
         },
@@ -1675,21 +4195,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolMessageStatusAsStrConstMeta,
+        constMeta: kCrateApiModelsMessageStatusAsStrConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolMessageStatusAsStrConstMeta =>
+  TaskConstMeta get kCrateApiModelsMessageStatusAsStrConstMeta =>
       const TaskConstMeta(
         debugName: "message_status_as_str",
         argNames: ["that"],
       );
 
   @override
-  Future<MessageStatus> crateApiProtocolMessageStatusFromStr({
+  Future<MessageStatus> crateApiModelsMessageStatusFromStr({
     required String s,
   }) {
     return handler.executeNormal(
@@ -1700,7 +4220,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 90,
             port: port_,
           );
         },
@@ -1708,14 +4228,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_message_status,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiProtocolMessageStatusFromStrConstMeta,
+        constMeta: kCrateApiModelsMessageStatusFromStrConstMeta,
         argValues: [s],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiProtocolMessageStatusFromStrConstMeta =>
+  TaskConstMeta get kCrateApiModelsMessageStatusFromStrConstMeta =>
       const TaskConstMeta(
         debugName: "message_status_from_str",
         argNames: ["s"],
@@ -1733,7 +4253,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 91,
             port: port_,
           );
         },
@@ -1755,19 +4275,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<void> crateApiBridgeScanAndFlush({required NetworkEngine engine}) {
+  Future<void> crateApiBridgeScanAndFlush({
+    required NetworkEngineHandle engine,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+          sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
             engine,
             serializer,
           );
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 92,
             port: port_,
           );
         },
@@ -1797,7 +4319,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 93,
             port: port_,
           );
         },
@@ -1816,28 +4338,124 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "scan_lan_peers", argNames: ["selfMac"]);
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_LocalStorage => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage;
+  get rust_arc_increment_strong_count_ArcConnectionManager => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_LocalStorage => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage;
+  get rust_arc_decrement_strong_count_ArcConnectionManager => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_NetworkEngine => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine;
+  get rust_arc_increment_strong_count_ArcFileTransferService => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_NetworkEngine => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine;
+  get rust_arc_decrement_strong_count_ArcFileTransferService => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_PathBuf => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf;
+  get rust_arc_increment_strong_count_ArcMessagingService => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_PathBuf => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf;
+  get rust_arc_decrement_strong_count_ArcMessagingService => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ArcStorageRepository => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ArcStorageRepository => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_ConnectionManagerHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_ConnectionManagerHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_DefaultFileTransferServiceHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_DefaultFileTransferServiceHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_DefaultMessagingServiceHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_DefaultMessagingServiceHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_FileTransferServiceHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_FileTransferServiceHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_LocalStorageHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_LocalStorageHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_MessagingServiceHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_MessagingServiceHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_NetworkEngineHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_NetworkEngineHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_PeerConnection => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_PeerConnection => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_PeerConnectionHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_PeerConnectionHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_StorageRepositoryHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_StorageRepositoryHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_TcpConnectionManagerHandle => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_TcpConnectionManagerHandle => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle;
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
@@ -1846,90 +4464,427 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LocalStorage
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  ArcConnectionManager
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return LocalStorageImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return ArcConnectionManagerImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  NetworkEngine
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  ArcFileTransferService
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return NetworkEngineImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return ArcFileTransferServiceImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
   }
 
   @protected
-  PathBuf
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  ArcMessagingService
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return PathBufImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return ArcMessagingServiceImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  NetworkEngine
-  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  ArcStorageRepository
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return NetworkEngineImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return ArcStorageRepositoryImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  LocalStorage
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  ConnectionManagerHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return LocalStorageImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return ConnectionManagerHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
   }
 
   @protected
-  NetworkEngine
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  DefaultFileTransferServiceHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return NetworkEngineImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return DefaultFileTransferServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
   }
 
   @protected
-  LocalStorage
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  DefaultMessagingServiceHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return LocalStorageImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return DefaultMessagingServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
   }
 
   @protected
-  NetworkEngine
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  FileTransferServiceHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return NetworkEngineImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return FileTransferServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
   }
 
   @protected
-  PathBuf
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  LocalStorageHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return PathBufImpl.frbInternalDcoDecode(raw as List<dynamic>);
+    return LocalStorageHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
-  Set<int> dco_decode_Set_u_32_None(dynamic raw) {
+  MessagingServiceHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    dynamic raw,
+  ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return Set.from(dco_decode_list_prim_u_32_strict(raw));
+    return MessagingServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  NetworkEngineHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return NetworkEngineHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  PeerConnection
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PeerConnectionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  PeerConnectionHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PeerConnectionHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  StorageRepositoryHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return StorageRepositoryHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  TcpConnectionManagerHandle
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return TcpConnectionManagerHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  PeerConnection
+  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PeerConnectionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ConnectionManagerHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ConnectionManagerHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  DefaultFileTransferServiceHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DefaultFileTransferServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  DefaultMessagingServiceHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DefaultMessagingServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  FileTransferServiceHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return FileTransferServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  LocalStorageHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return LocalStorageHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  MessagingServiceHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return MessagingServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  NetworkEngineHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return NetworkEngineHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  PeerConnection
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PeerConnectionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  PeerConnectionHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PeerConnectionHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  StorageRepositoryHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return StorageRepositoryHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  TcpConnectionManagerHandle
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return TcpConnectionManagerHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ArcConnectionManager
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ArcConnectionManagerImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ArcFileTransferService
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ArcFileTransferServiceImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  ArcMessagingService
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ArcMessagingServiceImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ArcStorageRepository
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ArcStorageRepositoryImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  ConnectionManagerHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ConnectionManagerHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  DefaultFileTransferServiceHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DefaultFileTransferServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  DefaultMessagingServiceHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DefaultMessagingServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  FileTransferServiceHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return FileTransferServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  LocalStorageHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return LocalStorageHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  MessagingServiceHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return MessagingServiceHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  NetworkEngineHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return NetworkEngineHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  PeerConnection
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PeerConnectionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  PeerConnectionHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PeerConnectionHandleImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  StorageRepositoryHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return StorageRepositoryHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  TcpConnectionManagerHandle
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return TcpConnectionManagerHandleImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
   }
 
   @protected
@@ -1951,9 +4906,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChunkHeader dco_decode_box_autoadd_chunk_header(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_chunk_header(raw);
+  }
+
+  @protected
   FileTransferRecord dco_decode_box_autoadd_file_transfer_record(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_file_transfer_record(raw);
+  }
+
+  @protected
+  MessageEnvelope dco_decode_box_autoadd_message_envelope(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_message_envelope(raw);
   }
 
   @protected
@@ -1972,6 +4939,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_u_64(raw);
+  }
+
+  @protected
+  ChunkHeader dco_decode_chunk_header(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return ChunkHeader(
+      transferId: dco_decode_String(arr[0]),
+      chunkUuid: dco_decode_String(arr[1]),
+      chunkIndex: dco_decode_u_32(arr[2]),
+      totalChunks: dco_decode_u_32(arr[3]),
+      offset: dco_decode_u_64(arr[4]),
+      chunkHash: dco_decode_String(arr[5]),
+      fileHash: dco_decode_String(arr[6]),
+    );
   }
 
   @protected
@@ -2047,6 +5031,58 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  MessageEnvelope dco_decode_message_envelope(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return MessageEnvelope(
+      version: dco_decode_u_8(arr[0]),
+      msgId: dco_decode_String(arr[1]),
+      senderMac: dco_decode_String(arr[2]),
+      payload: dco_decode_message_payload(arr[3]),
+    );
+  }
+
+  @protected
+  MessagePayload dco_decode_message_payload(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return MessagePayload_Handshake(senderMac: dco_decode_String(raw[1]));
+      case 1:
+        return MessagePayload_ChatMessage(content: dco_decode_String(raw[1]));
+      case 2:
+        return MessagePayload_FileTransferInit(
+          transferId: dco_decode_String(raw[1]),
+          fileType: dco_decode_file_type(raw[2]),
+          fileName: dco_decode_String(raw[3]),
+          fileSize: dco_decode_u_64(raw[4]),
+          totalChunks: dco_decode_u_32(raw[5]),
+          fileHash: dco_decode_String(raw[6]),
+        );
+      case 3:
+        return MessagePayload_FileChunk(
+          header: dco_decode_box_autoadd_chunk_header(raw[1]),
+          data: dco_decode_list_prim_u_8_strict(raw[2]),
+        );
+      case 4:
+        return MessagePayload_ChunkAck(
+          transferId: dco_decode_String(raw[1]),
+          chunkIndex: dco_decode_u_32(raw[2]),
+        );
+      case 5:
+        return MessagePayload_FileCompleteAck(
+          transferId: dco_decode_String(raw[1]),
+        );
+      case 6:
+        return MessagePayload_Ack(targetMsgId: dco_decode_String(raw[1]));
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   @protected
@@ -2177,118 +5213,507 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  LocalStorage
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  ArcConnectionManager
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return LocalStorageImpl.frbInternalSseDecode(
+    return ArcConnectionManagerImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  NetworkEngine
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  ArcFileTransferService
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return NetworkEngineImpl.frbInternalSseDecode(
+    return ArcFileTransferServiceImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  PathBuf
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  ArcMessagingService
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return PathBufImpl.frbInternalSseDecode(
+    return ArcMessagingServiceImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  NetworkEngine
-  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  ArcStorageRepository
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return NetworkEngineImpl.frbInternalSseDecode(
+    return ArcStorageRepositoryImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  LocalStorage
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  ConnectionManagerHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return LocalStorageImpl.frbInternalSseDecode(
+    return ConnectionManagerHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  NetworkEngine
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  DefaultFileTransferServiceHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return NetworkEngineImpl.frbInternalSseDecode(
+    return DefaultFileTransferServiceHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  LocalStorage
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
+  DefaultMessagingServiceHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return LocalStorageImpl.frbInternalSseDecode(
+    return DefaultMessagingServiceHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  NetworkEngine
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
+  FileTransferServiceHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return NetworkEngineImpl.frbInternalSseDecode(
+    return FileTransferServiceHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  PathBuf
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
+  LocalStorageHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return PathBufImpl.frbInternalSseDecode(
+    return LocalStorageHandleImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
   }
 
   @protected
-  Set<int> sse_decode_Set_u_32_None(SseDeserializer deserializer) {
+  MessagingServiceHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    SseDeserializer deserializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_list_prim_u_32_strict(deserializer);
-    return Set.from(inner);
+    return MessagingServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  NetworkEngineHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return NetworkEngineHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  PeerConnection
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return PeerConnectionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  PeerConnectionHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return PeerConnectionHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  StorageRepositoryHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return StorageRepositoryHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  TcpConnectionManagerHandle
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return TcpConnectionManagerHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  PeerConnection
+  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return PeerConnectionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ConnectionManagerHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ConnectionManagerHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  DefaultFileTransferServiceHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return DefaultFileTransferServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  DefaultMessagingServiceHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return DefaultMessagingServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  FileTransferServiceHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return FileTransferServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  LocalStorageHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return LocalStorageHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  MessagingServiceHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return MessagingServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  NetworkEngineHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return NetworkEngineHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  PeerConnection
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return PeerConnectionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  PeerConnectionHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return PeerConnectionHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  StorageRepositoryHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return StorageRepositoryHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  TcpConnectionManagerHandle
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return TcpConnectionManagerHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ArcConnectionManager
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ArcConnectionManagerImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ArcFileTransferService
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ArcFileTransferServiceImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ArcMessagingService
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ArcMessagingServiceImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ArcStorageRepository
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ArcStorageRepositoryImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  ConnectionManagerHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return ConnectionManagerHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  DefaultFileTransferServiceHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return DefaultFileTransferServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  DefaultMessagingServiceHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return DefaultMessagingServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  FileTransferServiceHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return FileTransferServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  LocalStorageHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return LocalStorageHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  MessagingServiceHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return MessagingServiceHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  NetworkEngineHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return NetworkEngineHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  PeerConnection
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return PeerConnectionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  PeerConnectionHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return PeerConnectionHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  StorageRepositoryHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return StorageRepositoryHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  TcpConnectionManagerHandle
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return TcpConnectionManagerHandleImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
   }
 
   @protected
@@ -2313,11 +5738,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ChunkHeader sse_decode_box_autoadd_chunk_header(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_chunk_header(deserializer));
+  }
+
+  @protected
   FileTransferRecord sse_decode_box_autoadd_file_transfer_record(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_file_transfer_record(deserializer));
+  }
+
+  @protected
+  MessageEnvelope sse_decode_box_autoadd_message_envelope(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_message_envelope(deserializer));
   }
 
   @protected
@@ -2338,6 +5779,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_u_64(deserializer));
+  }
+
+  @protected
+  ChunkHeader sse_decode_chunk_header(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_transferId = sse_decode_String(deserializer);
+    var var_chunkUuid = sse_decode_String(deserializer);
+    var var_chunkIndex = sse_decode_u_32(deserializer);
+    var var_totalChunks = sse_decode_u_32(deserializer);
+    var var_offset = sse_decode_u_64(deserializer);
+    var var_chunkHash = sse_decode_String(deserializer);
+    var var_fileHash = sse_decode_String(deserializer);
+    return ChunkHeader(
+      transferId: var_transferId,
+      chunkUuid: var_chunkUuid,
+      chunkIndex: var_chunkIndex,
+      totalChunks: var_totalChunks,
+      offset: var_offset,
+      chunkHash: var_chunkHash,
+      fileHash: var_fileHash,
+    );
   }
 
   @protected
@@ -2454,6 +5916,70 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  MessageEnvelope sse_decode_message_envelope(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_version = sse_decode_u_8(deserializer);
+    var var_msgId = sse_decode_String(deserializer);
+    var var_senderMac = sse_decode_String(deserializer);
+    var var_payload = sse_decode_message_payload(deserializer);
+    return MessageEnvelope(
+      version: var_version,
+      msgId: var_msgId,
+      senderMac: var_senderMac,
+      payload: var_payload,
+    );
+  }
+
+  @protected
+  MessagePayload sse_decode_message_payload(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_senderMac = sse_decode_String(deserializer);
+        return MessagePayload_Handshake(senderMac: var_senderMac);
+      case 1:
+        var var_content = sse_decode_String(deserializer);
+        return MessagePayload_ChatMessage(content: var_content);
+      case 2:
+        var var_transferId = sse_decode_String(deserializer);
+        var var_fileType = sse_decode_file_type(deserializer);
+        var var_fileName = sse_decode_String(deserializer);
+        var var_fileSize = sse_decode_u_64(deserializer);
+        var var_totalChunks = sse_decode_u_32(deserializer);
+        var var_fileHash = sse_decode_String(deserializer);
+        return MessagePayload_FileTransferInit(
+          transferId: var_transferId,
+          fileType: var_fileType,
+          fileName: var_fileName,
+          fileSize: var_fileSize,
+          totalChunks: var_totalChunks,
+          fileHash: var_fileHash,
+        );
+      case 3:
+        var var_header = sse_decode_box_autoadd_chunk_header(deserializer);
+        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
+        return MessagePayload_FileChunk(header: var_header, data: var_data);
+      case 4:
+        var var_transferId = sse_decode_String(deserializer);
+        var var_chunkIndex = sse_decode_u_32(deserializer);
+        return MessagePayload_ChunkAck(
+          transferId: var_transferId,
+          chunkIndex: var_chunkIndex,
+        );
+      case 5:
+        var var_transferId = sse_decode_String(deserializer);
+        return MessagePayload_FileCompleteAck(transferId: var_transferId);
+      case 6:
+        var var_targetMsgId = sse_decode_String(deserializer);
+        return MessagePayload_Ack(targetMsgId: var_targetMsgId);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -2620,126 +6146,560 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-    LocalStorage self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+    ArcConnectionManager self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as LocalStorageImpl).frbInternalSseEncode(move: true),
+      (self as ArcConnectionManagerImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-    NetworkEngine self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+    ArcFileTransferService self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as NetworkEngineImpl).frbInternalSseEncode(move: true),
+      (self as ArcFileTransferServiceImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
-    PathBuf self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    ArcMessagingService self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as PathBufImpl).frbInternalSseEncode(move: true),
+      (self as ArcMessagingServiceImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-    NetworkEngine self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    ArcStorageRepository self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as NetworkEngineImpl).frbInternalSseEncode(move: false),
+      (self as ArcStorageRepositoryImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-    LocalStorage self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    ConnectionManagerHandle self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as LocalStorageImpl).frbInternalSseEncode(move: false),
+      (self as ConnectionManagerHandleImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-    NetworkEngine self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    DefaultFileTransferServiceHandle self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as NetworkEngineImpl).frbInternalSseEncode(move: false),
+      (self as DefaultFileTransferServiceHandleImpl).frbInternalSseEncode(
+        move: true,
+      ),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorage(
-    LocalStorage self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    DefaultMessagingServiceHandle self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as LocalStorageImpl).frbInternalSseEncode(move: null),
+      (self as DefaultMessagingServiceHandleImpl).frbInternalSseEncode(
+        move: true,
+      ),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngine(
-    NetworkEngine self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    FileTransferServiceHandle self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as NetworkEngineImpl).frbInternalSseEncode(move: null),
+      (self as FileTransferServiceHandleImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPathBuf(
-    PathBuf self,
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    LocalStorageHandle self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as PathBufImpl).frbInternalSseEncode(move: null),
+      (self as LocalStorageHandleImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
 
   @protected
-  void sse_encode_Set_u_32_None(Set<int> self, SseSerializer serializer) {
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    MessagingServiceHandle self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_list_prim_u_32_strict(
-      Uint32List.fromList(self.toList()),
+    sse_encode_usize(
+      (self as MessagingServiceHandleImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    NetworkEngineHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as NetworkEngineHandleImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    PeerConnection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as PeerConnectionImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    PeerConnectionHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as PeerConnectionHandleImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    StorageRepositoryHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as StorageRepositoryHandleImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    TcpConnectionManagerHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as TcpConnectionManagerHandleImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    PeerConnection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as PeerConnectionImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    ConnectionManagerHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ConnectionManagerHandleImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    DefaultFileTransferServiceHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as DefaultFileTransferServiceHandleImpl).frbInternalSseEncode(
+        move: false,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    DefaultMessagingServiceHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as DefaultMessagingServiceHandleImpl).frbInternalSseEncode(
+        move: false,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    FileTransferServiceHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as FileTransferServiceHandleImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    LocalStorageHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as LocalStorageHandleImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    MessagingServiceHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as MessagingServiceHandleImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    NetworkEngineHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as NetworkEngineHandleImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    PeerConnection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as PeerConnectionImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    PeerConnectionHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as PeerConnectionHandleImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    StorageRepositoryHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as StorageRepositoryHandleImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    TcpConnectionManagerHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as TcpConnectionManagerHandleImpl).frbInternalSseEncode(
+        move: false,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynConnectionManager(
+    ArcConnectionManager self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ArcConnectionManagerImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynFileTransferService(
+    ArcFileTransferService self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ArcFileTransferServiceImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynMessagingService(
+    ArcMessagingService self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ArcMessagingServiceImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerArcdynStorageRepository(
+    ArcStorageRepository self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ArcStorageRepositoryImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConnectionManagerHandle(
+    ConnectionManagerHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as ConnectionManagerHandleImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultFileTransferServiceHandle(
+    DefaultFileTransferServiceHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as DefaultFileTransferServiceHandleImpl).frbInternalSseEncode(
+        move: null,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDefaultMessagingServiceHandle(
+    DefaultMessagingServiceHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as DefaultMessagingServiceHandleImpl).frbInternalSseEncode(
+        move: null,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileTransferServiceHandle(
+    FileTransferServiceHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as FileTransferServiceHandleImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageHandle(
+    LocalStorageHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as LocalStorageHandleImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMessagingServiceHandle(
+    MessagingServiceHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as MessagingServiceHandleImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNetworkEngineHandle(
+    NetworkEngineHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as NetworkEngineHandleImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnection(
+    PeerConnection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as PeerConnectionImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPeerConnectionHandle(
+    PeerConnectionHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as PeerConnectionHandleImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerStorageRepositoryHandle(
+    StorageRepositoryHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as StorageRepositoryHandleImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTcpConnectionManagerHandle(
+    TcpConnectionManagerHandle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as TcpConnectionManagerHandleImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -2774,12 +6734,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_chunk_header(
+    ChunkHeader self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_chunk_header(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_file_transfer_record(
     FileTransferRecord self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_file_transfer_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_message_envelope(
+    MessageEnvelope self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_message_envelope(self, serializer);
   }
 
   @protected
@@ -2804,6 +6782,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_chunk_header(ChunkHeader self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.transferId, serializer);
+    sse_encode_String(self.chunkUuid, serializer);
+    sse_encode_u_32(self.chunkIndex, serializer);
+    sse_encode_u_32(self.totalChunks, serializer);
+    sse_encode_u_64(self.offset, serializer);
+    sse_encode_String(self.chunkHash, serializer);
+    sse_encode_String(self.fileHash, serializer);
   }
 
   @protected
@@ -2909,6 +6899,66 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_message_envelope(
+    MessageEnvelope self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_8(self.version, serializer);
+    sse_encode_String(self.msgId, serializer);
+    sse_encode_String(self.senderMac, serializer);
+    sse_encode_message_payload(self.payload, serializer);
+  }
+
+  @protected
+  void sse_encode_message_payload(
+    MessagePayload self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case MessagePayload_Handshake(senderMac: final senderMac):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(senderMac, serializer);
+      case MessagePayload_ChatMessage(content: final content):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(content, serializer);
+      case MessagePayload_FileTransferInit(
+        transferId: final transferId,
+        fileType: final fileType,
+        fileName: final fileName,
+        fileSize: final fileSize,
+        totalChunks: final totalChunks,
+        fileHash: final fileHash,
+      ):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(transferId, serializer);
+        sse_encode_file_type(fileType, serializer);
+        sse_encode_String(fileName, serializer);
+        sse_encode_u_64(fileSize, serializer);
+        sse_encode_u_32(totalChunks, serializer);
+        sse_encode_String(fileHash, serializer);
+      case MessagePayload_FileChunk(header: final header, data: final data):
+        sse_encode_i_32(3, serializer);
+        sse_encode_box_autoadd_chunk_header(header, serializer);
+        sse_encode_list_prim_u_8_strict(data, serializer);
+      case MessagePayload_ChunkAck(
+        transferId: final transferId,
+        chunkIndex: final chunkIndex,
+      ):
+        sse_encode_i_32(4, serializer);
+        sse_encode_String(transferId, serializer);
+        sse_encode_u_32(chunkIndex, serializer);
+      case MessagePayload_FileCompleteAck(transferId: final transferId):
+        sse_encode_i_32(5, serializer);
+        sse_encode_String(transferId, serializer);
+      case MessagePayload_Ack(targetMsgId: final targetMsgId):
+        sse_encode_i_32(6, serializer);
+        sse_encode_String(targetMsgId, serializer);
+    }
   }
 
   @protected
@@ -3038,100 +7088,455 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 }
 
 @sealed
-class LocalStorageImpl extends RustOpaque implements LocalStorage {
+class ArcConnectionManagerImpl extends RustOpaque
+    implements ArcConnectionManager {
   // Not to be used by end users
-  LocalStorageImpl.frbInternalDcoDecode(List<dynamic> wire)
+  ArcConnectionManagerImpl.frbInternalDcoDecode(List<dynamic> wire)
     : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  LocalStorageImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
-    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+  ArcConnectionManagerImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ArcConnectionManager,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ArcConnectionManager,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ArcConnectionManagerPtr,
+  );
+}
+
+@sealed
+class ArcFileTransferServiceImpl extends RustOpaque
+    implements ArcFileTransferService {
+  // Not to be used by end users
+  ArcFileTransferServiceImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ArcFileTransferServiceImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ArcFileTransferService,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ArcFileTransferService,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ArcFileTransferServicePtr,
+  );
+}
+
+@sealed
+class ArcMessagingServiceImpl extends RustOpaque
+    implements ArcMessagingService {
+  // Not to be used by end users
+  ArcMessagingServiceImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ArcMessagingServiceImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ArcMessagingService,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ArcMessagingService,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ArcMessagingServicePtr,
+  );
+}
+
+@sealed
+class ArcStorageRepositoryImpl extends RustOpaque
+    implements ArcStorageRepository {
+  // Not to be used by end users
+  ArcStorageRepositoryImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ArcStorageRepositoryImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ArcStorageRepository,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ArcStorageRepository,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ArcStorageRepositoryPtr,
+  );
+}
+
+@sealed
+class ConnectionManagerHandleImpl extends RustOpaque
+    implements ConnectionManagerHandle {
+  // Not to be used by end users
+  ConnectionManagerHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  ConnectionManagerHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_ConnectionManagerHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ConnectionManagerHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_ConnectionManagerHandlePtr,
+  );
+
+  Future<PeerConnectionHandle> getOrConnect({required String peerMac}) =>
+      RustLib.instance.api
+          .crateApiConnectionTraitsConnectionManagerHandleGetOrConnect(
+            that: this,
+            peerMac: peerMac,
+          );
+
+  Future<bool> hasConnection({required String peerMac}) => RustLib.instance.api
+      .crateApiConnectionTraitsConnectionManagerHandleHasConnection(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<void> removeConnection({required String peerMac}) => RustLib
+      .instance
+      .api
+      .crateApiConnectionTraitsConnectionManagerHandleRemoveConnection(
+        that: this,
+        peerMac: peerMac,
+      );
+}
+
+@sealed
+class DefaultFileTransferServiceHandleImpl extends RustOpaque
+    implements DefaultFileTransferServiceHandle {
+  // Not to be used by end users
+  DefaultFileTransferServiceHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  DefaultFileTransferServiceHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_DefaultFileTransferServiceHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_DefaultFileTransferServiceHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_DefaultFileTransferServiceHandlePtr,
+  );
+
+  Future<FileTransferServiceHandle> asFileTransferService() => RustLib
+      .instance
+      .api
+      .crateApiFileTransferServiceDefaultFileTransferServiceHandleAsFileTransferService(
+        that: this,
+      );
+
+  Future<void> dispatchFileChunks({
+    required String recipientMac,
+    required String transferId,
+  }) => RustLib.instance.api
+      .crateApiFileTransferServiceDefaultFileTransferServiceHandleDispatchFileChunks(
+        that: this,
+        recipientMac: recipientMac,
+        transferId: transferId,
+      );
+
+  Future<void> resumePendingFileTransfers({required String peerMac}) => RustLib
+      .instance
+      .api
+      .crateApiFileTransferServiceDefaultFileTransferServiceHandleResumePendingFileTransfers(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<String> sendFile({
+    required String recipientMac,
+    required String filePathStr,
+  }) => RustLib.instance.api
+      .crateApiFileTransferServiceDefaultFileTransferServiceHandleSendFile(
+        that: this,
+        recipientMac: recipientMac,
+        filePathStr: filePathStr,
+      );
+}
+
+@sealed
+class DefaultMessagingServiceHandleImpl extends RustOpaque
+    implements DefaultMessagingServiceHandle {
+  // Not to be used by end users
+  DefaultMessagingServiceHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  DefaultMessagingServiceHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_DefaultMessagingServiceHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_DefaultMessagingServiceHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_DefaultMessagingServiceHandlePtr,
+  );
+
+  Future<MessagingServiceHandle> asMessagingService() => RustLib.instance.api
+      .crateApiMessagingServiceDefaultMessagingServiceHandleAsMessagingService(
+        that: this,
+      );
+
+  Future<void> flushOutbox({required String peerMac}) => RustLib.instance.api
+      .crateApiMessagingServiceDefaultMessagingServiceHandleFlushOutbox(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<void> sendMessage({
+    required String recipientMac,
+    required String content,
+  }) => RustLib.instance.api
+      .crateApiMessagingServiceDefaultMessagingServiceHandleSendMessage(
+        that: this,
+        recipientMac: recipientMac,
+        content: content,
+      );
+}
+
+@sealed
+class FileTransferServiceHandleImpl extends RustOpaque
+    implements FileTransferServiceHandle {
+  // Not to be used by end users
+  FileTransferServiceHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  FileTransferServiceHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_FileTransferServiceHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_FileTransferServiceHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_FileTransferServiceHandlePtr,
+  );
+
+  Future<void> dispatchFileChunks({
+    required String recipientMac,
+    required String transferId,
+  }) => RustLib.instance.api
+      .crateApiFileTransferTraitsFileTransferServiceHandleDispatchFileChunks(
+        that: this,
+        recipientMac: recipientMac,
+        transferId: transferId,
+      );
+
+  Future<void> resumePendingFileTransfers({required String peerMac}) => RustLib
+      .instance
+      .api
+      .crateApiFileTransferTraitsFileTransferServiceHandleResumePendingFileTransfers(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<String> sendFile({
+    required String recipientMac,
+    required String filePathStr,
+  }) => RustLib.instance.api
+      .crateApiFileTransferTraitsFileTransferServiceHandleSendFile(
+        that: this,
+        recipientMac: recipientMac,
+        filePathStr: filePathStr,
+      );
+}
+
+@sealed
+class LocalStorageHandleImpl extends RustOpaque implements LocalStorageHandle {
+  // Not to be used by end users
+  LocalStorageHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  LocalStorageHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
 
   static final _kStaticData = RustArcStaticData(
     rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_LocalStorage,
+        RustLib.instance.api.rust_arc_increment_strong_count_LocalStorageHandle,
     rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_LocalStorage,
-    rustArcDecrementStrongCountPtr:
-        RustLib.instance.api.rust_arc_decrement_strong_count_LocalStoragePtr,
+        RustLib.instance.api.rust_arc_decrement_strong_count_LocalStorageHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_LocalStorageHandlePtr,
   );
 
   Future<void> appendMessage({
     required String peerMac,
     required PersistentMessage msg,
-  }) => RustLib.instance.api.crateApiProtocolLocalStorageAppendMessage(
-    that: this,
-    peerMac: peerMac,
-    msg: msg,
-  );
+  }) =>
+      RustLib.instance.api.crateApiStorageSqliteLocalStorageHandleAppendMessage(
+        that: this,
+        peerMac: peerMac,
+        msg: msg,
+      );
+
+  Future<StorageRepositoryHandle> asStorageRepository() => RustLib.instance.api
+      .crateApiStorageSqliteLocalStorageHandleAsStorageRepository(that: this);
 
   Future<void> clearFileTransferTrackers({required String transferId}) =>
       RustLib.instance.api
-          .crateApiProtocolLocalStorageClearFileTransferTrackers(
+          .crateApiStorageSqliteLocalStorageHandleClearFileTransferTrackers(
             that: this,
             transferId: transferId,
           );
 
-  Future<Set<int>> getAckedOutboundChunks({required String transferId}) =>
-      RustLib.instance.api.crateApiProtocolLocalStorageGetAckedOutboundChunks(
-        that: this,
-        transferId: transferId,
-      );
+  Future<Uint32List> getAckedOutboundChunks({required String transferId}) =>
+      RustLib.instance.api
+          .crateApiStorageSqliteLocalStorageHandleGetAckedOutboundChunks(
+            that: this,
+            transferId: transferId,
+          );
 
-  Future<List<PeerRecord>> getAllPeers() =>
-      RustLib.instance.api.crateApiProtocolLocalStorageGetAllPeers(that: this);
+  Future<List<PeerRecord>> getAllPeers() => RustLib.instance.api
+      .crateApiStorageSqliteLocalStorageHandleGetAllPeers(that: this);
 
   Future<FileTransferRecord?> getFileTransfer({required String transferId}) =>
-      RustLib.instance.api.crateApiProtocolLocalStorageGetFileTransfer(
-        that: this,
-        transferId: transferId,
-      );
+      RustLib.instance.api
+          .crateApiStorageSqliteLocalStorageHandleGetFileTransfer(
+            that: this,
+            transferId: transferId,
+          );
 
   Future<List<PersistentMessage>> getMessagesForPeer({
     required String peerMac,
-  }) => RustLib.instance.api.crateApiProtocolLocalStorageGetMessagesForPeer(
-    that: this,
-    peerMac: peerMac,
-  );
-
-  Future<PeerRecord?> getPeer({required String mac}) => RustLib.instance.api
-      .crateApiProtocolLocalStorageGetPeer(that: this, mac: mac);
-
-  Future<List<PersistentMessage>> getPendingMessages({
-    required String peerMac,
-  }) => RustLib.instance.api.crateApiProtocolLocalStorageGetPendingMessages(
-    that: this,
-    peerMac: peerMac,
-  );
-
-  Future<List<FileTransferRecord>> getPendingOutboundTransfers({
-    required String peerMac,
   }) => RustLib.instance.api
-      .crateApiProtocolLocalStorageGetPendingOutboundTransfers(
+      .crateApiStorageSqliteLocalStorageHandleGetMessagesForPeer(
         that: this,
         peerMac: peerMac,
       );
 
-  Future<bool> hasMessage({required String msgId}) => RustLib.instance.api
-      .crateApiProtocolLocalStorageHasMessage(that: this, msgId: msgId);
+  Future<PeerRecord?> getPeer({required String mac}) => RustLib.instance.api
+      .crateApiStorageSqliteLocalStorageHandleGetPeer(that: this, mac: mac);
+
+  Future<List<PersistentMessage>> getPendingMessages({
+    required String peerMac,
+  }) => RustLib.instance.api
+      .crateApiStorageSqliteLocalStorageHandleGetPendingMessages(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<List<FileTransferRecord>> getPendingOutboundTransfers({
+    required String peerMac,
+  }) => RustLib.instance.api
+      .crateApiStorageSqliteLocalStorageHandleGetPendingOutboundTransfers(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<bool> hasMessage({required String msgId}) =>
+      RustLib.instance.api.crateApiStorageSqliteLocalStorageHandleHasMessage(
+        that: this,
+        msgId: msgId,
+      );
 
   Future<void> insertFileTransfer({required FileTransferRecord record}) =>
-      RustLib.instance.api.crateApiProtocolLocalStorageInsertFileTransfer(
-        that: this,
-        record: record,
-      );
+      RustLib.instance.api
+          .crateApiStorageSqliteLocalStorageHandleInsertFileTransfer(
+            that: this,
+            record: record,
+          );
 
   Future<bool> markAcked({
     required String peerMac,
     required String targetMsgId,
-  }) => RustLib.instance.api.crateApiProtocolLocalStorageMarkAcked(
+  }) => RustLib.instance.api.crateApiStorageSqliteLocalStorageHandleMarkAcked(
     that: this,
     peerMac: peerMac,
     targetMsgId: targetMsgId,
   );
 
-  Future<void> markTransferCompleted({required String transferId}) =>
-      RustLib.instance.api.crateApiProtocolLocalStorageMarkTransferCompleted(
+  Future<void> markTransferCompleted({required String transferId}) => RustLib
+      .instance
+      .api
+      .crateApiStorageSqliteLocalStorageHandleMarkTransferCompleted(
         that: this,
         transferId: transferId,
       );
@@ -3139,93 +7544,152 @@ class LocalStorageImpl extends RustOpaque implements LocalStorage {
   Future<int> recordChunkReceived({
     required String transferId,
     required int chunkIndex,
-  }) => RustLib.instance.api.crateApiProtocolLocalStorageRecordChunkReceived(
-    that: this,
-    transferId: transferId,
-    chunkIndex: chunkIndex,
-  );
+  }) => RustLib.instance.api
+      .crateApiStorageSqliteLocalStorageHandleRecordChunkReceived(
+        that: this,
+        transferId: transferId,
+        chunkIndex: chunkIndex,
+      );
 
   Future<void> recordOutboundChunkAck({
     required String transferId,
     required int chunkIndex,
-  }) => RustLib.instance.api.crateApiProtocolLocalStorageRecordOutboundChunkAck(
-    that: this,
-    transferId: transferId,
-    chunkIndex: chunkIndex,
-  );
+  }) => RustLib.instance.api
+      .crateApiStorageSqliteLocalStorageHandleRecordOutboundChunkAck(
+        that: this,
+        transferId: transferId,
+        chunkIndex: chunkIndex,
+      );
 
   Future<void> setPeerOnlineStatus({
     required String mac,
     required bool isOnline,
-  }) => RustLib.instance.api.crateApiProtocolLocalStorageSetPeerOnlineStatus(
-    that: this,
-    mac: mac,
-    isOnline: isOnline,
-  );
+  }) => RustLib.instance.api
+      .crateApiStorageSqliteLocalStorageHandleSetPeerOnlineStatus(
+        that: this,
+        mac: mac,
+        isOnline: isOnline,
+      );
 
-  Future<void> upsertPeer({required PeerRecord record}) => RustLib.instance.api
-      .crateApiProtocolLocalStorageUpsertPeer(that: this, record: record);
+  Future<void> upsertPeer({required PeerRecord record}) =>
+      RustLib.instance.api.crateApiStorageSqliteLocalStorageHandleUpsertPeer(
+        that: this,
+        record: record,
+      );
 }
 
 @sealed
-class NetworkEngineImpl extends RustOpaque implements NetworkEngine {
+class MessagingServiceHandleImpl extends RustOpaque
+    implements MessagingServiceHandle {
   // Not to be used by end users
-  NetworkEngineImpl.frbInternalDcoDecode(List<dynamic> wire)
+  MessagingServiceHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
     : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  NetworkEngineImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
-    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+  MessagingServiceHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
 
   static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_NetworkEngine,
-    rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_NetworkEngine,
-    rustArcDecrementStrongCountPtr:
-        RustLib.instance.api.rust_arc_decrement_strong_count_NetworkEnginePtr,
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_MessagingServiceHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_MessagingServiceHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_MessagingServiceHandlePtr,
   );
 
-  String get selfMac => RustLib.instance.api
-      .crateApiProtocolNetworkEngineAutoAccessorGetSelfMac(that: this);
-
-  set selfMac(String selfMac) =>
-      RustLib.instance.api.crateApiProtocolNetworkEngineAutoAccessorSetSelfMac(
-        that: this,
-        selfMac: selfMac,
-      );
-
   Future<void> flushOutbox({required String peerMac}) => RustLib.instance.api
-      .crateApiProtocolNetworkEngineFlushOutbox(that: this, peerMac: peerMac);
-
-  Future<List<PersistentMessage>> getMessages({required String peerMac}) =>
-      RustLib.instance.api.crateApiProtocolNetworkEngineGetMessages(
+      .crateApiMessagingTraitsMessagingServiceHandleFlushOutbox(
         that: this,
         peerMac: peerMac,
       );
 
-  Future<List<PeerRecord>> getPeers() =>
-      RustLib.instance.api.crateApiProtocolNetworkEngineGetPeers(that: this);
+  Future<void> sendMessage({
+    required String recipientMac,
+    required String content,
+  }) => RustLib.instance.api
+      .crateApiMessagingTraitsMessagingServiceHandleSendMessage(
+        that: this,
+        recipientMac: recipientMac,
+        content: content,
+      );
+}
 
-  Stream<String> registerNotifySink() => RustLib.instance.api
-      .crateApiProtocolNetworkEngineRegisterNotifySink(that: this);
+@sealed
+class NetworkEngineHandleImpl extends RustOpaque
+    implements NetworkEngineHandle {
+  // Not to be used by end users
+  NetworkEngineHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
 
-  /// 自动重传该 Peer 未完成的文件传输任务
-  Future<void> resumePendingFileTransfers({required String peerMac}) => RustLib
+  // Not to be used by end users
+  NetworkEngineHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_NetworkEngineHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_NetworkEngineHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_NetworkEngineHandlePtr,
+  );
+
+  Future<void> emitEvent({required String event}) => RustLib.instance.api
+      .crateApiEngineNetworkEngineHandleEmitEvent(that: this, event: event);
+
+  Future<void> flushOutbox({required String peerMac}) =>
+      RustLib.instance.api.crateApiEngineNetworkEngineHandleFlushOutbox(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<FileTransferServiceHandle> getFileTransferService() => RustLib
       .instance
       .api
-      .crateApiProtocolNetworkEngineResumePendingFileTransfers(
+      .crateApiEngineNetworkEngineHandleGetFileTransferService(that: this);
+
+  Future<List<PersistentMessage>> getMessages({required String peerMac}) =>
+      RustLib.instance.api.crateApiEngineNetworkEngineHandleGetMessages(
         that: this,
         peerMac: peerMac,
       );
 
+  Future<MessagingServiceHandle> getMessagingService() => RustLib.instance.api
+      .crateApiEngineNetworkEngineHandleGetMessagingService(that: this);
+
+  Future<List<PeerRecord>> getPeers() => RustLib.instance.api
+      .crateApiEngineNetworkEngineHandleGetPeers(that: this);
+
+  Future<StorageRepositoryHandle> getStorage() => RustLib.instance.api
+      .crateApiEngineNetworkEngineHandleGetStorage(that: this);
+
+  Stream<String> registerNotifySink() => RustLib.instance.api
+      .crateApiEngineNetworkEngineHandleRegisterNotifySink(that: this);
+
   Future<void> runScanAndFlushCycle() => RustLib.instance.api
-      .crateApiProtocolNetworkEngineRunScanAndFlushCycle(that: this);
+      .crateApiEngineNetworkEngineHandleRunScanAndFlushCycle(that: this);
 
   Future<String> sendFile({
     required String recipientMac,
     required String filePathStr,
-  }) => RustLib.instance.api.crateApiProtocolNetworkEngineSendFile(
+  }) => RustLib.instance.api.crateApiEngineNetworkEngineHandleSendFile(
     that: this,
     recipientMac: recipientMac,
     filePathStr: filePathStr,
@@ -3234,35 +7698,308 @@ class NetworkEngineImpl extends RustOpaque implements NetworkEngine {
   Future<void> sendMessage({
     required String recipientMac,
     required String content,
-  }) => RustLib.instance.api.crateApiProtocolNetworkEngineSendMessage(
+  }) => RustLib.instance.api.crateApiEngineNetworkEngineHandleSendMessage(
     that: this,
     recipientMac: recipientMac,
     content: content,
   );
 
   Stream<String> startListener({required int port}) => RustLib.instance.api
-      .crateApiProtocolNetworkEngineStartListener(that: this, port: port);
+      .crateApiEngineNetworkEngineHandleStartListener(that: this, port: port);
 
   Future<void> upsertPeer({required PeerRecord record}) => RustLib.instance.api
-      .crateApiProtocolNetworkEngineUpsertPeer(that: this, record: record);
+      .crateApiEngineNetworkEngineHandleUpsertPeer(that: this, record: record);
 }
 
 @sealed
-class PathBufImpl extends RustOpaque implements PathBuf {
+class PeerConnectionHandleImpl extends RustOpaque
+    implements PeerConnectionHandle {
   // Not to be used by end users
-  PathBufImpl.frbInternalDcoDecode(List<dynamic> wire)
+  PeerConnectionHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
     : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
-  PathBufImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+  PeerConnectionHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_PeerConnectionHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_PeerConnectionHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_PeerConnectionHandlePtr,
+  );
+
+  Future<String> remoteIp() => RustLib.instance.api
+      .crateApiConnectionTraitsPeerConnectionHandleRemoteIp(that: this);
+
+  Future<void> sendEnvelope({required MessageEnvelope envelope}) => RustLib
+      .instance
+      .api
+      .crateApiConnectionTraitsPeerConnectionHandleSendEnvelope(
+        that: this,
+        envelope: envelope,
+      );
+}
+
+@sealed
+class PeerConnectionImpl extends RustOpaque implements PeerConnection {
+  // Not to be used by end users
+  PeerConnectionImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  PeerConnectionImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
     : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
 
   static final _kStaticData = RustArcStaticData(
     rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_PathBuf,
+        RustLib.instance.api.rust_arc_increment_strong_count_PeerConnection,
     rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_PathBuf,
+        RustLib.instance.api.rust_arc_decrement_strong_count_PeerConnection,
     rustArcDecrementStrongCountPtr:
-        RustLib.instance.api.rust_arc_decrement_strong_count_PathBufPtr,
+        RustLib.instance.api.rust_arc_decrement_strong_count_PeerConnectionPtr,
   );
+
+  String get remoteIp => RustLib.instance.api
+      .crateApiConnectionManagerPeerConnectionAutoAccessorGetRemoteIp(
+        that: this,
+      );
+
+  set remoteIp(String remoteIp) => RustLib.instance.api
+      .crateApiConnectionManagerPeerConnectionAutoAccessorSetRemoteIp(
+        that: this,
+        remoteIp: remoteIp,
+      );
+
+  Future<void> sendEnvelope({required MessageEnvelope envelope}) =>
+      RustLib.instance.api.crateApiConnectionManagerPeerConnectionSendEnvelope(
+        that: this,
+        envelope: envelope,
+      );
+}
+
+@sealed
+class StorageRepositoryHandleImpl extends RustOpaque
+    implements StorageRepositoryHandle {
+  // Not to be used by end users
+  StorageRepositoryHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  StorageRepositoryHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_StorageRepositoryHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_StorageRepositoryHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_StorageRepositoryHandlePtr,
+  );
+
+  Future<void> appendMessage({
+    required String peerMac,
+    required PersistentMessage msg,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleAppendMessage(
+        that: this,
+        peerMac: peerMac,
+        msg: msg,
+      );
+
+  Future<void> clearFileTransferTrackers({
+    required String transferId,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleClearFileTransferTrackers(
+        that: this,
+        transferId: transferId,
+      );
+
+  Future<Uint32List> getAckedOutboundChunks({required String transferId}) =>
+      RustLib.instance.api
+          .crateApiStorageTraitsStorageRepositoryHandleGetAckedOutboundChunks(
+            that: this,
+            transferId: transferId,
+          );
+
+  Future<List<PeerRecord>> getAllPeers() => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleGetAllPeers(that: this);
+
+  Future<FileTransferRecord?> getFileTransfer({required String transferId}) =>
+      RustLib.instance.api
+          .crateApiStorageTraitsStorageRepositoryHandleGetFileTransfer(
+            that: this,
+            transferId: transferId,
+          );
+
+  Future<List<PersistentMessage>> getMessagesForPeer({
+    required String peerMac,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleGetMessagesForPeer(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<PeerRecord?> getPeer({required String mac}) =>
+      RustLib.instance.api.crateApiStorageTraitsStorageRepositoryHandleGetPeer(
+        that: this,
+        mac: mac,
+      );
+
+  Future<List<PersistentMessage>> getPendingMessages({
+    required String peerMac,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleGetPendingMessages(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<List<FileTransferRecord>> getPendingOutboundTransfers({
+    required String peerMac,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleGetPendingOutboundTransfers(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<bool> hasMessage({required String msgId}) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleHasMessage(
+        that: this,
+        msgId: msgId,
+      );
+
+  Future<void> insertFileTransfer({required FileTransferRecord record}) =>
+      RustLib.instance.api
+          .crateApiStorageTraitsStorageRepositoryHandleInsertFileTransfer(
+            that: this,
+            record: record,
+          );
+
+  Future<bool> markAcked({
+    required String peerMac,
+    required String targetMsgId,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleMarkAcked(
+        that: this,
+        peerMac: peerMac,
+        targetMsgId: targetMsgId,
+      );
+
+  Future<void> markTransferCompleted({required String transferId}) => RustLib
+      .instance
+      .api
+      .crateApiStorageTraitsStorageRepositoryHandleMarkTransferCompleted(
+        that: this,
+        transferId: transferId,
+      );
+
+  Future<int> recordChunkReceived({
+    required String transferId,
+    required int chunkIndex,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleRecordChunkReceived(
+        that: this,
+        transferId: transferId,
+        chunkIndex: chunkIndex,
+      );
+
+  Future<void> recordOutboundChunkAck({
+    required String transferId,
+    required int chunkIndex,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleRecordOutboundChunkAck(
+        that: this,
+        transferId: transferId,
+        chunkIndex: chunkIndex,
+      );
+
+  Future<void> setPeerOnlineStatus({
+    required String mac,
+    required bool isOnline,
+  }) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleSetPeerOnlineStatus(
+        that: this,
+        mac: mac,
+        isOnline: isOnline,
+      );
+
+  Future<void> upsertPeer({required PeerRecord record}) => RustLib.instance.api
+      .crateApiStorageTraitsStorageRepositoryHandleUpsertPeer(
+        that: this,
+        record: record,
+      );
+}
+
+@sealed
+class TcpConnectionManagerHandleImpl extends RustOpaque
+    implements TcpConnectionManagerHandle {
+  // Not to be used by end users
+  TcpConnectionManagerHandleImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  TcpConnectionManagerHandleImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_TcpConnectionManagerHandle,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_TcpConnectionManagerHandle,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_TcpConnectionManagerHandlePtr,
+  );
+
+  Future<ConnectionManagerHandle> asConnectionManager() => RustLib.instance.api
+      .crateApiConnectionManagerTcpConnectionManagerHandleAsConnectionManager(
+        that: this,
+      );
+
+  Future<PeerConnectionHandle> getOrConnect({required String peerMac}) =>
+      RustLib.instance.api
+          .crateApiConnectionManagerTcpConnectionManagerHandleGetOrConnect(
+            that: this,
+            peerMac: peerMac,
+          );
+
+  Future<bool> hasConnection({required String peerMac}) => RustLib.instance.api
+      .crateApiConnectionManagerTcpConnectionManagerHandleHasConnection(
+        that: this,
+        peerMac: peerMac,
+      );
+
+  Future<void> removeConnection({required String peerMac}) => RustLib
+      .instance
+      .api
+      .crateApiConnectionManagerTcpConnectionManagerHandleRemoveConnection(
+        that: this,
+        peerMac: peerMac,
+      );
 }

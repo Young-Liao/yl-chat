@@ -5,118 +5,56 @@
 
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+part 'models.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `dispatch_file_chunks`, `emit_event`, `get_or_connect`, `handle_incoming_stream`, `handle_read_loop`, `init_db_tables`, `rebuild_schema`, `setup_connection`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ChunkHeader`, `MessageEnvelope`, `MessagePayload`, `PeerConnection`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
-// These functions are ignored (category: IgnoreBecauseOwnerTyShouldIgnore): `send_envelope`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
-Future<PlatformInt64> chronoNowTimestamp() =>
-    RustLib.instance.api.crateApiProtocolChronoNowTimestamp();
+/// 文件分块头信息 (Chunk Header)
+class ChunkHeader {
+  final String transferId;
+  final String chunkUuid;
+  final int chunkIndex;
+  final int totalChunks;
+  final BigInt offset;
+  final String chunkHash;
+  final String fileHash;
 
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<LocalStorage>>
-abstract class LocalStorage implements RustOpaqueInterface {
-  Future<void> appendMessage({
-    required String peerMac,
-    required PersistentMessage msg,
+  const ChunkHeader({
+    required this.transferId,
+    required this.chunkUuid,
+    required this.chunkIndex,
+    required this.totalChunks,
+    required this.offset,
+    required this.chunkHash,
+    required this.fileHash,
   });
 
-  Future<void> clearFileTransferTrackers({required String transferId});
+  @override
+  int get hashCode =>
+      transferId.hashCode ^
+      chunkUuid.hashCode ^
+      chunkIndex.hashCode ^
+      totalChunks.hashCode ^
+      offset.hashCode ^
+      chunkHash.hashCode ^
+      fileHash.hashCode;
 
-  Future<Set<int>> getAckedOutboundChunks({required String transferId});
-
-  Future<List<PeerRecord>> getAllPeers();
-
-  Future<FileTransferRecord?> getFileTransfer({required String transferId});
-
-  Future<List<PersistentMessage>> getMessagesForPeer({required String peerMac});
-
-  Future<PeerRecord?> getPeer({required String mac});
-
-  Future<List<PersistentMessage>> getPendingMessages({required String peerMac});
-
-  Future<List<FileTransferRecord>> getPendingOutboundTransfers({
-    required String peerMac,
-  });
-
-  Future<bool> hasMessage({required String msgId});
-
-  Future<void> insertFileTransfer({required FileTransferRecord record});
-
-  Future<bool> markAcked({
-    required String peerMac,
-    required String targetMsgId,
-  });
-
-  Future<void> markTransferCompleted({required String transferId});
-
-  static Future<LocalStorage> open({required PathBuf dbPath}) =>
-      RustLib.instance.api.crateApiProtocolLocalStorageOpen(dbPath: dbPath);
-
-  Future<int> recordChunkReceived({
-    required String transferId,
-    required int chunkIndex,
-  });
-
-  Future<void> recordOutboundChunkAck({
-    required String transferId,
-    required int chunkIndex,
-  });
-
-  Future<void> setPeerOnlineStatus({
-    required String mac,
-    required bool isOnline,
-  });
-
-  Future<void> upsertPeer({required PeerRecord record});
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ChunkHeader &&
+          runtimeType == other.runtimeType &&
+          transferId == other.transferId &&
+          chunkUuid == other.chunkUuid &&
+          chunkIndex == other.chunkIndex &&
+          totalChunks == other.totalChunks &&
+          offset == other.offset &&
+          chunkHash == other.chunkHash &&
+          fileHash == other.fileHash;
 }
 
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NetworkEngine>>
-abstract class NetworkEngine implements RustOpaqueInterface {
-  String get selfMac;
-
-  set selfMac(String selfMac);
-
-  Future<void> flushOutbox({required String peerMac});
-
-  Future<List<PersistentMessage>> getMessages({required String peerMac});
-
-  Future<List<PeerRecord>> getPeers();
-
-  // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
-  static Future<NetworkEngine> newInstance({
-    required String selfMac,
-    required String dbPathStr,
-  }) => RustLib.instance.api.crateApiProtocolNetworkEngineNew(
-    selfMac: selfMac,
-    dbPathStr: dbPathStr,
-  );
-
-  Stream<String> registerNotifySink();
-
-  /// 自动重传该 Peer 未完成的文件传输任务
-  Future<void> resumePendingFileTransfers({required String peerMac});
-
-  Future<void> runScanAndFlushCycle();
-
-  Future<String> sendFile({
-    required String recipientMac,
-    required String filePathStr,
-  });
-
-  Future<void> sendMessage({
-    required String recipientMac,
-    required String content,
-  });
-
-  Stream<String> startListener({required int port});
-
-  Future<void> upsertPeer({required PeerRecord record});
-}
-
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PathBuf>>
-abstract class PathBuf implements RustOpaqueInterface {}
-
+/// 数据库持久化的文件传输记录
 class FileTransferRecord {
   final String transferId;
   final String peerMac;
@@ -176,6 +114,7 @@ class FileTransferRecord {
           isOutgoing == other.isOutgoing;
 }
 
+/// 文件传输类型
 enum FileType {
   none,
   image,
@@ -183,24 +122,85 @@ enum FileType {
   generic;
 
   Future<void> asStr() =>
-      RustLib.instance.api.crateApiProtocolFileTypeAsStr(that: this);
+      RustLib.instance.api.crateApiModelsFileTypeAsStr(that: this);
 
   static Future<FileType> fromStr({required String s}) =>
-      RustLib.instance.api.crateApiProtocolFileTypeFromStr(s: s);
+      RustLib.instance.api.crateApiModelsFileTypeFromStr(s: s);
 }
 
+/// 网络传输顶级信封对象 (Envelope)
+class MessageEnvelope {
+  final int version;
+  final String msgId;
+  final String senderMac;
+  final MessagePayload payload;
+
+  const MessageEnvelope({
+    required this.version,
+    required this.msgId,
+    required this.senderMac,
+    required this.payload,
+  });
+
+  @override
+  int get hashCode =>
+      version.hashCode ^ msgId.hashCode ^ senderMac.hashCode ^ payload.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MessageEnvelope &&
+          runtimeType == other.runtimeType &&
+          version == other.version &&
+          msgId == other.msgId &&
+          senderMac == other.senderMac &&
+          payload == other.payload;
+}
+
+@freezed
+sealed class MessagePayload with _$MessagePayload {
+  const MessagePayload._();
+
+  const factory MessagePayload.handshake({required String senderMac}) =
+      MessagePayload_Handshake;
+  const factory MessagePayload.chatMessage({required String content}) =
+      MessagePayload_ChatMessage;
+  const factory MessagePayload.fileTransferInit({
+    required String transferId,
+    required FileType fileType,
+    required String fileName,
+    required BigInt fileSize,
+    required int totalChunks,
+    required String fileHash,
+  }) = MessagePayload_FileTransferInit;
+  const factory MessagePayload.fileChunk({
+    required ChunkHeader header,
+    required Uint8List data,
+  }) = MessagePayload_FileChunk;
+  const factory MessagePayload.chunkAck({
+    required String transferId,
+    required int chunkIndex,
+  }) = MessagePayload_ChunkAck;
+  const factory MessagePayload.fileCompleteAck({required String transferId}) =
+      MessagePayload_FileCompleteAck;
+  const factory MessagePayload.ack({required String targetMsgId}) =
+      MessagePayload_Ack;
+}
+
+/// 消息发送/接收状态
 enum MessageStatus {
   pending,
   acked,
   failed;
 
   Future<void> asStr() =>
-      RustLib.instance.api.crateApiProtocolMessageStatusAsStr(that: this);
+      RustLib.instance.api.crateApiModelsMessageStatusAsStr(that: this);
 
   static Future<MessageStatus> fromStr({required String s}) =>
-      RustLib.instance.api.crateApiProtocolMessageStatusFromStr(s: s);
+      RustLib.instance.api.crateApiModelsMessageStatusFromStr(s: s);
 }
 
+/// 节点设备记录
 class PeerRecord {
   final String macAddress;
   final String lastKnownIp;
@@ -240,6 +240,7 @@ class PeerRecord {
           isOnline == other.isOnline;
 }
 
+/// 数据库持久化的消息记录
 class PersistentMessage {
   final String msgId;
   final String peerMac;

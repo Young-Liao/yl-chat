@@ -6,9 +6,14 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < LocalStorage >>>
-abstract class ArcLocalStorage implements RustOpaqueInterface {}
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn ConnectionManager >>>
+abstract class ArcConnectionManager implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < RwLock < HashMap < String , Arc < PeerConnection > > > >>>
-abstract class ArcHashMapStringArcPeerConnection
-    implements RustOpaqueInterface {}
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn FileTransferService >>>
+abstract class ArcFileTransferService implements RustOpaqueInterface {}
+
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn MessagingService >>>
+abstract class ArcMessagingService implements RustOpaqueInterface {}
+
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Arc < dyn StorageRepository >>>
+abstract class ArcStorageRepository implements RustOpaqueInterface {}

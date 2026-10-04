@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:yl_chat/main.dart';
-import 'package:yl_chat/src/rust/api/protocol.dart';
 import 'package:yl_chat/src/theme/abstract_theme.dart';
 
 import '../../../shared/network/network_service.dart';

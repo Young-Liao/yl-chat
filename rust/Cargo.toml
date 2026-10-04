@@ -19,6 +19,8 @@ tracing-subscriber = "0.3.23"
 tokio-rusqlite = "0.5.1"
 rusqlite = { version = "0.31.0", features = ["bundled", "vtab"] }
 sha2 = "0.11.0"
+async-trait = "0.1.92"
+serde_bytes = "0.11.19"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

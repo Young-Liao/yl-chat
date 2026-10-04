@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/cupertino.dart';
-import 'package:yl_chat/src/rust/api/protocol.dart';
 
 import '../../../main.dart'; // 替换为你实际生成的 rust API 路径
 

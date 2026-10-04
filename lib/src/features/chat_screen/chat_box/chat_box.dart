@@ -1,13 +1,12 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:yl_chat/main.dart';
 import 'package:yl_chat/src/features/chat_screen/chat_box/title_bar.dart';
-import 'package:yl_chat/src/rust/api/protocol.dart';
 import 'package:yl_chat/src/shared/tools/algorithms.dart';
 import 'package:yl_chat/src/theme/abstract_theme.dart';
 
+import '../../../rust/api/models.dart';
 import '../../../shared/network/network_service.dart';
 
 class ChatBox extends StatefulWidget {
