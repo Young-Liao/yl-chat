@@ -3,8 +3,8 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/bridge.dart';
 import 'api/discovery.dart';
-import 'api/discovery/bridge.dart';
 import 'api/protocol.dart';
 import 'api/simple.dart';
 import 'dart:async';
@@ -91,6 +91,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  Set<int> dco_decode_Set_u_32_None(dynamic raw);
+
+  @protected
   RustStreamSink<String> dco_decode_StreamSink_String_Sse(dynamic raw);
 
   @protected
@@ -100,16 +103,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  FileTransferRecord dco_decode_box_autoadd_file_transfer_record(dynamic raw);
+
+  @protected
   PeerRecord dco_decode_box_autoadd_peer_record(dynamic raw);
 
   @protected
   PersistentMessage dco_decode_box_autoadd_persistent_message(dynamic raw);
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  FileTransferRecord dco_decode_file_transfer_record(dynamic raw);
+
+  @protected
+  FileType dco_decode_file_type(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  List<FileTransferRecord> dco_decode_list_file_transfer_record(dynamic raw);
 
   @protected
   List<PeerInfo> dco_decode_list_peer_info(dynamic raw);
@@ -121,13 +139,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<PersistentMessage> dco_decode_list_persistent_message(dynamic raw);
 
   @protected
+  Uint32List dco_decode_list_prim_u_32_strict(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
   MessageStatus dco_decode_message_status(dynamic raw);
 
   @protected
+  String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  FileTransferRecord? dco_decode_opt_box_autoadd_file_transfer_record(
+    dynamic raw,
+  );
+
+  @protected
   PeerRecord? dco_decode_opt_box_autoadd_peer_record(dynamic raw);
+
+  @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
   PeerInfo dco_decode_peer_info(dynamic raw);
@@ -140,6 +172,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int dco_decode_u_16(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
+
+  @protected
+  BigInt dco_decode_u_64(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -208,6 +246,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  Set<int> sse_decode_Set_u_32_None(SseDeserializer deserializer);
+
+  @protected
   RustStreamSink<String> sse_decode_StreamSink_String_Sse(
     SseDeserializer deserializer,
   );
@@ -219,6 +260,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  FileTransferRecord sse_decode_box_autoadd_file_transfer_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PeerRecord sse_decode_box_autoadd_peer_record(SseDeserializer deserializer);
 
   @protected
@@ -227,10 +273,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  FileTransferRecord sse_decode_file_transfer_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileType sse_decode_file_type(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<FileTransferRecord> sse_decode_list_file_transfer_record(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<PeerInfo> sse_decode_list_peer_info(SseDeserializer deserializer);
@@ -244,15 +306,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  Uint32List sse_decode_list_prim_u_32_strict(SseDeserializer deserializer);
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
   MessageStatus sse_decode_message_status(SseDeserializer deserializer);
 
   @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  FileTransferRecord? sse_decode_opt_box_autoadd_file_transfer_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PeerRecord? sse_decode_opt_box_autoadd_peer_record(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
   PeerInfo sse_decode_peer_info(SseDeserializer deserializer);
@@ -265,6 +341,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
+
+  @protected
+  BigInt sse_decode_u_64(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -345,6 +427,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_Set_u_32_None(Set<int> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_StreamSink_String_Sse(
     RustStreamSink<String> self,
     SseSerializer serializer,
@@ -355,6 +440,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_file_transfer_record(
+    FileTransferRecord self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_peer_record(
@@ -369,10 +460,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_file_transfer_record(
+    FileTransferRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_type(FileType self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_file_transfer_record(
+    List<FileTransferRecord> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_peer_info(List<PeerInfo> self, SseSerializer serializer);
@@ -390,6 +499,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_prim_u_32_strict(
+    Uint32List self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
@@ -399,10 +514,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_message_status(MessageStatus self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_file_transfer_record(
+    FileTransferRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_peer_record(
     PeerRecord? self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
   void sse_encode_peer_info(PeerInfo self, SseSerializer serializer);
@@ -418,6 +545,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_u_16(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_64(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

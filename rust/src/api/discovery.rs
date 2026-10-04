@@ -1,5 +1,3 @@
-pub mod bridge;
-
 use mdns_sd::{IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};

@@ -1,10 +1,11 @@
-use flutter_rust_bridge::frb;
-use rusqlite::params;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
+use flutter_rust_bridge::frb;
+use rusqlite::params;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, RwLock};
@@ -16,13 +17,14 @@ use crate::api::discovery::ProtocolConfig;
 use crate::frb_generated::StreamSink;
 
 // =============================================================================
-// 1. Data Models
+// 1. Data Models & Enums
 // =============================================================================
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum MessageStatus {
     Pending,
     Acked,
+    Failed,
 }
 
 impl MessageStatus {
@@ -30,13 +32,44 @@ impl MessageStatus {
         match self {
             MessageStatus::Pending => "PENDING",
             MessageStatus::Acked => "ACKED",
+            MessageStatus::Failed => "FAILED",
         }
     }
 
     pub fn from_str(s: &str) -> Self {
         match s {
             "ACKED" => MessageStatus::Acked,
+            "FAILED" => MessageStatus::Failed,
             _ => MessageStatus::Pending,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum FileType {
+    None,
+    Image,
+    Video,
+    Generic,
+}
+
+impl FileType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            FileType::None => "none",
+            FileType::Image => "image",
+            FileType::Video => "video",
+            FileType::Generic => "generic",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "image" => FileType::Image,
+            "video" => FileType::Video,
+            "generic" => FileType::Generic,
+            _ => FileType::None,
         }
     }
 }
@@ -49,6 +82,12 @@ pub struct PersistentMessage {
     pub content: String,
     pub timestamp: i64,
     pub status: MessageStatus,
+    // --- 扩展：支持关联文件信息 ---
+    pub file_type: FileType,
+    pub file_name: Option<String>,
+    pub file_size: Option<u64>,
+    pub file_hash: Option<String>,
+    pub file_path: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -61,13 +100,30 @@ pub struct PeerRecord {
     pub is_online: bool,
 }
 
-// Wire protocol frame format
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MessageEnvelope {
-    pub version: u8,
-    pub msg_id: String,
-    pub sender_mac: String,
-    pub payload: MessagePayload,
+pub struct ChunkHeader {
+    pub transfer_id: String,
+    pub chunk_uuid: String,
+    pub chunk_index: u32,
+    pub total_chunks: u32,
+    pub offset: u64,
+    pub chunk_hash: String,
+    pub file_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FileTransferRecord {
+    pub transfer_id: String,
+    pub peer_mac: String,
+    pub file_type: FileType,
+    pub file_name: String,
+    pub file_size: u64,
+    pub total_chunks: u32,
+    pub received_chunks: u32,
+    pub file_hash: String,
+    pub save_path: String,
+    pub is_completed: bool,
+    pub is_outgoing: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -79,23 +135,36 @@ pub enum MessagePayload {
     ChatMessage {
         content: String,
     },
-
-    ImageTransferInit {
+    FileTransferInit {
         transfer_id: String,
+        file_type: FileType,
         file_name: String,
         file_size: u64,
         total_chunks: u32,
         file_hash: String,
     },
-
-    ImageChunk {
+    FileChunk {
         header: ChunkHeader,
         data: Vec<u8>,
     },
-
     Ack {
-        target_msg_id: String, // UUID (chunk_uuid or transfer_id)
+        target_msg_id: String,
     },
+    ChunkAck {
+        transfer_id: String,
+        chunk_index: u32,
+    },
+    FileCompleteAck {
+        transfer_id: String,
+    },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MessageEnvelope {
+    pub version: u8,
+    pub msg_id: String,
+    pub sender_mac: String,
+    pub payload: MessagePayload,
 }
 
 // =============================================================================
@@ -121,38 +190,11 @@ impl LocalStorage {
             .await
             .map_err(|e| format!("Failed to open SQLite database: {e}"))?;
 
-        let init_res = db
+        // 校验 Scheme 兼容性。如果缺少关联文件的关键列，直接返回 Error 并强行彻底重构！
+        let check_schema = db
             .call(|conn| {
-                conn.execute_batch(
-                    "
-                    PRAGMA journal_mode = WAL;
-                    PRAGMA synchronous = NORMAL;
-
-                    CREATE TABLE IF NOT EXISTS peers (
-                        mac_address TEXT PRIMARY KEY,
-                        last_known_ip TEXT NOT NULL,
-                        port INTEGER NOT NULL,
-                        device_name TEXT NOT NULL,
-                        last_seen INTEGER NOT NULL,
-                        is_online INTEGER NOT NULL DEFAULT 0
-                    );
-
-                    CREATE TABLE IF NOT EXISTS messages (
-                        msg_id TEXT PRIMARY KEY,
-                        peer_mac TEXT NOT NULL,
-                        is_outgoing INTEGER NOT NULL,
-                        content TEXT NOT NULL,
-                        timestamp INTEGER NOT NULL,
-                        status TEXT NOT NULL
-                    );
-
-                    CREATE INDEX IF NOT EXISTS idx_messages_peer_mac ON messages(peer_mac);
-                    ",
-                )?;
-
-                // 检查旧 peers 表中是否存在 is_online 列，如果不存在则直接修改表追加列（自动迁移）
-                let mut stmt = conn.prepare("PRAGMA table_info(peers)")?;
-                let mut has_is_online = false;
+                let mut stmt = conn.prepare("PRAGMA table_info(messages)")?;
+                let mut has_file_type = false;
                 let rows = stmt.query_map([], |row| {
                     let col_name: String = row.get(1)?;
                     Ok(col_name)
@@ -160,68 +202,169 @@ impl LocalStorage {
 
                 for col in rows {
                     if let Ok(name) = col {
-                        if name == "is_online" {
-                            has_is_online = true;
+                        if name == "file_type" {
+                            has_file_type = true;
                             break;
                         }
                     }
                 }
 
-                if !has_is_online {
-                    info!("Adding missing 'is_online' column to existing peers table");
-                    conn.execute(
-                        "ALTER TABLE peers ADD COLUMN is_online INTEGER NOT NULL DEFAULT 0",
-                        [],
-                    )?;
+                if !has_file_type {
+                    return Err(rusqlite::Error::ModuleError("Schema mismatch: missing file fields in messages".to_string()).into());
                 }
-
                 Ok(())
             })
             .await;
 
-        // 如果上述过程遇到严重的字段冲突或表损坏，直接强行 Drop 表重建
-        if let Err(err) = init_res {
-            warn!(error = %err, "Database schema incompatibility detected. Dropping tables and rebuilding...");
-
-            db.call(|conn| {
-                conn.execute_batch(
-                    "
-                    DROP TABLE IF EXISTS messages;
-                    DROP TABLE IF EXISTS peers;
-
-                    CREATE TABLE peers (
-                        mac_address TEXT PRIMARY KEY,
-                        last_known_ip TEXT NOT NULL,
-                        port INTEGER NOT NULL,
-                        device_name TEXT NOT NULL,
-                        last_seen INTEGER NOT NULL,
-                        is_online INTEGER NOT NULL DEFAULT 0
-                    );
-
-                    CREATE TABLE messages (
-                        msg_id TEXT PRIMARY KEY,
-                        peer_mac TEXT NOT NULL,
-                        is_outgoing INTEGER NOT NULL,
-                        content TEXT NOT NULL,
-                        timestamp INTEGER NOT NULL,
-                        status TEXT NOT NULL
-                    );
-
-                    CREATE INDEX idx_messages_peer_mac ON messages(peer_mac);
-                    ",
-                )?;
-                Ok(())
-            })
-            .await
-            .map_err(|e| format!("Failed to force recreate SQLite database tables: {e}"))?;
+        if check_schema.is_err() {
+            warn!("Database schema incompatibility detected. Rebuilding database tables...");
+            Self::rebuild_schema(&db).await?;
+        } else {
+            // 初始化/确保所有表结构均准备完成
+            let init_res = Self::init_db_tables(&db).await;
+            if let Err(e) = init_res {
+                warn!(error = %e, "DB Initialization failed. Dropping and re-creating...");
+                Self::rebuild_schema(&db).await?;
+            }
         }
 
         Ok(Self { db })
     }
 
-    pub async fn upsert_peer(&self, record: PeerRecord) {
-        debug!(mac = %record.mac_address, ip = %record.last_known_ip, is_online = record.is_online, "Upserting peer record");
+    async fn init_db_tables(db: &AsyncConnection) -> Result<(), String> {
+        db.call(|conn| {
+            conn.execute_batch(
+                "
+                PRAGMA journal_mode = WAL;
+                PRAGMA synchronous = NORMAL;
 
+                CREATE TABLE IF NOT EXISTS peers (
+                    mac_address TEXT PRIMARY KEY,
+                    last_known_ip TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    device_name TEXT NOT NULL,
+                    last_seen INTEGER NOT NULL,
+                    is_online INTEGER NOT NULL DEFAULT 0
+                );
+
+                CREATE TABLE IF NOT EXISTS messages (
+                    msg_id TEXT PRIMARY KEY,
+                    peer_mac TEXT NOT NULL,
+                    is_outgoing INTEGER NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    file_type TEXT NOT NULL DEFAULT 'none',
+                    file_name TEXT,
+                    file_size INTEGER,
+                    file_hash TEXT,
+                    file_path TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_messages_peer_mac ON messages(peer_mac);
+
+                CREATE TABLE IF NOT EXISTS file_transfers (
+                    transfer_id TEXT PRIMARY KEY,
+                    peer_mac TEXT NOT NULL,
+                    file_type TEXT NOT NULL,
+                    file_name TEXT NOT NULL,
+                    file_size INTEGER NOT NULL,
+                    total_chunks INTEGER NOT NULL,
+                    received_chunks INTEGER NOT NULL DEFAULT 0,
+                    file_hash TEXT NOT NULL,
+                    save_path TEXT NOT NULL,
+                    is_completed INTEGER NOT NULL DEFAULT 0,
+                    is_outgoing INTEGER NOT NULL DEFAULT 0
+                );
+
+                CREATE TABLE IF NOT EXISTS file_chunks_tracker (
+                    transfer_id TEXT NOT NULL,
+                    chunk_index INTEGER NOT NULL,
+                    PRIMARY KEY (transfer_id, chunk_index)
+                );
+
+                CREATE TABLE IF NOT EXISTS outbound_chunks_tracker (
+                    transfer_id TEXT NOT NULL,
+                    chunk_index INTEGER NOT NULL,
+                    PRIMARY KEY (transfer_id, chunk_index)
+                );
+                ",
+            )?;
+            Ok(())
+        })
+            .await
+            .map_err(|e| format!("Failed to create DB tables: {e}"))
+    }
+
+    async fn rebuild_schema(db: &AsyncConnection) -> Result<(), String> {
+        db.call(|conn| {
+            conn.execute_batch(
+                "
+                DROP TABLE IF EXISTS outbound_chunks_tracker;
+                DROP TABLE IF EXISTS file_chunks_tracker;
+                DROP TABLE IF EXISTS file_transfers;
+                DROP TABLE IF EXISTS messages;
+                DROP TABLE IF EXISTS peers;
+
+                CREATE TABLE peers (
+                    mac_address TEXT PRIMARY KEY,
+                    last_known_ip TEXT NOT NULL,
+                    port INTEGER NOT NULL,
+                    device_name TEXT NOT NULL,
+                    last_seen INTEGER NOT NULL,
+                    is_online INTEGER NOT NULL DEFAULT 0
+                );
+
+                CREATE TABLE messages (
+                    msg_id TEXT PRIMARY KEY,
+                    peer_mac TEXT NOT NULL,
+                    is_outgoing INTEGER NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    file_type TEXT NOT NULL DEFAULT 'none',
+                    file_name TEXT,
+                    file_size INTEGER,
+                    file_hash TEXT,
+                    file_path TEXT
+                );
+
+                CREATE INDEX idx_messages_peer_mac ON messages(peer_mac);
+
+                CREATE TABLE file_transfers (
+                    transfer_id TEXT PRIMARY KEY,
+                    peer_mac TEXT NOT NULL,
+                    file_type TEXT NOT NULL,
+                    file_name TEXT NOT NULL,
+                    file_size INTEGER NOT NULL,
+                    total_chunks INTEGER NOT NULL,
+                    received_chunks INTEGER NOT NULL DEFAULT 0,
+                    file_hash TEXT NOT NULL,
+                    save_path TEXT NOT NULL,
+                    is_completed INTEGER NOT NULL DEFAULT 0,
+                    is_outgoing INTEGER NOT NULL DEFAULT 0
+                );
+
+                CREATE TABLE file_chunks_tracker (
+                    transfer_id TEXT NOT NULL,
+                    chunk_index INTEGER NOT NULL,
+                    PRIMARY KEY (transfer_id, chunk_index)
+                );
+
+                CREATE TABLE outbound_chunks_tracker (
+                    transfer_id TEXT NOT NULL,
+                    chunk_index INTEGER NOT NULL,
+                    PRIMARY KEY (transfer_id, chunk_index)
+                );
+                ",
+            )?;
+            Ok(())
+        })
+            .await
+            .map_err(|e| format!("Failed to rebuild DB schema: {e}"))
+    }
+
+    pub async fn upsert_peer(&self, record: PeerRecord) {
         let res = self
             .db
             .call(move |conn| {
@@ -291,10 +434,7 @@ impl LocalStorage {
             })
             .await;
 
-        res.unwrap_or_else(|e| {
-            error!(error = %e, "Failed to fetch all peers");
-            Vec::new()
-        })
+        res.unwrap_or_default()
     }
 
     pub async fn get_peer(&self, mac: &str) -> Option<PeerRecord> {
@@ -344,34 +484,23 @@ impl LocalStorage {
         let res = self
             .db
             .call(move |conn| {
-                let insert_res = conn.execute(
-                    "INSERT OR REPLACE INTO messages (msg_id, peer_mac, is_outgoing, content, timestamp, status)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                conn.execute(
+                    "INSERT OR REPLACE INTO messages (msg_id, peer_mac, is_outgoing, content, timestamp, status, file_type, file_name, file_size, file_hash, file_path)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
                     params![
                         msg.msg_id,
                         peer_mac,
                         if msg.is_outgoing { 1 } else { 0 },
                         msg.content,
                         msg.timestamp,
-                        msg.status.as_str()
+                        msg.status.as_str(),
+                        msg.file_type.as_str(),
+                        msg.file_name,
+                        msg.file_size,
+                        msg.file_hash,
+                        msg.file_path,
                     ],
-                );
-
-                if insert_res.is_err() {
-                    let _ = conn.execute("DELETE FROM messages WHERE msg_id = ?1", params![msg.msg_id]);
-                    conn.execute(
-                        "INSERT INTO messages (msg_id, peer_mac, is_outgoing, content, timestamp, status)
-                         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                        params![
-                            msg.msg_id,
-                            peer_mac,
-                            if msg.is_outgoing { 1 } else { 0 },
-                            msg.content,
-                            msg.timestamp,
-                            msg.status.as_str()
-                        ],
-                    )?;
-                }
+                )?;
                 Ok(())
             })
             .await;
@@ -401,10 +530,7 @@ impl LocalStorage {
                 info!(msg_id = %target_msg_id, peer_mac = %peer_mac, "Marked message ACKED in database");
                 true
             }
-            _ => {
-                warn!(msg_id = %target_msg_id, peer_mac = %peer_mac, "Failed to mark message ACKED in database");
-                false
-            }
+            _ => false,
         }
     }
 
@@ -414,12 +540,13 @@ impl LocalStorage {
             .db
             .call(move |conn| {
                 let mut stmt = conn.prepare(
-                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status
+                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status, file_type, file_name, file_size, file_hash, file_path
                      FROM messages WHERE peer_mac = ?1 ORDER BY timestamp ASC",
                 )?;
                 let rows = stmt.query_map(params![mac_owned], |row| {
                     let is_outgoing_int: i32 = row.get(2)?;
                     let status_str: String = row.get(5)?;
+                    let ft_str: String = row.get(6)?;
                     Ok(PersistentMessage {
                         msg_id: row.get(0)?,
                         peer_mac: row.get(1)?,
@@ -427,6 +554,11 @@ impl LocalStorage {
                         content: row.get(3)?,
                         timestamp: row.get(4)?,
                         status: MessageStatus::from_str(&status_str),
+                        file_type: FileType::from_str(&ft_str),
+                        file_name: row.get(7)?,
+                        file_size: row.get(8)?,
+                        file_hash: row.get(9)?,
+                        file_path: row.get(10)?,
                     })
                 })?;
 
@@ -449,11 +581,12 @@ impl LocalStorage {
             .db
             .call(move |conn| {
                 let mut stmt = conn.prepare(
-                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status
+                    "SELECT msg_id, peer_mac, is_outgoing, content, timestamp, status, file_type, file_name, file_size, file_hash, file_path
                      FROM messages WHERE peer_mac = ?1 AND is_outgoing = 1 AND status = ?2 ORDER BY timestamp ASC",
                 )?;
                 let rows = stmt.query_map(params![mac_owned, pending_status], |row| {
                     let status_str: String = row.get(5)?;
+                    let ft_str: String = row.get(6)?;
                     Ok(PersistentMessage {
                         msg_id: row.get(0)?,
                         peer_mac: row.get(1)?,
@@ -461,6 +594,11 @@ impl LocalStorage {
                         content: row.get(3)?,
                         timestamp: row.get(4)?,
                         status: MessageStatus::from_str(&status_str),
+                        file_type: FileType::from_str(&ft_str),
+                        file_name: row.get(7)?,
+                        file_size: row.get(8)?,
+                        file_hash: row.get(9)?,
+                        file_path: row.get(10)?,
                     })
                 })?;
 
@@ -473,6 +611,208 @@ impl LocalStorage {
             .await;
 
         res.unwrap_or_default()
+    }
+
+    pub async fn insert_file_transfer(&self, record: FileTransferRecord) {
+        let res = self
+            .db
+            .call(move |conn| {
+                conn.execute(
+                    "INSERT OR REPLACE INTO file_transfers
+                     (transfer_id, peer_mac, file_type, file_name, file_size, total_chunks, received_chunks, file_hash, save_path, is_completed, is_outgoing)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                    params![
+                        record.transfer_id,
+                        record.peer_mac,
+                        record.file_type.as_str(),
+                        record.file_name,
+                        record.file_size,
+                        record.total_chunks,
+                        record.received_chunks,
+                        record.file_hash,
+                        record.save_path,
+                        if record.is_completed { 1 } else { 0 },
+                        if record.is_outgoing { 1 } else { 0 },
+                    ],
+                )?;
+                Ok(())
+            })
+            .await;
+
+        if let Err(e) = res {
+            error!(error = %e, "Failed to persist file transfer record");
+        }
+    }
+
+    pub async fn record_chunk_received(&self, transfer_id: String, chunk_index: u32) -> Result<u32, String> {
+        self.db
+            .call(move |conn| {
+                let tx = conn.transaction()?;
+
+                let inserted = tx.execute(
+                    "INSERT OR IGNORE INTO file_chunks_tracker (transfer_id, chunk_index) VALUES (?1, ?2)",
+                    params![transfer_id, chunk_index],
+                )?;
+
+                if inserted > 0 {
+                    tx.execute(
+                        "UPDATE file_transfers SET received_chunks = received_chunks + 1 WHERE transfer_id = ?1",
+                        params![transfer_id],
+                    )?;
+                }
+
+                let mut stmt = tx.prepare("SELECT received_chunks, total_chunks FROM file_transfers WHERE transfer_id = ?1")?;
+                let mut rows = stmt.query(params![transfer_id])?;
+
+                if let Some(row) = rows.next()? {
+                    let recv: u32 = row.get(0)?;
+                    let total: u32 = row.get(1)?;
+                    if recv >= total {
+                        tx.execute(
+                            "UPDATE file_transfers SET is_completed = 1 WHERE transfer_id = ?1",
+                            params![transfer_id],
+                        )?;
+                    }
+                    drop(rows);
+                    drop(stmt);
+                    tx.commit()?;
+                    Ok(recv)
+                } else {
+                    Err(rusqlite::Error::QueryReturnedNoRows.into())
+                }
+            })
+            .await
+            .map_err(|e| format!("Failed to record chunk: {e}"))
+    }
+
+    pub async fn record_outbound_chunk_ack(&self, transfer_id: String, chunk_index: u32) {
+        let _ = self
+            .db
+            .call(move |conn| {
+                conn.execute(
+                    "INSERT OR IGNORE INTO outbound_chunks_tracker (transfer_id, chunk_index) VALUES (?1, ?2)",
+                    params![transfer_id, chunk_index],
+                )?;
+                Ok(())
+            })
+            .await;
+    }
+
+    pub async fn get_acked_outbound_chunks(&self, transfer_id: &str) -> HashSet<u32> {
+        let tid = transfer_id.to_string();
+        self.db
+            .call(move |conn| {
+                let mut stmt = conn.prepare("SELECT chunk_index FROM outbound_chunks_tracker WHERE transfer_id = ?1")?;
+                let rows = stmt.query_map(params![tid], |r| r.get(0))?;
+                let mut set = HashSet::new();
+                for r in rows {
+                    if let Ok(idx) = r {
+                        set.insert(idx);
+                    }
+                }
+                Ok(set)
+            })
+            .await
+            .unwrap_or_default()
+    }
+
+    pub async fn clear_file_transfer_trackers(&self, transfer_id: &str) {
+        let tid = transfer_id.to_string();
+        let _ = self
+            .db
+            .call(move |conn| {
+                conn.execute("DELETE FROM file_chunks_tracker WHERE transfer_id = ?1", params![tid.clone()])?;
+                conn.execute("DELETE FROM outbound_chunks_tracker WHERE transfer_id = ?1", params![tid])?;
+                Ok(())
+            })
+            .await;
+    }
+
+    pub async fn mark_transfer_completed(&self, transfer_id: &str) {
+        let tid = transfer_id.to_string();
+        let _ = self
+            .db
+            .call(move |conn| {
+                conn.execute("UPDATE file_transfers SET is_completed = 1 WHERE transfer_id = ?1", params![tid])?;
+                Ok(())
+            })
+            .await;
+    }
+
+    pub async fn get_pending_outbound_transfers(&self, peer_mac: &str) -> Vec<FileTransferRecord> {
+        let mac_owned = peer_mac.to_string();
+        self.db
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT transfer_id, peer_mac, file_type, file_name, file_size, total_chunks, received_chunks, file_hash, save_path, is_completed, is_outgoing
+                     FROM file_transfers WHERE peer_mac = ?1 AND is_outgoing = 1 AND is_completed = 0",
+                )?;
+                let rows = stmt.query_map(params![mac_owned], |row| {
+                    let ft_str: String = row.get(2)?;
+                    let completed_int: i32 = row.get(9)?;
+                    let outgoing_int: i32 = row.get(10)?;
+                    Ok(FileTransferRecord {
+                        transfer_id: row.get(0)?,
+                        peer_mac: row.get(1)?,
+                        file_type: FileType::from_str(&ft_str),
+                        file_name: row.get(3)?,
+                        file_size: row.get(4)?,
+                        total_chunks: row.get(5)?,
+                        received_chunks: row.get(6)?,
+                        file_hash: row.get(7)?,
+                        save_path: row.get(8)?,
+                        is_completed: completed_int == 1,
+                        is_outgoing: outgoing_int == 1,
+                    })
+                })?;
+
+                let mut list = Vec::new();
+                for r in rows {
+                    if let Ok(record) = r {
+                        list.push(record);
+                    }
+                }
+                Ok(list)
+            })
+            .await
+            .unwrap_or_default()
+    }
+
+    pub async fn get_file_transfer(&self, transfer_id: &str) -> Option<FileTransferRecord> {
+        let tid = transfer_id.to_string();
+        self.db
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT transfer_id, peer_mac, file_type, file_name, file_size, total_chunks, received_chunks, file_hash, save_path, is_completed, is_outgoing
+                     FROM file_transfers WHERE transfer_id = ?1",
+                )?;
+                let mut rows = stmt.query_map(params![tid], |row| {
+                    let ft_str: String = row.get(2)?;
+                    let completed_int: i32 = row.get(9)?;
+                    let outgoing_int: i32 = row.get(10)?;
+                    Ok(FileTransferRecord {
+                        transfer_id: row.get(0)?,
+                        peer_mac: row.get(1)?,
+                        file_type: FileType::from_str(&ft_str),
+                        file_name: row.get(3)?,
+                        file_size: row.get(4)?,
+                        total_chunks: row.get(5)?,
+                        received_chunks: row.get(6)?,
+                        file_hash: row.get(7)?,
+                        save_path: row.get(8)?,
+                        is_completed: completed_int == 1,
+                        is_outgoing: outgoing_int == 1,
+                    })
+                })?;
+
+                if let Some(res) = rows.next() {
+                    Ok(res.ok())
+                } else {
+                    Ok(None)
+                }
+            })
+            .await
+            .unwrap_or(None)
     }
 }
 
@@ -509,7 +849,6 @@ pub struct NetworkEngine {
 }
 
 impl NetworkEngine {
-    // --- Core Lifecycle & Management ---
 
     pub async fn new(self_mac: String, db_path_str: String) -> Result<Self, String> {
         let db_path = PathBuf::from(db_path_str);
@@ -539,8 +878,6 @@ impl NetworkEngine {
         }
     }
 
-    // --- Dart/Flutter Exported APIs ---
-
     pub async fn upsert_peer(&self, record: PeerRecord) {
         self.storage.upsert_peer(record).await;
     }
@@ -553,8 +890,6 @@ impl NetworkEngine {
         self.storage.get_messages_for_peer(&peer_mac).await
     }
 
-    // --- Active Communication & Outbox ---
-
     pub async fn send_message(&self, recipient_mac: String, content: String) -> Result<(), String> {
         let msg_id = Uuid::new_v4().to_string();
         info!(msg_id = %msg_id, recipient = %recipient_mac, "Queueing outgoing chat message");
@@ -566,6 +901,11 @@ impl NetworkEngine {
             content,
             timestamp: chrono_now_timestamp(),
             status: MessageStatus::Pending,
+            file_type: FileType::None,
+            file_name: None,
+            file_size: None,
+            file_hash: None,
+            file_path: None,
         };
 
         self.storage
@@ -582,6 +922,10 @@ impl NetworkEngine {
 
     pub async fn flush_outbox(&self, peer_mac: &str) {
         let pending = self.storage.get_pending_messages(peer_mac).await;
+
+        // 尝试断点续传未能发完的文件
+        self.resume_pending_file_transfers(peer_mac).await;
+
         if pending.is_empty() {
             return;
         }
@@ -620,10 +964,8 @@ impl NetworkEngine {
     pub async fn run_scan_and_flush_cycle(&self) {
         info!("Starting peer status refresh and outbox flush cycle");
 
-        // 1. Read historical records from SQLite
         let historical_peers = self.storage.get_all_peers().await;
 
-        // 2. Discover active devices via mDNS
         let discovered_peers = crate::api::discovery::scan_lan_peers(self.self_mac.clone())
             .await
             .unwrap_or_else(|e| {
@@ -636,7 +978,6 @@ impl NetworkEngine {
             .map(|p| (p.mac_address.clone(), p))
             .collect();
 
-        // 3. Update active state for existing devices & flush pending messages
         for mut peer_record in historical_peers {
             let mac = peer_record.mac_address.clone();
 
@@ -653,7 +994,6 @@ impl NetworkEngine {
             }
         }
 
-        // 4. Save newly discovered devices
         for (mac, online_peer) in discovered_map {
             if self.storage.get_peer(&mac).await.is_none() {
                 let new_record = PeerRecord {
@@ -669,11 +1009,8 @@ impl NetworkEngine {
             }
         }
 
-        // 5. Notify UI
         self.emit_event("PEER_LIST_UPDATED".to_string()).await;
     }
-
-    // --- Networking Internal Logic ---
 
     async fn get_or_connect(&self, peer_mac: &str) -> Result<Arc<PeerConnection>, String> {
         if let Some(conn) = self.connections.read().await.get(peer_mac) {
@@ -692,7 +1029,7 @@ impl NetworkEngine {
         let stream = TcpStream::connect(&addr)
             .await
             .map_err(|e| format!("Connect failed: {e}"))?;
-        let (tx, conn) = self
+        let (_tx, conn) = self
             .setup_connection(
                 stream,
                 peer_record.last_known_ip.clone(),
@@ -774,7 +1111,6 @@ impl NetworkEngine {
             tx: tx.clone(),
         });
 
-        // Frame Writer Loop (4-byte length prefix + payload)
         let ip_writer = remote_ip.clone();
         tokio::spawn(async move {
             while let Some(envelope) = rx.recv().await {
@@ -797,7 +1133,6 @@ impl NetworkEngine {
             }
         });
 
-        // Frame Reader Loop
         let engine = self.clone();
         let conn_clone = Arc::clone(&conn);
         tokio::spawn(async move {
@@ -861,9 +1196,7 @@ impl NetworkEngine {
                         self.emit_event("PEER_LIST_UPDATED".to_string()).await;
                     }
 
-                    // 1. Check if the message has already been received previously
-                    if self.storage.has_message(&env.msg_id).await {
-                        // 2. Fresh message: Save to SQLite & alert UI layer
+                    if !self.storage.has_message(&env.msg_id).await {
                         let msg = PersistentMessage {
                             msg_id: env.msg_id.clone(),
                             peer_mac: env.sender_mac.clone(),
@@ -871,21 +1204,19 @@ impl NetworkEngine {
                             content,
                             timestamp: chrono_now_timestamp(),
                             status: MessageStatus::Acked,
+                            file_type: FileType::None,
+                            file_name: None,
+                            file_size: None,
+                            file_hash: None,
+                            file_path: None,
                         };
 
                         self.storage
                             .append_message(env.sender_mac.clone(), msg)
                             .await;
                         self.emit_event(format!("NEW_MSG:{}", env.sender_mac)).await;
-                    } else {
-                        debug!(
-                            msg_id = %env.msg_id,
-                            peer_mac = %env.sender_mac,
-                            "Duplicate message detected; re-transmitting Ack without writing to database"
-                        );
                     }
 
-                    // 3. Always transmit Ack (whether duplicate or fresh)
                     let ack = MessageEnvelope {
                         version: 1,
                         msg_id: Uuid::new_v4().to_string(),
@@ -897,6 +1228,151 @@ impl NetworkEngine {
 
                     let _ = conn.send_envelope(&ack).await;
                 }
+                MessagePayload::FileTransferInit {
+                    transfer_id,
+                    file_type,
+                    file_name,
+                    file_size,
+                    total_chunks,
+                    file_hash,
+                } => {
+                    let peer_mac = if !current_peer_mac.is_empty() {
+                        current_peer_mac.clone()
+                    } else {
+                        env.sender_mac.clone()
+                    };
+
+                    let download_dir = std::env::temp_dir().join("p2p_downloads");
+                    let _ = tokio::fs::create_dir_all(&download_dir).await;
+                    let target_path = download_dir.join(&file_name).to_string_lossy().to_string();
+
+                    let record = FileTransferRecord {
+                        transfer_id: transfer_id.clone(),
+                        peer_mac: peer_mac.clone(),
+                        file_type,
+                        file_name,
+                        file_size,
+                        total_chunks,
+                        received_chunks: 0,
+                        file_hash,
+                        save_path: target_path,
+                        is_completed: false,
+                        is_outgoing: false,
+                    };
+
+                    self.storage.insert_file_transfer(record).await;
+
+                    let ack = MessageEnvelope {
+                        version: 1,
+                        msg_id: Uuid::new_v4().to_string(),
+                        sender_mac: self.self_mac.clone(),
+                        payload: MessagePayload::Ack {
+                            target_msg_id: transfer_id,
+                        },
+                    };
+                    let _ = conn.send_envelope(&ack).await;
+                }
+                MessagePayload::FileChunk { header, data } => {
+                    let transfer = self.storage.get_file_transfer(&header.transfer_id).await;
+
+                    if let Some(record) = transfer {
+                        let path = record.save_path.clone();
+                        let offset = header.offset;
+                        let chunk_data = data;
+
+                        let write_res = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+                            use std::fs::OpenOptions;
+                            use std::io::{Seek, SeekFrom, Write};
+
+                            let mut file = OpenOptions::new()
+                                .create(true)
+                                .write(true)
+                                .open(&path)?;
+
+                            file.seek(SeekFrom::Start(offset))?;
+                            file.write_all(&chunk_data)?;
+                            Ok(())
+                        })
+                            .await;
+
+                        if let Ok(Ok(())) = write_res {
+                            if let Ok(recv_count) = self
+                                .storage
+                                .record_chunk_received(header.transfer_id.clone(), header.chunk_index)
+                                .await
+                            {
+                                // 单独向发送端返回 ChunkAck 存储断点记录
+                                let chunk_ack = MessageEnvelope {
+                                    version: 1,
+                                    msg_id: Uuid::new_v4().to_string(),
+                                    sender_mac: self.self_mac.clone(),
+                                    payload: MessagePayload::ChunkAck {
+                                        transfer_id: header.transfer_id.clone(),
+                                        chunk_index: header.chunk_index,
+                                    },
+                                };
+                                let _ = conn.send_envelope(&chunk_ack).await;
+
+                                if recv_count >= record.total_chunks {
+                                    // 传输全部完成！向接收端的 messages 表写入这条 File 消息
+                                    let msg = PersistentMessage {
+                                        msg_id: header.transfer_id.clone(),
+                                        peer_mac: record.peer_mac.clone(),
+                                        is_outgoing: false,
+                                        content: format!("[File: {}]", record.file_name),
+                                        timestamp: chrono_now_timestamp(),
+                                        status: MessageStatus::Acked,
+                                        file_type: record.file_type,
+                                        file_name: Some(record.file_name),
+                                        file_size: Some(record.file_size),
+                                        file_hash: Some(record.file_hash),
+                                        file_path: Some(record.save_path),
+                                    };
+                                    self.storage.append_message(record.peer_mac.clone(), msg).await;
+
+                                    // 给 Sender 发送最终完成 Ack
+                                    let complete_ack = MessageEnvelope {
+                                        version: 1,
+                                        msg_id: Uuid::new_v4().to_string(),
+                                        sender_mac: self.self_mac.clone(),
+                                        payload: MessagePayload::FileCompleteAck {
+                                            transfer_id: header.transfer_id.clone(),
+                                        },
+                                    };
+                                    let _ = conn.send_envelope(&complete_ack).await;
+
+                                    self.emit_event(format!("FILE_COMPLETE:{}", header.transfer_id)).await;
+                                    self.emit_event(format!("NEW_MSG:{}", record.peer_mac)).await;
+                                } else {
+                                    self.emit_event(format!(
+                                        "FILE_PROGRESS:{}:{}",
+                                        header.transfer_id,
+                                        (recv_count as f32 / record.total_chunks as f32 * 100.0) as u32
+                                    ))
+                                        .await;
+                                }
+                            }
+                        }
+                    }
+                }
+                MessagePayload::ChunkAck { transfer_id, chunk_index } => {
+                    self.storage.record_outbound_chunk_ack(transfer_id, chunk_index).await;
+                }
+                MessagePayload::FileCompleteAck { transfer_id } => {
+                    let target = if !current_peer_mac.is_empty() {
+                        &current_peer_mac
+                    } else {
+                        &env.sender_mac
+                    };
+
+                    self.storage.mark_transfer_completed(&transfer_id).await;
+                    self.storage.clear_file_transfer_trackers(&transfer_id).await;
+
+                    if self.storage.mark_acked(target, &transfer_id).await {
+                        self.emit_event(format!("ACK:{}", target)).await;
+                    }
+                    self.emit_event(format!("FILE_SENT:{}", transfer_id)).await;
+                }
                 MessagePayload::Ack { target_msg_id } => {
                     let target = if !current_peer_mac.is_empty() {
                         &current_peer_mac
@@ -907,9 +1383,6 @@ impl NetworkEngine {
                     if self.storage.mark_acked(target, &target_msg_id).await {
                         self.emit_event(format!("ACK:{}", target)).await;
                     }
-                }
-                MessagePayload::ImageTransferInit { .. } | MessagePayload::ImageChunk { .. } => {
-                    todo!()
                 }
             }
         }
@@ -926,7 +1399,7 @@ impl NetworkEngine {
 }
 
 // =============================================================================
-// 5. Utility Functions
+// 5. Utility Functions & 断网重传实现
 // =============================================================================
 
 pub fn chrono_now_timestamp() -> i64 {
@@ -936,16 +1409,186 @@ pub fn chrono_now_timestamp() -> i64 {
         .as_secs() as i64
 }
 
-// =============================================================================
-// 6. Streaming Transmit
-// =============================================================================
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ChunkHeader {
-    pub transfer_id: String, // UUID for the entire image file transaction
-    pub chunk_uuid: String,  // Unique UUID for this specific chunk
-    pub chunk_index: u32,    // Sequence position (0, 1, 2...)
-    pub total_chunks: u32,   // Total number of chunks in file
-    pub offset: u64,         // Byte offset in the final destination file
-    pub chunk_hash: String,  // SHA-256 hash of ONLY this chunk's payload
-    pub file_hash: String,   // SHA-256 hash of the complete target file
+impl NetworkEngine {
+    pub async fn send_file(&self, recipient_mac: String, file_path_str: String) -> Result<String, String> {
+        let path = PathBuf::from(&file_path_str);
+        if !path.exists() {
+            return Err(format!("File does not exist: {}", file_path_str));
+        }
+
+        let file_name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown_file")
+            .to_string();
+
+        let metadata = fs::metadata(&path).map_err(|e| format!("Failed to read file metadata: {e}"))?;
+        let file_size = metadata.len();
+
+        let file_bytes = fs::read(&path).map_err(|e| format!("Failed to read file contents: {e}"))?;
+        let mut hasher = Sha256::new();
+        hasher.update(&file_bytes);
+
+        let result = hasher.finalize();
+        let file_hash: String = result.iter().map(|b| format!("{:02x}", b)).collect();
+
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        let file_type = match ext.as_str() {
+            "jpg" | "jpeg" | "png" | "gif" | "webp" => FileType::Image,
+            "mp4" | "mkv" | "mov" | "avi" => FileType::Video,
+            _ => FileType::Generic,
+        };
+
+        const CHUNK_SIZE: usize = 64 * 1024;
+        let total_chunks = if file_size == 0 {
+            1
+        } else {
+            ((file_size as usize + CHUNK_SIZE - 1) / CHUNK_SIZE) as u32
+        };
+
+        let transfer_id = Uuid::new_v4().to_string();
+
+        // 1. 持久化发送端记录 (file_transfers + messages)
+        let record = FileTransferRecord {
+            transfer_id: transfer_id.clone(),
+            peer_mac: recipient_mac.clone(),
+            file_type: file_type.clone(),
+            file_name: file_name.clone(),
+            file_size,
+            total_chunks,
+            received_chunks: 0,
+            file_hash: file_hash.clone(),
+            save_path: file_path_str.clone(),
+            is_completed: false,
+            is_outgoing: true,
+        };
+        self.storage.insert_file_transfer(record).await;
+
+        let msg = PersistentMessage {
+            msg_id: transfer_id.clone(),
+            peer_mac: recipient_mac.clone(),
+            is_outgoing: true,
+            content: format!("[File: {}]", file_name),
+            timestamp: chrono_now_timestamp(),
+            status: MessageStatus::Pending,
+            file_type: file_type.clone(),
+            file_name: Some(file_name.clone()),
+            file_size: Some(file_size),
+            file_hash: Some(file_hash.clone()),
+            file_path: Some(file_path_str),
+        };
+        self.storage.append_message(recipient_mac.clone(), msg).await;
+
+        // 2. 异步尝试发射 Chunk（如果网络不可用，静默记录日志并由 Outbox 托管）
+        let engine = self.clone();
+        let recipient = recipient_mac.clone();
+        let tid = transfer_id.clone();
+        tokio::spawn(async move {
+            if let Err(e) = engine.dispatch_file_chunks(&recipient, &tid).await {
+                warn!(transfer_id = %tid, error = %e, "Initial file chunk dispatch failed (queued in outbox)");
+            }
+        });
+
+        // 立即返回 transfer_id
+        Ok(transfer_id)
+    }
+
+    /// 断点重传核心逻辑：读取对方 Ack 历史，仅把缺少的 Chunk 重发过去
+    async fn dispatch_file_chunks(&self, recipient_mac: &str, transfer_id: &str) -> Result<(), String> {
+        let record = self
+            .storage
+            .get_file_transfer(transfer_id)
+            .await
+            .ok_or_else(|| format!("Transfer ID {} not found", transfer_id))?;
+
+        let conn = self.get_or_connect(recipient_mac).await?;
+
+        // 1. 发送 Init 报文
+        let init_env = MessageEnvelope {
+            version: 1,
+            msg_id: Uuid::new_v4().to_string(),
+            sender_mac: self.self_mac.clone(),
+            payload: MessagePayload::FileTransferInit {
+                transfer_id: transfer_id.to_string(),
+                file_type: record.file_type,
+                file_name: record.file_name,
+                file_size: record.file_size,
+                total_chunks: record.total_chunks,
+                file_hash: record.file_hash.clone(),
+            },
+        };
+        conn.send_envelope(&init_env).await?;
+
+        // 2. 读取发送方已经被 Ack 成功的 Chunk 集合（用于断点续传）
+        let acked_chunks = self.storage.get_acked_outbound_chunks(transfer_id).await;
+
+        let path = PathBuf::from(&record.save_path);
+        let file_bytes = fs::read(&path).map_err(|e| format!("Failed to read file contents: {e}"))?;
+
+        const CHUNK_SIZE: usize = 64 * 1024;
+        let mut offset: u64 = 0;
+
+        for chunk_index in 0..record.total_chunks {
+            let start = (chunk_index as usize) * CHUNK_SIZE;
+            let end = std::cmp::min(start + CHUNK_SIZE, file_bytes.len());
+            let chunk_data = file_bytes[start..end].to_vec();
+            offset = start as u64;
+
+            // 断点续传：若之前此 Chunk 已接收到 Ack，直接跳过！
+            if acked_chunks.contains(&chunk_index) {
+                continue;
+            }
+
+            let mut chunk_hasher = Sha256::new();
+            chunk_hasher.update(&chunk_data);
+            let result = chunk_hasher.finalize();
+            let chunk_hash: String = result.iter().map(|b| format!("{:02x}", b)).collect();
+
+            let chunk_header = ChunkHeader {
+                transfer_id: transfer_id.to_string(),
+                chunk_uuid: Uuid::new_v4().to_string(),
+                chunk_index,
+                total_chunks: record.total_chunks,
+                offset,
+                chunk_hash,
+                file_hash: record.file_hash.clone(),
+            };
+
+            let chunk_env = MessageEnvelope {
+                version: 1,
+                msg_id: Uuid::new_v4().to_string(),
+                sender_mac: self.self_mac.clone(),
+                payload: MessagePayload::FileChunk {
+                    header: chunk_header,
+                    data: chunk_data,
+                },
+            };
+
+            if let Err(e) = conn.send_envelope(&chunk_env).await {
+                warn!(transfer_id = %transfer_id, chunk_index = chunk_index, error = %e, "Disconnect during chunk upload");
+                return Err(e);
+            }
+
+            self.emit_event(format!(
+                "FILE_SEND_PROGRESS:{}:{}",
+                transfer_id,
+                ((chunk_index + 1) as f32 / record.total_chunks as f32 * 100.0) as u32
+            )).await;
+        }
+
+        Ok(())
+    }
+
+    /// 自动重传该 Peer 未完成的文件传输任务
+    pub async fn resume_pending_file_transfers(&self, peer_mac: &str) {
+        let pending_transfers = self.storage.get_pending_outbound_transfers(peer_mac).await;
+        for record in pending_transfers {
+            info!(transfer_id = %record.transfer_id, peer_mac = %peer_mac, "Resuming file transfer task...");
+            let _ = self.dispatch_file_chunks(peer_mac, &record.transfer_id).await;
+        }
+    }
 }

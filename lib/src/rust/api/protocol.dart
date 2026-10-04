@@ -6,9 +6,9 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `emit_event`, `get_or_connect`, `handle_incoming_stream`, `handle_read_loop`, `setup_connection`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `MessageEnvelope`, `MessagePayload`, `PeerConnection`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `dispatch_file_chunks`, `emit_event`, `get_or_connect`, `handle_incoming_stream`, `handle_read_loop`, `init_db_tables`, `rebuild_schema`, `setup_connection`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ChunkHeader`, `MessageEnvelope`, `MessagePayload`, `PeerConnection`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 // These functions are ignored (category: IgnoreBecauseOwnerTyShouldIgnore): `send_envelope`
 
 Future<PlatformInt64> chronoNowTimestamp() =>
@@ -21,7 +21,13 @@ abstract class LocalStorage implements RustOpaqueInterface {
     required PersistentMessage msg,
   });
 
+  Future<void> clearFileTransferTrackers({required String transferId});
+
+  Future<Set<int>> getAckedOutboundChunks({required String transferId});
+
   Future<List<PeerRecord>> getAllPeers();
+
+  Future<FileTransferRecord?> getFileTransfer({required String transferId});
 
   Future<List<PersistentMessage>> getMessagesForPeer({required String peerMac});
 
@@ -29,13 +35,33 @@ abstract class LocalStorage implements RustOpaqueInterface {
 
   Future<List<PersistentMessage>> getPendingMessages({required String peerMac});
 
+  Future<List<FileTransferRecord>> getPendingOutboundTransfers({
+    required String peerMac,
+  });
+
+  Future<bool> hasMessage({required String msgId});
+
+  Future<void> insertFileTransfer({required FileTransferRecord record});
+
   Future<bool> markAcked({
     required String peerMac,
     required String targetMsgId,
   });
 
+  Future<void> markTransferCompleted({required String transferId});
+
   static Future<LocalStorage> open({required PathBuf dbPath}) =>
       RustLib.instance.api.crateApiProtocolLocalStorageOpen(dbPath: dbPath);
+
+  Future<int> recordChunkReceived({
+    required String transferId,
+    required int chunkIndex,
+  });
+
+  Future<void> recordOutboundChunkAck({
+    required String transferId,
+    required int chunkIndex,
+  });
 
   Future<void> setPeerOnlineStatus({
     required String mac,
@@ -68,7 +94,15 @@ abstract class NetworkEngine implements RustOpaqueInterface {
 
   Stream<String> registerNotifySink();
 
+  /// 自动重传该 Peer 未完成的文件传输任务
+  Future<void> resumePendingFileTransfers({required String peerMac});
+
   Future<void> runScanAndFlushCycle();
+
+  Future<String> sendFile({
+    required String recipientMac,
+    required String filePathStr,
+  });
 
   Future<void> sendMessage({
     required String recipientMac,
@@ -83,9 +117,82 @@ abstract class NetworkEngine implements RustOpaqueInterface {
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<PathBuf>>
 abstract class PathBuf implements RustOpaqueInterface {}
 
+class FileTransferRecord {
+  final String transferId;
+  final String peerMac;
+  final FileType fileType;
+  final String fileName;
+  final BigInt fileSize;
+  final int totalChunks;
+  final int receivedChunks;
+  final String fileHash;
+  final String savePath;
+  final bool isCompleted;
+  final bool isOutgoing;
+
+  const FileTransferRecord({
+    required this.transferId,
+    required this.peerMac,
+    required this.fileType,
+    required this.fileName,
+    required this.fileSize,
+    required this.totalChunks,
+    required this.receivedChunks,
+    required this.fileHash,
+    required this.savePath,
+    required this.isCompleted,
+    required this.isOutgoing,
+  });
+
+  @override
+  int get hashCode =>
+      transferId.hashCode ^
+      peerMac.hashCode ^
+      fileType.hashCode ^
+      fileName.hashCode ^
+      fileSize.hashCode ^
+      totalChunks.hashCode ^
+      receivedChunks.hashCode ^
+      fileHash.hashCode ^
+      savePath.hashCode ^
+      isCompleted.hashCode ^
+      isOutgoing.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FileTransferRecord &&
+          runtimeType == other.runtimeType &&
+          transferId == other.transferId &&
+          peerMac == other.peerMac &&
+          fileType == other.fileType &&
+          fileName == other.fileName &&
+          fileSize == other.fileSize &&
+          totalChunks == other.totalChunks &&
+          receivedChunks == other.receivedChunks &&
+          fileHash == other.fileHash &&
+          savePath == other.savePath &&
+          isCompleted == other.isCompleted &&
+          isOutgoing == other.isOutgoing;
+}
+
+enum FileType {
+  none,
+  image,
+  video,
+  generic;
+
+  Future<void> asStr() =>
+      RustLib.instance.api.crateApiProtocolFileTypeAsStr(that: this);
+
+  static Future<FileType> fromStr({required String s}) =>
+      RustLib.instance.api.crateApiProtocolFileTypeFromStr(s: s);
+}
+
 enum MessageStatus {
   pending,
-  acked;
+  acked,
+  failed;
 
   Future<void> asStr() =>
       RustLib.instance.api.crateApiProtocolMessageStatusAsStr(that: this);
@@ -140,6 +247,11 @@ class PersistentMessage {
   final String content;
   final PlatformInt64 timestamp;
   final MessageStatus status;
+  final FileType fileType;
+  final String? fileName;
+  final BigInt? fileSize;
+  final String? fileHash;
+  final String? filePath;
 
   const PersistentMessage({
     required this.msgId,
@@ -148,6 +260,11 @@ class PersistentMessage {
     required this.content,
     required this.timestamp,
     required this.status,
+    required this.fileType,
+    this.fileName,
+    this.fileSize,
+    this.fileHash,
+    this.filePath,
   });
 
   @override
@@ -157,7 +274,12 @@ class PersistentMessage {
       isOutgoing.hashCode ^
       content.hashCode ^
       timestamp.hashCode ^
-      status.hashCode;
+      status.hashCode ^
+      fileType.hashCode ^
+      fileName.hashCode ^
+      fileSize.hashCode ^
+      fileHash.hashCode ^
+      filePath.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -169,5 +291,10 @@ class PersistentMessage {
           isOutgoing == other.isOutgoing &&
           content == other.content &&
           timestamp == other.timestamp &&
-          status == other.status;
+          status == other.status &&
+          fileType == other.fileType &&
+          fileName == other.fileName &&
+          fileSize == other.fileSize &&
+          fileHash == other.fileHash &&
+          filePath == other.filePath;
 }
