@@ -48,7 +48,7 @@ class FilePickerUtil
   /// 拷贝文件至本地 App 沙盒 Documents 目录
   static Future<File> _copyToSandbox(File sourceFile, String originalName) async
   {
-    final docsDir = await getApplicationDocumentsDirectory();
+    final docsDir = await getApplicationSupportDirectory();
     final attachmentDir = Directory(p.join(docsDir.path, 'attachments'));
     if (!await attachmentDir.exists()) 
     {
