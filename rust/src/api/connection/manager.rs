@@ -1,8 +1,7 @@
-use super::traits::{ConnectionManager, ConnectionManagerHandle};
-use crate::api::connection::traits::PeerConnectionHandle;
+use super::traits::{ConnectionManager};
 use crate::api::engine::NetworkEngine;
 use crate::api::models::{MessageEnvelope, MessagePayload};
-use crate::api::storage::traits::{StorageRepository, StorageRepositoryHandle};
+use crate::api::storage::traits::{StorageRepository};
 use async_trait::async_trait;
 use flutter_rust_bridge::frb;
 use std::collections::HashMap;
@@ -169,41 +168,21 @@ impl ConnectionManager for TcpConnectionManager {
     async fn has_connection(&self, peer_mac: &str) -> bool {
         self.connections.read().await.contains_key(peer_mac)
     }
-}
 
-// =========================================================================
-// FRB Opaque 构造器及绑定包装层
-// =========================================================================
-
-pub struct TcpConnectionManagerHandle {
-    pub(crate) inner: Arc<TcpConnectionManager>,
-}
-
-impl TcpConnectionManagerHandle {
-    pub fn new(self_mac: String, storage_handle: &StorageRepositoryHandle) -> Self {
-        let manager = Arc::new(TcpConnectionManager::new(
-            self_mac,
-            Arc::clone(&storage_handle.inner),
-        ));
-        Self { inner: manager }
-    }
-
-    pub fn as_connection_manager(&self) -> ConnectionManagerHandle {
-        ConnectionManagerHandle {
-            inner: Arc::clone(&self.inner) as Arc<dyn ConnectionManager>,
+    async fn handle_message_payload(&self,
+                                    conn: &Arc<PeerConnection>,
+                                    current_peer_mac: &mut String,
+                                    env: &MessageEnvelope) -> Option<String> {
+        match &env.payload {
+            MessagePayload::Handshake { sender_mac } => {
+                *current_peer_mac = sender_mac.clone();
+                *conn.remote_mac.write().await = sender_mac.clone();
+                self.insert_connection(sender_mac.clone(), Arc::clone(&conn)).await;
+                self.storage.set_peer_online_status(&sender_mac, true).await;
+                Some("PEER_LIST_UPDATED".into())
+            }
+            _ => None
         }
     }
-
-    pub async fn get_or_connect(&self, peer_mac: String) -> Result<PeerConnectionHandle, String> {
-        let conn = self.inner.get_or_connect(&peer_mac).await?;
-        Ok(PeerConnectionHandle { inner: conn })
-    }
-
-    pub async fn remove_connection(&self, peer_mac: String) {
-        self.inner.remove_connection(&peer_mac).await;
-    }
-
-    pub async fn has_connection(&self, peer_mac: String) -> bool {
-        self.inner.has_connection(&peer_mac).await
-    }
 }
+

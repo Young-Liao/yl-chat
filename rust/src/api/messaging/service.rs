@@ -1,13 +1,14 @@
-use super::traits::{MessagingService, MessagingServiceHandle};
-use crate::api::connection::traits::{ConnectionManager, ConnectionManagerHandle};
+use super::traits::{MessagingService};
+use crate::api::connection::traits::{ConnectionManager};
 use crate::api::models::{FileType, MessageEnvelope, MessagePayload, MessageStatus, PersistentMessage};
-use crate::api::storage::traits::{StorageRepository, StorageRepositoryHandle};
+use crate::api::storage::traits::{StorageRepository};
 use crate::api::utils::chrono_now_timestamp;
 use async_trait::async_trait;
 use std::sync::Arc;
 use flutter_rust_bridge::frb;
 use tracing::{error, info, warn};
 use uuid::Uuid;
+use crate::api::connection::manager::PeerConnection;
 
 #[frb(ignore)]
 pub struct DefaultMessagingService {
@@ -104,6 +105,65 @@ impl MessagingService for DefaultMessagingService {
             Err(e) => {
                 warn!(peer_mac = %peer_mac, error = %e, "Unable to flush outbox: connection failed");
             }
+        }
+    }
+
+
+    async fn handle_message_payload(&self, conn: &Arc<PeerConnection>, current_peer_mac: &str, env: &MessageEnvelope) -> Option<String> {
+        match &env.payload {
+            MessagePayload::ChatMessage { content } => {
+                let event;
+
+                if !self.storage.has_message(&env.msg_id).await {
+                    let msg = PersistentMessage {
+                        msg_id: env.msg_id.clone(),
+                        peer_mac: env.sender_mac.clone(),
+                        is_outgoing: false,
+                        content: content.clone(),
+                        timestamp: chrono_now_timestamp(),
+                        status: MessageStatus::Acked,
+                        file_type: FileType::None,
+                        file_name: None,
+                        file_size: None,
+                        file_hash: None,
+                        file_path: None,
+                        sent_chunks: 0,
+                        total_chunks: 0,
+                    };
+
+                    self.storage.append_message(env.sender_mac.clone(), msg).await;
+                    event = Some(format!("NEW_MSG:{}", env.sender_mac));
+                } else {
+                    event = None
+                }
+
+                let ack = MessageEnvelope {
+                    version: 1,
+                    msg_id: Uuid::new_v4().to_string(),
+                    sender_mac: self.self_mac.clone(),
+                    payload: MessagePayload::Ack {
+                        target_msg_id: env.msg_id.clone(),
+                    },
+                };
+
+                let _ = conn.send_envelope(&ack).await;
+
+                event
+            },
+            MessagePayload::Ack { target_msg_id } => {
+                let target = if !current_peer_mac.is_empty() {
+                    &current_peer_mac.to_string()
+                } else {
+                    &env.sender_mac
+                };
+
+                if self.storage.mark_acked(target, &target_msg_id).await {
+                    Some(format!("ACK:{}", target))
+                } else {
+                    None
+                }
+            }
+            _ => None
         }
     }
 }

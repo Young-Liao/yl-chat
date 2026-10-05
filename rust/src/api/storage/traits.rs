@@ -15,11 +15,13 @@ pub trait StorageRepository: Send + Sync {
 
     // Message 操作
     async fn has_message(&self, msg_id: &str) -> bool;
+    async fn get_messages_by_id(&self, msg_id: &str) -> Option<PersistentMessage>;
     async fn append_message(&self, peer_mac: String, msg: PersistentMessage);
     async fn mark_acked(&self, peer_mac: &str, target_msg_id: &str) -> bool;
     async fn get_messages_for_peer(&self, peer_mac: &str) -> Vec<PersistentMessage>;
     async fn get_pending_messages(&self, peer_mac: &str) -> Vec<PersistentMessage>;
     async fn update_message_progress(&self, msg_id: &str, sent_chunks: u32);
+    async fn update_message_information(&self, msg_id: &str, info: PersistentMessage); // TODO
 
     // FileTransfer 操作
     async fn insert_file_transfer(&self, record: FileTransferRecord);

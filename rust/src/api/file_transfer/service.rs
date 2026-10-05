@@ -1,12 +1,12 @@
-use super::traits::{FileTransferService, FileTransferServiceHandle};
-use crate::api::connection::traits::{ConnectionManager, ConnectionManagerHandle};
+use super::traits::{FileTransferService};
+use crate::api::connection::traits::{ConnectionManager};
 use crate::api::models::{
     ChunkHeader, FileType, FileTransferRecord, MessageEnvelope, MessagePayload, MessageStatus, PersistentMessage,
 };
-use crate::api::storage::traits::{StorageRepository, StorageRepositoryHandle};
+use crate::api::storage::traits::{StorageRepository};
 use crate::api::utils::chrono_now_timestamp;
 use async_trait::async_trait;
-use flutter_rust_bridge::frb;
+use flutter_rust_bridge::{frb, transfer};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::fs;
@@ -15,6 +15,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{error, info, warn};
 use uuid::Uuid;
+use crate::api::connection::manager::PeerConnection;
 
 /// 利用 RAII Guard 模式，确保函数退出（无论正常 return 还是 `?` 抛错退出）时都能自动释放锁
 struct TransferGuard {
@@ -75,14 +76,50 @@ impl DefaultFileTransferService {
 #[frb(ignore)]
 #[async_trait]
 impl FileTransferService for DefaultFileTransferService {
+
+    async fn pre_send_file(&self, recipient_mac: String, ori_path: String) -> Result<String, String> {
+        let path = PathBuf::from(&ori_path);
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+        let file_type = match ext.as_str() {
+            "jpg" | "jpeg" | "png" | "gif" | "webp" => FileType::Image,
+            "mp4" | "mkv" | "mov" | "avi" => FileType::Video,
+            _ => FileType::Generic,
+        };
+        let transfer_id = Uuid::new_v4().to_string();
+
+        // B. 持久化 PersistentMessage (Status 为 Pending，sent_chunks 为 0)
+        let msg = PersistentMessage {
+            msg_id: transfer_id.clone(),
+            peer_mac: recipient_mac.clone(),
+            is_outgoing: true,
+            content: format!("[File: {}]", ori_path),
+            timestamp: chrono_now_timestamp(),
+            status: MessageStatus::Pending,
+            file_type: file_type.clone(),
+            file_name: None,
+            file_size: None,
+            file_hash: None,
+            file_path: Some(ori_path),
+            sent_chunks: 0, // 初始为 0
+            total_chunks: 0,
+        };
+        self.storage.append_message(recipient_mac.clone(), msg).await;
+
+        Ok(transfer_id)
+    }
+
     /// 1. 发送文件入口：仅做本地持久化（落盘），随后触发 Outbox 刷新
-    async fn send_file(&self, recipient_mac: String, file_path_str: String) -> Result<String, String> {
+    async fn send_file(&self, transfer_id: String, file_path_str: String) -> Result<(), String> {
+        let message = self.storage.get_messages_by_id(&transfer_id)
+            .await
+            .ok_or(format!("Transfer id not found: {transfer_id}"))?;
+
         let path = PathBuf::from(&file_path_str);
         if !path.exists() {
             return Err(format!("File does not exist: {}", file_path_str));
         }
 
-        let file_name = path
+        let file_name_fallback = || path
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("unknown_file")
@@ -97,12 +134,6 @@ impl FileTransferService for DefaultFileTransferService {
         let result = hasher.finalize();
         let file_hash: String = result.iter().map(|b| format!("{:02x}", b)).collect();
 
-        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-        let file_type = match ext.as_str() {
-            "jpg" | "jpeg" | "png" | "gif" | "webp" => FileType::Image,
-            "mp4" | "mkv" | "mov" | "avi" => FileType::Video,
-            _ => FileType::Generic,
-        };
 
         const CHUNK_SIZE: usize = 64 * 1024; // 64KB
         let total_chunks = if file_size == 0 {
@@ -111,14 +142,12 @@ impl FileTransferService for DefaultFileTransferService {
             ((file_size as usize + CHUNK_SIZE - 1) / CHUNK_SIZE) as u32
         };
 
-        let transfer_id = Uuid::new_v4().to_string();
-
         // A. 持久化 FileTransferRecord
         let record = FileTransferRecord {
             transfer_id: transfer_id.clone(),
-            peer_mac: recipient_mac.clone(),
-            file_type: file_type.clone(),
-            file_name: file_name.clone(),
+            peer_mac: message.peer_mac.clone(),
+            file_type: message.file_type.clone(),
+            file_name: message.file_name.unwrap_or_else(file_name_fallback),
             file_size,
             total_chunks,
             received_chunks: 0,
@@ -129,27 +158,9 @@ impl FileTransferService for DefaultFileTransferService {
         };
         self.storage.insert_file_transfer(record).await;
 
-        // B. 持久化 PersistentMessage (Status 为 Pending，sent_chunks 为 0)
-        let msg = PersistentMessage {
-            msg_id: transfer_id.clone(),
-            peer_mac: recipient_mac.clone(),
-            is_outgoing: true,
-            content: format!("[File: {}]", file_name),
-            timestamp: chrono_now_timestamp(),
-            status: MessageStatus::Pending,
-            file_type: file_type.clone(),
-            file_name: Some(file_name.clone()),
-            file_size: Some(file_size),
-            file_hash: Some(file_hash.clone()),
-            file_path: Some(file_path_str),
-            sent_chunks: 0, // 初始为 0
-            total_chunks,
-        };
-        self.storage.append_message(recipient_mac.clone(), msg).await;
-
         // C. Outbox 即时异步触发刷新
         let ft = Arc::new(self.clone_service());
-        let recipient = recipient_mac.clone();
+        let recipient = message.peer_mac.clone();
         let tid = transfer_id.clone();
 
         tokio::spawn(async move {
@@ -161,8 +172,7 @@ impl FileTransferService for DefaultFileTransferService {
                 );
             }
         });
-
-        Ok(transfer_id)
+        Ok(())
     }
 
     /// 2. Outbox 核心分片推送与重传机制（支持断点续传与消息进度更新）
@@ -307,6 +317,216 @@ impl FileTransferService for DefaultFileTransferService {
                 error!(transfer_id = %record.transfer_id, error = %e, "Failed to resume file transfer");
                 break; // 如果网络失败则中断后续处理
             }
+        }
+    }
+
+    async fn handle_message_payload(&self, current_peer_mac: &str, conn: &Arc<PeerConnection>, env: &MessageEnvelope) -> Option<String> {
+        match env.payload.clone() {
+            MessagePayload::FileTransferInit {
+                transfer_id,
+                file_type,
+                file_name,
+                file_size,
+                total_chunks,
+                file_hash,
+            } => {
+                let peer_mac = if !current_peer_mac.is_empty() {
+                    current_peer_mac.to_string()
+                } else {
+                    env.sender_mac.clone()
+                };
+
+                let download_dir = std::env::temp_dir().join("p2p_downloads");
+                let _ = tokio::fs::create_dir_all(&download_dir).await;
+                let target_path = download_dir.join(&file_name).to_string_lossy().to_string();
+
+                let record = FileTransferRecord {
+                    transfer_id: transfer_id.clone(),
+                    peer_mac: peer_mac.clone(),
+                    file_type: file_type.clone(),
+                    file_name: file_name.clone(),
+                    file_size: file_size.clone(),
+                    total_chunks: total_chunks.clone(),
+                    received_chunks: 0,
+                    file_hash: file_hash.clone(),
+                    save_path: target_path,
+                    is_completed: false,
+                    is_outgoing: false,
+                };
+
+                self.storage.insert_file_transfer(record).await;
+
+                let msg = PersistentMessage {
+                    msg_id: transfer_id.clone(),
+                    peer_mac: peer_mac.clone(),
+                    is_outgoing: false,
+                    content: format!("[File: {}]", file_name),
+                    timestamp: chrono_now_timestamp(),
+                    status: MessageStatus::Acked,
+                    file_type: file_type.clone(),
+                    file_name: Some(file_name.clone()),
+                    file_size: Some(file_size.clone()),
+                    file_hash: Some(file_hash.clone()),
+                    file_path: None,
+                    sent_chunks: 0,
+                    total_chunks: total_chunks.clone(),
+                };
+                self.storage.append_message(peer_mac.clone(), msg).await;
+
+                let ack = MessageEnvelope {
+                    version: 1,
+                    msg_id: Uuid::new_v4().to_string(),
+                    sender_mac: self.self_mac.clone(),
+                    payload: MessagePayload::Ack {
+                        target_msg_id: transfer_id.clone(),
+                    },
+                };
+                let _ = conn.send_envelope(&ack).await;
+
+                None
+            }
+            MessagePayload::FileChunk { header, data } => {
+                let transfer = self.storage.get_file_transfer(&header.transfer_id).await;
+                let ret_message;
+
+                if let Some(record) = transfer {
+                    let path = record.save_path.clone();
+                    let offset = header.offset;
+                    let chunk_data = data;
+
+
+                    let write_res = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+                        use std::fs::OpenOptions;
+                        use std::io::{Seek, SeekFrom, Write};
+
+                        let mut file = OpenOptions::new()
+                            .create(true)
+                            .write(true)
+                            .open(&path)?;
+
+                        file.seek(SeekFrom::Start(offset))?;
+                        file.write_all(&chunk_data)?;
+                        Ok(())
+                    })
+                        .await;
+
+                    if let Ok(Ok(())) = write_res {
+                        if let Ok(recv_count) = self
+                            .storage
+                            .record_chunk_received(header.transfer_id.clone(), header.chunk_index)
+                            .await
+                        {
+                            let chunk_ack = MessageEnvelope {
+                                version: 1,
+                                msg_id: Uuid::new_v4().to_string(),
+                                sender_mac: self.self_mac.clone(),
+                                payload: MessagePayload::ChunkAck {
+                                    transfer_id: header.transfer_id.clone(),
+                                    chunk_index: header.chunk_index,
+                                },
+                            };
+                            let _ = conn.send_envelope(&chunk_ack).await;
+
+                            if recv_count >= record.total_chunks {
+                                // let msg = PersistentMessage {
+                                //     msg_id: header.transfer_id.clone(),
+                                //     peer_mac: record.peer_mac.clone(),
+                                //     is_outgoing: false,
+                                //     content: format!("[File: {}]", record.file_name),
+                                //     timestamp: chrono_now_timestamp(),
+                                //     status: MessageStatus::Acked,
+                                //     file_type: record.file_type,
+                                //     file_name: Some(record.file_name),
+                                //     file_size: Some(record.file_size),
+                                //     file_hash: Some(record.file_hash),
+                                //     file_path: Some(record.save_path),
+                                //     sent_chunks: record.total_chunks,
+                                //     total_chunks: record.total_chunks,
+                                // };
+                                // self.storage.append_message(record.peer_mac.clone(), msg).await;
+                                self.storage.update_message_progress(&header.transfer_id, record.total_chunks).await;
+
+                                let complete_ack = MessageEnvelope {
+                                    version: 1,
+                                    msg_id: Uuid::new_v4().to_string(),
+                                    sender_mac: self.self_mac.clone(),
+                                    payload: MessagePayload::FileCompleteAck {
+                                        transfer_id: header.transfer_id.clone(),
+                                    },
+                                };
+                                let _ = conn.send_envelope(&complete_ack).await;
+
+                                ret_message = Some(format!("FILE_COMPLETE:{}", header.transfer_id))
+                                // self.emit_event(format!("NEW_MSG:{}", record.peer_mac)).await;
+                            } else {
+                                self.storage.update_message_progress(&header.transfer_id, recv_count).await;
+                                ret_message = Some(format!(
+                                    "FILE_PROGRESS:{}:{}",
+                                    header.transfer_id,
+                                    (recv_count as f32 / record.total_chunks as f32 * 100.0) as u32
+                                ))
+                            };
+                        }
+                        else {
+                            ret_message = None
+                        }
+                    } else {
+                        ret_message = None
+                    }
+                } else {
+                    ret_message = None
+                }
+                ret_message
+            }
+            // 1. 收到分片 Ack：记录已 Ack 的 Chunk，并通知 UI 进度变化
+            MessagePayload::ChunkAck { transfer_id, chunk_index } => {
+                // 1. 记录 outbound chunk ack 到数据库/Set
+                self.storage.record_outbound_chunk_ack(transfer_id.clone(), chunk_index).await;
+
+                // 2. 获取当前实际已确认 Ack 的分片总数（精确计算）
+                let acked_set = self.storage.get_acked_outbound_chunks(&transfer_id).await;
+                let acked_count = acked_set.len() as u32;
+
+                let event;
+
+                if let Some((_, total_chunks)) = self.storage.get_transfer_progress(&transfer_id).await {
+                    if total_chunks > 0 {
+                        // 3. 用真实的 acked_count 更新数据库中的进度
+                        let _ = self.storage.update_transfer_progress(&transfer_id, acked_count).await;
+                        self.storage.update_message_progress(&transfer_id, acked_count).await;
+
+                        // 4. 计算真实百分比并发送事件给 Flutter
+                        let progress_pct = ((acked_count as f32 / total_chunks as f32) * 100.0) as u32;
+                        event = Some(format!("FILE_PROGRESS:{}:{}", transfer_id, progress_pct));
+                    } else {
+                        event = None
+                    }
+                } else {
+                    event = None
+                }
+                event
+            }
+
+            // 2. 收到整文件完成 Ack：标记文件与 Message 为 Acked（完成）
+            MessagePayload::FileCompleteAck { transfer_id } => {
+                let target = if !current_peer_mac.is_empty() {
+                    current_peer_mac.to_string()
+                } else {
+                    env.sender_mac.clone()
+                };
+
+                // 标记 FileTransfer 完成并清理 Tracker
+                self.storage.mark_transfer_completed(&transfer_id).await;
+                self.storage.clear_file_transfer_trackers(&transfer_id).await;
+
+                // 将 PersistentMessage 状态从 Pending 改为 Acked
+                if self.storage.mark_acked(&target, &transfer_id).await {
+                    // self.emit_event(format!("ACK:{}", target)).await;
+                }
+
+                Some(format!("FILE_SENT:{}", transfer_id))
+            }
+            _ => None
         }
     }
 }

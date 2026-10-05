@@ -320,6 +320,55 @@ impl StorageRepository for LocalStorage {
             .unwrap_or(false)
     }
 
+
+    async fn get_messages_by_id(&self, msg_id: &str) -> Option<PersistentMessage> {
+        let msg_id_owned = msg_id.to_string();
+
+        self.db
+            .call(move |conn| {
+                let mut stmt = conn.prepare(
+                    "SELECT
+                    msg_id, peer_mac, is_outgoing, content, timestamp,
+                    status, file_type, file_name, file_size, file_hash,
+                    file_path, sent_chunks, total_chunks
+                 FROM messages
+                 WHERE msg_id = ?1
+                 LIMIT 1",
+                )?;
+
+                let mut rows = stmt.query(params![msg_id_owned])?;
+
+                if let Some(row) = rows.next()? {
+                    // 假设 status 和 file_type 在数据库中存为 String
+                    // 如果实现了 rusqlite 的 FromSql，可以直接 row.get::<_, MessageStatus>(5)
+                    let status_str: String = row.get(5)?;
+                    let file_type_str: String = row.get(6)?;
+
+                    let msg = PersistentMessage {
+                        msg_id: row.get(0)?,
+                        peer_mac: row.get(1)?,
+                        is_outgoing: row.get(2)?,
+                        content: row.get(3)?,
+                        timestamp: row.get(4)?,
+                        // 这里进行 enum 的转换（或使用 serde_json::from_str / custom TryFrom）
+                        status: MessageStatus::from_str(&status_str),
+                        file_type: FileType::from_str(&file_type_str),
+                        file_name: row.get(7)?,
+                        file_size: row.get(8)?,
+                        file_hash: row.get(9)?,
+                        file_path: row.get(10)?,
+                        sent_chunks: row.get(11)?,
+                        total_chunks: row.get(12)?,
+                    };
+                    Ok(Some(msg))
+                } else {
+                    Ok(None)
+                }
+            })
+            .await
+            .unwrap_or(None)
+    }
+
     async fn append_message(&self, peer_mac: String, msg: PersistentMessage) {
         info!(msg_id = %msg.msg_id, peer_mac = %peer_mac, "Persisting message to SQLite");
 
